@@ -3,6 +3,7 @@
 //   writes view ('sky' on back)
 import { renderCutout } from './cutout.js';
 import { shiftText, fmtRA, fmtDec } from '../sky/coords.js';
+import { posAt, observed, hasPos } from '../candidates/format.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
@@ -25,7 +26,7 @@ export function mountCompare(el, store) {
           <div class="corner l cmp-la"></div><div class="corner r cmp-lb"></div>
         </div>
         <div class="cmp-empty" hidden>
-          <p>Pick a mover on the sky or in the list, then open Compare.</p>
+          <p class="cmp-empty-msg">Pick a mover on the sky or in the list, then open Compare.</p>
           <button type="button" class="cmp-back2">Back to sky</button>
         </div>
       </div>
@@ -73,9 +74,11 @@ export function mountCompare(el, store) {
     wrap.setAttribute('aria-valuenow', String(Math.round(wipeX * 100)));
   }
   function draw() {
-    const c = store.selected();
+    const sel = store.selected(), c = hasPos(sel) ? sel : null; // nothing to compare without a position
     empty.hidden = !!c; wrap.hidden = !c; q('.cmp-side').hidden = !c; blinkBtn.disabled = !c;
-    if (!c) { q('.cmp-name').textContent = 'Compare'; q('.cmp-tag').textContent = ''; return; }
+    q('.cmp-empty-msg').textContent = sel && !c ? `${sel.name || sel.id} has no positions to compare yet.`
+      : 'Pick a mover on the sky or in the list, then open Compare.';
+    if (!c) { stopBlink(); q('.cmp-name').textContent = sel ? (sel.name || sel.id) : 'Compare'; q('.cmp-tag').textContent = sel ? (sel.tag || '') : ''; return; }
     const W = ca.width;
     renderCutout(cga, W, c, cmpA);
     if (overlay === 'diff') {
@@ -93,8 +96,9 @@ export function mountCompare(el, store) {
     q('.cmp-lb').textContent = overlay === 'diff' ? 'Difference' : scanLabel(cmpB);
     q('.cmp-name').textContent = c.name; q('.cmp-tag').textContent = c.tag || '';
     q('.cmp-note').textContent = c.note || '';
-    const p = c.pos[Math.min(cmpB, c.pos.length) - 1];
-    q('.cmp-dl').innerHTML = `<dt>Position</dt><dd>${esc(fmtRA(p[0]))}, ${esc(fmtDec(p[1]))}</dd><dt>Shift</dt><dd>${esc(shiftText(c.pos))}</dd>`
+    const p = posAt(c, cmpB);
+    const posTxt = p ? `${fmtRA(p[0])}, ${fmtDec(p[1])}` : `not observed in ${scanLabel(cmpB)}`;
+    q('.cmp-dl').innerHTML = `<dt>Position</dt><dd>${esc(posTxt)}</dd><dt>Shift</dt><dd>${esc(shiftText(observed(c)))}</dd>`
       + `<dt>Peak band</dt><dd>${esc(c.band || '—')}</dd><dt>Status</dt><dd>${esc(c.status)}</dd>`
       + (c.match ? `<dt>Match</dt><dd>${esc(c.match)}</dd>` : '');
     wrap.setAttribute('aria-label', `Wipe between ${scanLabel(cmpA)} and ${scanLabel(cmpB)} for ${c.name}`);
@@ -117,7 +121,7 @@ export function mountCompare(el, store) {
 
   function stopBlink() { if (!blinkTimer) return; clearInterval(blinkTimer); blinkTimer = null; blinkBtn.setAttribute('aria-pressed', 'false'); applyWipe(); }
   function startBlink() {
-    if (!store.selected()) return;
+    if (!hasPos(store.selected())) return;
     blinkBtn.setAttribute('aria-pressed', 'true'); let on = false; wipe.hidden = true;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     blinkTimer = setInterval(() => { on = !on; cb.style.clipPath = `inset(0 0 0 ${on ? 0 : 100}%)`; }, reduce ? 1200 : 500);
@@ -129,7 +133,7 @@ export function mountCompare(el, store) {
   window.addEventListener('keydown', e => {
     if (store.get('view') !== 'compare' || e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
     const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
-    if (t && t.closest && t.closest('[role="dialog"]')) return;
+    if (document.querySelector('dialog[open], [role="dialog"]:not(dialog):not([hidden])') || (t && t.closest && t.closest('dialog, [role="dialog"]'))) return;
     if (e.key === 'b' || e.key === 'B') { blinkBtn.click(); e.preventDefault(); }
   });
 

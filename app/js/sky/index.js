@@ -1,9 +1,10 @@
 // Sky view: the three.js all-sky scene from the UI demo, driven entirely by the store.
-//   reads   candidates, filter.status, selectedId, scan, layers, view
+//   reads   candidates, filter (status + search, same predicate as the list), selectedId, scan, layers, view
 //   writes  selectedId (when a marker is picked)
 //   listens 'flyto' {ra (DEGREES), dec (deg), fov?}
 /* global THREE */
-import { toXYZ, yawPitchFor, raDecOf, unwrap, pad2 } from './coords.js';
+import { toXYZ, yawPitchFor, raDecOf, unwrap } from './coords.js';
+import { shortId, matches, posAt, observed, hasPos } from '../candidates/format.js';
 import { createBackdrop, makeRng, isLowEnd } from './backdrop.js';
 import { VIEW } from './config.js';
 
@@ -105,8 +106,8 @@ export function mountSky(el, store, opts = {}) {
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; texCache.set(key, t);
     return t;
   }
-  const labelOf = (c, i) => { const m = /(\d+)\s*$/.exec(c.name || c.id || ''); return m ? pad2(+m[1]) : pad2(i + 1); };
-  /** @type {Map<string, {sprite: THREE.Sprite, track: THREE.Group, c: object, label: string}>} */
+  const labelOf = c => shortId(c); // same short label as the Movers list ('03', or 'F' for a Field-added candidate)
+  /** @type {Map<string, {sprite: THREE.Sprite, track: THREE.Group, c: object, label: string, here: boolean}>} */
   let markers = new Map();
   function disposeGroup(g) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && !o.material.map) o.material.dispose(); }); g.clear(); }
   function buildMarkers() {
@@ -115,32 +116,32 @@ export function mountSky(el, store, opts = {}) {
     markers = new Map();
     const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
     const ptMat = new THREE.PointsMaterial({ color: 0xffffff, size: 4, sizeAttenuation: false, transparent: true, opacity: 0.6 });
-    (store.get('candidates') || []).forEach((c, i) => {
-      if (!c.pos || !c.pos.length) return;
-      const label = labelOf(c, i);
+    (store.get('candidates') || []).forEach(c => {
+      if (!hasPos(c)) return;
+      const label = labelOf(c);
       const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: reticleTex(label, false), transparent: true, depthWrite: false, depthTest: false }));
       s.center.set(0.25, 0.5); s.userData.id = c.id; markerGroup.add(s);
-      const pts = c.pos.map(p => v3(p[0], p[1], R_MARK));
+      const pts = observed(c).map(p => v3(p[0], p[1], R_MARK)); // scans without a position are skipped
       const tg = new THREE.Group();
       if (pts.length > 1) tg.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
       tg.add(new THREE.Points(new THREE.BufferGeometry().setFromPoints(pts), ptMat));
       trackGroup.add(tg);
-      markers.set(c.id, { sprite: s, track: tg, c, label });
+      markers.set(c.id, { sprite: s, track: tg, c, label, here: true });
     });
-    placeMarkers(); styleMarkers();
+    placeMarkers();
   }
-  const posAt = (c, scan) => c.pos[Math.min(Math.max(scan, 1), c.pos.length) - 1];
+  // a marker sits at the scan's position and is hidden on scans where the mover was not observed
   function placeMarkers() {
     const scan = store.get('scan') || 1;
-    markers.forEach(({ sprite, c }) => { const p = posAt(c, scan); sprite.position.copy(v3(p[0], p[1], R_MARK)); });
-    kick();
+    markers.forEach(m => { const p = posAt(m.c, scan); m.here = !!p; if (p) m.sprite.position.copy(v3(p[0], p[1], R_MARK)); });
+    styleMarkers();
   }
-  const visibleByFilter = c => { const st = (store.get('filter') || {}).status || 'all'; return st === 'all' || c.status === st; };
+  const visibleByFilter = c => matches(c, store.get('filter') || {}); // status filter and search, exactly as the list
   function styleMarkers() {
     const sel = store.get('selectedId'), layers = store.get('layers') || {};
-    markers.forEach(({ sprite, track, c, label }) => {
+    markers.forEach(({ sprite, track, c, label, here }) => {
       const show = visibleByFilter(c);
-      sprite.visible = show; track.visible = show && !!layers.tracks;
+      sprite.visible = show && here; track.visible = show && !!layers.tracks;
       const map = reticleTex(label, c.id === sel);
       if (sprite.material.map !== map) { sprite.material.map = map; sprite.material.needsUpdate = true; }
       sprite.renderOrder = c.id === sel ? 2 : 1;
@@ -217,7 +218,8 @@ export function mountSky(el, store, opts = {}) {
   window.addEventListener('keydown', e => {
     if (store.get('view') !== 'sky' || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
     const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
-    if (t && t.closest && t.closest('[role="dialog"], [role="listbox"], #panel')) return;
+    if (document.querySelector('dialog[open], [role="dialog"]:not(dialog):not([hidden])')) return; // a modal dialog owns the keys
+    if (t && t.closest && t.closest('dialog, [role="dialog"], [role="listbox"], #panel')) return;
     if (e.key === 'ArrowLeft') pan(1, 0); else if (e.key === 'ArrowRight') pan(-1, 0);
     else if (e.key === 'ArrowUp') pan(0, 1); else if (e.key === 'ArrowDown') pan(0, -1);
     else if (e.key === '+' || e.key === '=') zoom(0.75); else if (e.key === '-' || e.key === '_') zoom(1.33);
@@ -283,6 +285,10 @@ export function mountSky(el, store, opts = {}) {
     frames: () => frames,
     /** Screen position (px, relative to the stage) of a candidate's marker, or null if hidden / behind. */
     markerScreen(id) { const m = markers.get(id); if (!m || !m.sprite.visible) return null; camera.updateMatrixWorld(); return screenOf(m.sprite); },
+    /** The label drawn next to a candidate's marker (same as the list's short id), or null if it has no marker. */
+    markerLabel(id) { const m = markers.get(id); return m ? m.label : null; },
+    /** Whether a candidate's marker is shown (filter + search + observed in the current scan), wherever the camera is. */
+    markerShown(id) { const m = markers.get(id); return !!(m && m.sprite.visible); },
     ready: backdrop.ready,
     get backdrop() { return backdrop.kind; },
   };

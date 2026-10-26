@@ -27,12 +27,25 @@ const subs = new Map();
 
 export function get(key) { return key ? state[key] : state; }
 
+// A set() made from inside a subscriber is queued until the current notification finishes,
+// so every subscriber of one change sees the same value/prev and the changes apply in order.
+const queue = [];
+let notifying = false;
+
 export function set(key, value) {
-  if (state[key] === value) return;
-  const prev = state[key];
-  state[key] = value;
-  (subs.get(key) || []).forEach(fn => fn(value, prev));
-  (subs.get('*') || []).forEach(fn => fn(key, value, prev));
+  queue.push([key, value]);
+  if (notifying) return;
+  notifying = true;
+  try {
+    while (queue.length) {
+      const [k, v] = queue.shift();
+      if (state[k] === v) continue;
+      const prev = state[k];
+      state[k] = v;
+      (subs.get(k) || []).forEach(fn => fn(v, prev));
+      (subs.get('*') || []).forEach(fn => fn(k, v, prev));
+    }
+  } finally { notifying = false; }
 }
 
 /** Shallow-merge into an object-valued key (e.g. patch('filter', {sort:'shift'})). */
