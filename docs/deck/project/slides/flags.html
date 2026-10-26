@@ -1,0 +1,12 @@
+<section id="flags" data-transition="fade" style="background:#f3f1ec;color:#1a1e27;font-family:'Public Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:28px;letter-spacing:3px;text-transform:uppercase;color:#a84d17">Telling changes apart</p>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:80px;font-weight:700;line-height:1.1">Most things that change are not planets</h2>
+<table style="font-size:32px;color:#1a1e27;font-family:'Public Sans', Arial, sans-serif">
+<tr><th style="width:30%;text-align:left">What we see</th><th style="width:44%;text-align:left">How we tell</th><th style="width:26%;text-align:left">Verdict</th></tr>
+<tr><td>Moves, on a known orbit</td><td>Position agrees with JPL’s ephemeris</td><td>Known asteroid or comet</td></tr>
+<tr><td>Brightens, stays put</td><td>Same position, peak changes</td><td>Variable star</td></tr>
+<tr><td>One sharp pixel</td><td>Not shaped like a star’s image</td><td>Glitch: reject</td></tr>
+<tr style="background:#f7dcc6"><td><b>Moves slowly, no match</b></td><td>Star-shaped, consistent motion, no catalogue hit</td><td><b>Candidate</b></td></tr>
+</table>
+<aside>The Moving Sky demo runs exactly this sorting on a simulated field: a catalogued asteroid, a variable star, a cosmic-ray hit, and one faint slow mover planted at roughly 500 AU. A candidate still needs a third epoch and an orbit fit before it is anything.</aside>
+</section>

@@ -3,6 +3,7 @@
 _Last updated: 2026-10-25_
 
 ## Done
+- Pitch deck v1 published (9 slides, private): https://claude.ai/artifact/UAqhztF4edsXdn2mTzs6fw — source in docs/deck/. Demo slides have screenshot placeholders, filled after QA.
 - Repo initialised; baseline snapshots of both published artifacts committed (`artifacts/`, commit d7a194f). Checksums match the published versions.
 
 ## In progress
@@ -10,7 +11,6 @@ _Last updated: 2026-10-25_
 - Agent (a) `fix/flyto`: fly-to sign bug + interaction QA (incl. Scan 1 marker overlapping Blink)
 - Agent (b) `qa/mobile-a11y-perf`: phone layout, keyboard/focus/contrast, load-time perf
 - Agent (c) `docs/writeup`: docs/WRITEUP.md + docs/PITCH-OUTLINE.md
-- (d) Pitch deck: built by main agent directly as a Slides artifact (no separate agent needed)
 - Headless test harness: Chrome + playwright-core (in scratch, not a repo dependency) verified working
 
 ## Next
