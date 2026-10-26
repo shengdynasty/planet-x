@@ -3,7 +3,7 @@
 // Node >= 20, zero npm dependencies.  Run:  node server/index.mjs   (PORT env var, default 8787)
 import http from 'node:http';
 import zlib from 'node:zlib';
-import { scansAt, buildField, knownAt } from './lib/field.mjs';
+import { scansAt, buildField, knownAt, progress } from './lib/field.mjs';
 import { COLLECTIONS, SIA_URL } from './lib/irsa.mjs';
 import { SB_IDENT } from './lib/jpl.mjs';
 import { CACHE_DIR, upstreamLog, peekJSON, memoJSON } from './lib/net.mjs';
@@ -39,19 +39,20 @@ const pos = sp => ({ ra: num(sp, 'ra', { min: 0, max: 360 }), dec: num(sp, 'dec'
 // Built in the background because the first sb_ident queries take tens of seconds each.
 const pending = new Map();
 async function candidatesFor(ra, dec, size) {
-  const id = JSON.stringify(['cands-v1', ra, dec, size]);
+  const id = JSON.stringify(['cands-v2', ra, dec, size]); // v2: pos has one entry per scan (null = not observed)
   const hit = await peekJSON('cands', id);
   if (hit) return hit;
   if (!pending.has(id)) {
     pending.set(id, memoJSON('cands', id, async () => {
       const f = await buildField({ ra, dec, size });
-      const scanIds = [...new Set(f.epochs.map(e => e.scan))];
+      // One pos entry per survey scan (the app indexes pos[scan - 1]); null where the object wasn't in the field.
+      const scanIds = (f.surveyEpochs || []).map(e => e.id).sort((a, b) => a - b);
       const cands = f.known.map((k, n) => {
-        const perScan = scanIds.map(s => k.samples.find(sm => f.epochs[sm.i].scan === s)).filter(Boolean);
-        const pos = perScan.map(sm => { const ra = f.ra0 - (sm.x - f.N / 2) * f.scale / 3600 / Math.cos(f.dec0 * Math.PI / 180); const dec = f.dec0 - (sm.y - f.N / 2) * f.scale / 3600; return [+(ra / 15).toFixed(6), +dec.toFixed(6)]; });
+        const perScan = scanIds.map(s => k.samples.find(sm => f.epochs[sm.i].scan === s) || null);
+        const pos = perScan.map(sm => { if (!sm) return null; const ra = f.ra0 - (sm.x - f.N / 2) * f.scale / 3600 / Math.cos(f.dec0 * Math.PI / 180); const dec = f.dec0 - (sm.y - f.N / 2) * f.scale / 3600; return [+(ra / 15).toFixed(6), +dec.toFixed(6)]; });
         return {
           id: 'k' + String(n + 1).padStart(2, '0'), name: k.name, tag: `Known small body · ${k.name}`, status: 'Matched', pipelineStatus: 'Matched',
-          band: `${f.band} µm`, pos, scans: perScan.map(sm => f.epochs[sm.i].scan), match: k.name, simulated: false,
+          band: `${f.band} µm`, pos, scans: scanIds.filter((_, i) => perScan[i]), match: k.name, simulated: false,
           note: `JPL predicts this catalogued object inside the ${Math.round(f.sizeArcsec)}″ field (V≈${k.vmag ?? '?'}). This is an ephemeris prediction, not a confirmed pixel detection.`,
         };
       });
@@ -81,6 +82,10 @@ const routes = {
       mjd: num(sp, 't', { required: false, min: 60000, max: 70000 }),
     });
   },
+  // Cold field builds in progress, so the app can show what it is waiting for (warm requests never appear here).
+  '/api/progress': async () => ({
+    builds: [...progress.values()].map(p => ({ ...p, elapsedMs: Date.now() - p.started })),
+  }),
   '/api/known': async sp => {
     const { ra, dec } = pos(sp);
     const t = sp.get('t'); if (!t) throw Object.assign(new Error('Missing parameter t (MJD or ISO date)'), { status: 400 });

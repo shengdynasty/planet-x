@@ -87,6 +87,10 @@ function resample(cut, ra0, dec0, N) {
   return { frame: out, coverage: filled / (N * N), wave: w ? w.wave : null, bw: w ? w.bw : null, bunit: img.kv.BUNIT || null, zodi: !!zo };
 }
 
+/** Field builds in progress (cold cache), for GET /api/progress: id → {ra, dec, size, N, known, stage, done, total, started}. */
+export const progress = new Map();
+const building = new Map(); // id → Promise, so identical concurrent requests share one build
+
 /**
  * @param {{ra:number, dec:number, size?:number, det?:number, lam?:number, perEpoch?:number, known?:boolean, mjd?:number}} q
  *   mjd: anchor on the exposure nearest this time (e.g. to look at a known asteroid on a given night).
@@ -96,17 +100,23 @@ export async function buildField(q) {
   const N = Math.max(8, Math.round(size / SCALE));
   const det = q.lam ? null : (q.det || 1), perEpoch = Math.min(Math.max(q.perEpoch || 2, 1), 4);
   const id = JSON.stringify(['field-v2', +q.ra.toFixed(5), +q.dec.toFixed(5), N, det, q.lam || null, perEpoch, q.known !== false, q.mjd || null]);
-  return memoJSON('field', id, async () => {
+  if (building.has(id)) return building.get(id);
+  const run = memoJSON('field', id, async () => {
     const T = { start: Date.now() };
+    const P = { ra: q.ra, dec: q.dec, size, N, det, mjd: q.mjd || null, known: q.known !== false, stage: 'sia', label: 'Searching IRSA for SPHEREx exposures', done: 0, total: 0, started: T.start };
+    progress.set(id, P);
+    const step = (stage, label, total = 0) => Object.assign(P, { stage, label, done: 0, total });
+    try {
     const exps = await searchExposures(q.ra, q.dec);
     T.sia = Date.now() - T.start;
     if (!exps.length) { const e = new Error(`No SPHEREx exposures cover RA ${q.ra}, Dec ${q.dec} in ${'the searched collections'}`); e.status = 404; throw e; }
     const epochs = groupEpochs(exps);
     const detector = det || (exps.find(e => q.lam >= e.emMin && q.lam <= e.emMax) || {}).detector;
     if (!detector) { const e = new Error(`No detector covers ${q.lam} µm`); e.status = 400; throw e; }
+    step('headers', 'Reading exposure headers (wavelength at the target)', epochs.reduce((n, ep) => n + ep.exposures.filter(e => e.detector === detector).length, 0));
     for (const ep of epochs) {
       const mine = ep.exposures.filter(e => e.detector === detector);
-      ep.cands = await mapLimit(mine, 3, e => exposureAtTarget(e, q.ra, q.dec).catch(err => ({ ...e, error: err.message })));
+      ep.cands = await mapLimit(mine, 3, e => exposureAtTarget(e, q.ra, q.dec).catch(err => ({ ...e, error: err.message })).finally(() => P.done++));
     }
     T.headers = Date.now() - T.start;
     const marginPx = size / SCALE; // keep the cutout well inside the detector
@@ -119,10 +129,12 @@ export async function buildField(q) {
 
     const cutSize = Math.min(size * 1.5 + 8 * SCALE, 900);
     const knownWanted = q.known !== false;
+    step('cutouts', knownWanted ? 'Downloading cutouts from IRSA; asking JPL which known objects are in the field' : 'Downloading cutouts from IRSA', frames.length);
+    P.jpl = knownWanted ? { done: 0, total: frames.length } : null; // sb_ident: slow (18–70 s per frame, one at a time)
     const [res, sbs] = await Promise.all([
-      mapLimit(frames, 2, async f => resample(await cutout(f, q.ra, q.dec, cutSize), q.ra, q.dec, N)),
+      mapLimit(frames, 2, async f => { const r = resample(await cutout(f, q.ra, q.dec, cutSize), q.ra, q.dec, N); P.done++; return r; }),
       knownWanted ? mapLimit(frames, 1, f => smallBodies({ ra: q.ra, dec: q.dec, mjd: f.mjdAvg, halfWidthArcsec: size / 2, xobs: f.xobs })
-        .catch(err => ({ error: err.message, objects: [] }))) : Promise.resolve(null),
+        .catch(err => ({ error: err.message, objects: [] })).finally(() => P.jpl.done++)) : Promise.resolve(null),
     ]);
     T.cutouts = Date.now() - T.start;
 
@@ -147,6 +159,7 @@ export async function buildField(q) {
     // Refine with Horizons (precise ephemeris, one request per object for all frame times). sb_ident's first pass
     // is a quick two-body propagation with errors of tens of arcsec; Horizons agrees with SPHEREx to ~1″.
     const objs = [...known.values()].slice(0, 25);
+    if (objs.length) step('horizons', 'Refining known-object positions with JPL Horizons', objs.length);
     await mapLimit(objs, 2, async k => {
       try {
         const rd = await horizonsRaDec(k.name, frames.map(f => f.mjdAvg));
@@ -155,6 +168,7 @@ export async function buildField(q) {
         k.samples = rd.map(([ra, dec], i) => { const [x, y] = gridPixel(q.ra, q.dec, SCALE, N, ra, dec); return { i, t: epochsOut[i].t, x: +x.toFixed(2), y: +y.toFixed(2), ra, dec }; })
           .filter(s => s.x > -5 && s.y > -5 && s.x < N + 5 && s.y < N + 5);
       } catch (e) { k.horizonsError = e.message; }
+      P.done++;
     });
     for (const [name, k] of known) if (!k.samples.length) known.delete(name);
 
@@ -178,7 +192,10 @@ export async function buildField(q) {
       timingsMs: { sia: T.sia, headers: T.headers, total: Date.now() - T.start },
       builtAt: new Date().toISOString(),
     };
+    } finally { progress.delete(id); }
   });
+  building.set(id, run);
+  try { return await run; } finally { building.delete(id); }
 }
 
 /** Known small bodies near (ra, dec) at MJD or ISO time t. */
