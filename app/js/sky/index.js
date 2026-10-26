@@ -280,6 +280,8 @@ export function mountSky(el, store, opts = {}) {
   const api = {
     flyTo, reset, zoom, pan,
     centre() { camera.getWorldDirection(dir); return raDecOf([dir.x, dir.y, dir.z]); },
+    /** Where the camera is heading (= centre() once settled); use this to act on a fly-to that is still easing. */
+    target() { const cp = Math.cos(tPitch); return raDecOf([-Math.sin(tYaw) * cp, Math.sin(tPitch), -Math.cos(tYaw) * cp]); },
     get settled() { return settled; },
     get fov() { return camera.fov; },
     frames: () => frames,

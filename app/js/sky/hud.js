@@ -51,7 +51,7 @@ export function mountHud(store) {
     let raH, decD, key;
     if (p) { [raH, decD] = p; key = 'candidate:' + c.id; }
     else {
-      ({ raH, decD } = sky ? sky.centre() : VIEW.home);
+      ({ raH, decD } = sky ? (sky.target ? sky.target() : sky.centre()) : VIEW.home);
       key = `center:${raH.toFixed(3)},${decD.toFixed(2)}`;
     }
     const cur = store.get('field');
