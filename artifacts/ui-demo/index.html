@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planet X UI demo S.Y.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ---------- tokens: UI is strictly black / white / grey; only the sky has colour ---------- */
+  :root {
+    color-scheme: light dark;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --bg: #f4f4f4;
+    --panel: rgba(255,255,255,.84);
+    --panel-solid: #fff;
+    --edge: rgba(0,0,0,.12);
+    --ink: #111; --ink-2: #666; --ink-3: #9a9a9a;
+    --fill: #111; --fill-ink: #fff;
+    --font: "Inter", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000; --panel: rgba(0,0,0,.64); --panel-solid: #0c0c0c; --edge: rgba(255,255,255,.14);
+      --ink: #f2f2f2; --ink-2: #a0a0a0; --ink-3: #6a6a6a; --fill: #f2f2f2; --fill-ink: #000;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #000; --panel: rgba(0,0,0,.64); --panel-solid: #0c0c0c; --edge: rgba(255,255,255,.14);
+    --ink: #f2f2f2; --ink-2: #a0a0a0; --ink-3: #6a6a6a; --fill: #f2f2f2; --fill-ink: #000;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 13px; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  *, *::before, *::after { box-sizing: inherit; }
+  button, input { font: inherit; }
+
+  #stage { position: fixed; inset: 0; background: #000; cursor: grab; touch-action: none; }
+  #stage.dragging { cursor: grabbing; }
+  canvas { display: block; }
+  #stage canvas { width: 100%; height: 100%; }
+
+  .hud { position: fixed; z-index: 2; }
+  .glass { background: var(--panel); border: 1px solid var(--edge); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+
+  button {
+    font-size: 12px; color: var(--ink); background: transparent;
+    border: 1px solid var(--edge); border-radius: 6px; padding: 6px 10px; cursor: pointer; line-height: 1;
+  }
+  button:hover { border-color: var(--ink-3); }
+  button[aria-pressed="true"] { background: var(--fill); color: var(--fill-ink); border-color: transparent; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  button:disabled { opacity: .4; cursor: default; }
+  .icon { width: 28px; height: 28px; padding: 0; display: inline-grid; place-items: center; }
+  .ghost { border-color: transparent; color: var(--ink-2); }
+  .ghost:hover { color: var(--ink); }
+  .seg { display: inline-flex; border: 1px solid var(--edge); border-radius: 7px; padding: 2px; gap: 2px; }
+  .seg button { border: 0; border-radius: 5px; }
+  input[type="text"] { background: transparent; color: var(--ink); border: 1px solid var(--edge); border-radius: 6px; padding: 6px 9px; font-size: 12px; width: 100%; }
+  input::placeholder { color: var(--ink-3); }
+
+  /* ---------- top bar ---------- */
+  #top { top: calc(env(safe-area-inset-top, 0px) + 14px); left: 16px; right: 16px; display: flex; align-items: center; gap: 10px; pointer-events: none; }
+  #top > * { pointer-events: auto; }
+  #title { font-weight: 500; color: #f2f2f2; margin-right: 6px; white-space: nowrap; }
+  #views { padding: 2px; border-radius: 8px; }
+  #goto { flex: 1; max-width: 300px; display: flex; gap: 6px; }
+  #goto input { background: var(--panel); backdrop-filter: blur(16px); }
+  #spacer { flex: 1; }
+  #readout { font-variant-numeric: tabular-nums; color: #9a9a9a; display: flex; gap: 10px; align-items: center; white-space: nowrap; }
+  #readout b { color: #f2f2f2; font-weight: 500; }
+
+  /* ---------- right panel ---------- */
+  #panel {
+    top: calc(env(safe-area-inset-top, 0px) + 54px); right: 16px; width: 280px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 86px);
+    border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;
+  }
+  #panel header { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 10px 8px 14px; border-bottom: 1px solid var(--edge); }
+  #panel header span { font-weight: 500; }
+  #filters { display: flex; gap: 2px; }
+  #filters button { padding: 4px 8px; font-size: 11px; }
+  #list { list-style: none; margin: 0; padding: 6px; overflow: auto; flex: 0 1 auto; }
+  #list li { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; padding: 8px; border-radius: 6px; cursor: pointer; color: var(--ink-2); }
+  #list li:hover { background: var(--edge); }
+  #list li[aria-selected="true"] { color: var(--ink); background: var(--edge); }
+  #list li[hidden] { display: none; }
+  #list .n { font-variant-numeric: tabular-nums; color: var(--ink-3); }
+  #list .s { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+  #list li[aria-selected="true"] .n, #list li[aria-selected="true"] .s { color: var(--ink-2); }
+  #empty { padding: 18px 14px; color: var(--ink-3); display: none; }
+
+  #detail { border-top: 1px solid var(--edge); padding: 12px 14px 14px; display: none; overflow: auto; }
+  #detail.show { display: block; }
+  #detail h2 { margin: 0; font-size: 13px; font-weight: 500; }
+  #detail .tag { color: var(--ink-2); margin-top: 2px; }
+  #cut { margin: 12px 0 6px; width: 100%; aspect-ratio: 1; border-radius: 6px; background: #000; border: 1px solid var(--edge); display: block; cursor: zoom-in; }
+  #cutlabel { display: flex; justify-content: space-between; color: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+  #detail dl { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; }
+  #detail dt { color: var(--ink-3); }
+  #detail dd { margin: 0; font-variant-numeric: tabular-nums; }
+  #detail p { margin: 10px 0 0; color: var(--ink-2); line-height: 1.45; }
+  #detail .row { display: flex; gap: 6px; margin-top: 12px; }
+
+  /* ---------- bottom: timeline + controls ---------- */
+  #bottom { left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); display: flex; gap: 10px; align-items: stretch; pointer-events: none; }
+  #bottom > * { pointer-events: auto; }
+  #timeline { flex: 1; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 14px; min-width: 0; }
+  #scans { flex: 1; position: relative; height: 34px; min-width: 0; }
+  #scans .rail { position: absolute; left: 7px; right: 7px; top: 8px; height: 1px; background: var(--edge); }
+  .scan { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 0; padding: 0; color: var(--ink-3); cursor: pointer; white-space: nowrap; }
+  .scan i { width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--ink-3); display: block; background: var(--panel-solid); }
+  .scan.has i { border-color: var(--ink); }
+  .scan[aria-pressed="true"] i { background: var(--fill); border-color: var(--fill); }
+  .scan[aria-pressed="true"] { color: var(--ink); }
+  .scan.pending { opacity: .45; cursor: default; }
+  .scan.pending i { border-style: dashed; }
+  .scan small { font-size: 11px; }
+  #ctl { display: flex; gap: 6px; align-items: center; border-radius: 10px; padding: 8px; }
+
+  /* ---------- compare mode ---------- */
+  #compare { position: fixed; inset: 0; z-index: 3; display: none; background: var(--bg); }
+  #compare.show { display: grid; grid-template-rows: auto 1fr; }
+  #cmp-top { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--edge); }
+  #cmp-top h2 { margin: 0; font-size: 13px; font-weight: 500; }
+  #cmp-top .sub { color: var(--ink-2); }
+  #cmp-body { display: grid; grid-template-columns: 1fr 300px; min-height: 0; }
+  #cmp-view { display: grid; place-items: center; padding: 24px; min-height: 0; }
+  #cmp-wrap { position: relative; width: min(100%, calc(100vh - 160px)); aspect-ratio: 1; border: 1px solid var(--edge); border-radius: 8px; overflow: hidden; background: #000; touch-action: none; }
+  #cmp-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #cmp-b { clip-path: inset(0 0 0 50%); }
+  #wipe { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: #fff; pointer-events: none; }
+  #wipe::after { content: ""; position: absolute; top: 50%; left: 50%; width: 22px; height: 22px; border-radius: 50%; border: 1px solid #fff; background: rgba(0,0,0,.6); transform: translate(-50%,-50%); }
+  .corner { position: absolute; top: 10px; padding: 4px 8px; border-radius: 5px; background: rgba(0,0,0,.6); color: #fff; font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; }
+  .corner.l { left: 10px; } .corner.r { right: 10px; }
+  #cmp-side { border-left: 1px solid var(--edge); padding: 16px; overflow: auto; display: flex; flex-direction: column; gap: 16px; }
+  #cmp-side h3 { margin: 0 0 8px; font-size: 12px; font-weight: 500; color: var(--ink-2); }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field .seg { align-self: flex-start; }
+  #cmp-side p { margin: 0; color: var(--ink-2); line-height: 1.45; }
+  #cmp-side dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; }
+  #cmp-side dt { color: var(--ink-3); } #cmp-side dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+  /* ---------- about / help sheet ---------- */
+  #sheet { position: fixed; z-index: 4; inset: 0; display: none; background: rgba(0,0,0,.4); }
+  #sheet.show { display: grid; place-items: center; }
+  #sheet .box { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 64px); overflow: auto; border-radius: 12px; padding: 22px 24px; background: var(--panel-solid); border: 1px solid var(--edge); }
+  #sheet h2 { margin: 0 0 4px; font-size: 15px; font-weight: 500; }
+  #sheet h3 { margin: 18px 0 6px; font-size: 12px; font-weight: 500; color: var(--ink-2); }
+  #sheet p, #sheet li { color: var(--ink-2); line-height: 1.5; margin: 0; }
+  #sheet ul { margin: 0; padding-left: 18px; }
+  #sheet .keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
+  #sheet kbd { font: inherit; font-size: 11px; border: 1px solid var(--edge); border-radius: 4px; padding: 1px 6px; color: var(--ink); }
+  #sheet .close { float: right; }
+
+  #toast { position: fixed; z-index: 5; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); transform: translateX(-50%); padding: 8px 12px; border-radius: 6px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  #toast.show { opacity: 1; }
+
+  #mobile-toggle { display: none; }
+  @media (max-width: 860px) {
+    #readout, #goto { display: none; }
+    #panel { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 86px); max-height: 56vh; transform: translateY(calc(100% + 120px)); transition: transform .25s; }
+    #panel.open { transform: none; }
+    #mobile-toggle { display: inline-grid; }
+    .scan small { display: none; }
+    #cmp-body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    #cmp-side { border-left: 0; border-top: 1px solid var(--edge); }
+    #cmp-wrap { width: min(100%, calc(100vh - 360px)); }
+  }
+  @media (prefers-reduced-motion: reduce) { #panel, #toast { transition: none; } }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<!-- top bar -->
+<div class="hud" id="top">
+  <div id="title">Planet X UI demo S.Y.</div>
+  <div class="seg glass" id="views" role="group" aria-label="View">
+    <button data-view="sky" aria-pressed="true">Sky</button>
+    <button data-view="compare" aria-pressed="false">Compare</button>
+  </div>
+  <form id="goto" autocomplete="off">
+    <input type="text" id="goto-in" placeholder="Go to RA, Dec (e.g. 16h06m, +41) or a candidate" aria-label="Go to">
+  </form>
+  <div id="spacer"></div>
+  <div id="readout">
+    <span>Looking at <b id="ra">RA 0h 00m</b> <b id="dec">Dec +00°</b></span>
+    <button id="grid" aria-pressed="true">Grid</button>
+    <button id="tracks" aria-pressed="false">Tracks</button>
+  </div>
+  <button class="icon glass ghost" id="help" aria-label="About and shortcuts">?</button>
+  <button id="mobile-toggle" class="icon glass" aria-label="Movers" aria-pressed="false">☰</button>
+</div>
+
+<!-- candidate panel -->
+<aside class="hud glass" id="panel" aria-label="Movers">
+  <header>
+    <span>Movers</span>
+    <div class="seg" id="filters" role="group" aria-label="Filter">
+      <button data-f="all" aria-pressed="true">All</button>
+      <button data-f="Candidate" aria-pressed="false">Unmatched</button>
+      <button data-f="Matched" aria-pressed="false">Matched</button>
+    </div>
+  </header>
+  <ul id="list" role="listbox"></ul>
+  <div id="empty">Nothing flagged with this filter.</div>
+  <section id="detail">
+    <h2 id="d-name"></h2>
+    <div class="tag" id="d-tag"></div>
+    <canvas id="cut" width="256" height="256" aria-label="Cutout of the candidate for the selected scan"></canvas>
+    <div id="cutlabel"><span id="cut-scan"></span><span>60″ cutout</span></div>
+    <dl>
+      <dt>Position</dt><dd id="d-pos"></dd>
+      <dt>Shift</dt><dd id="d-shift"></dd>
+      <dt>Peak band</dt><dd id="d-band"></dd>
+      <dt>Status</dt><dd id="d-status"></dd>
+    </dl>
+    <p id="d-note"></p>
+    <div class="row"><button id="d-compare">Open in Compare</button><button id="d-fly" class="ghost">Center on sky</button></div>
+  </section>
+</aside>
+
+<!-- bottom bar -->
+<div class="hud" id="bottom">
+  <div class="glass" id="timeline">
+    <button id="blink" aria-pressed="false">Blink</button>
+    <div id="scans"><div class="rail"></div></div>
+  </div>
+  <div class="glass" id="ctl">
+    <button class="icon ghost" id="zin" aria-label="Zoom in">+</button>
+    <button class="icon ghost" id="zout" aria-label="Zoom out">−</button>
+    <button class="icon ghost" id="reset" aria-label="Reset view">⟲</button>
+  </div>
+</div>
+
+<!-- compare mode -->
+<section id="compare" aria-label="Compare scans">
+  <div id="cmp-top">
+    <button class="ghost" id="cmp-back">← Sky</button>
+    <h2 id="cmp-name">Compare</h2><span class="sub" id="cmp-tag"></span>
+    <div id="spacer2" style="flex:1"></div>
+    <button id="cmp-blink" aria-pressed="false">Blink</button>
+  </div>
+  <div id="cmp-body">
+    <div id="cmp-view">
+      <div id="cmp-wrap">
+        <canvas id="cmp-a" width="512" height="512"></canvas>
+        <canvas id="cmp-b" width="512" height="512"></canvas>
+        <div id="wipe"></div>
+        <div class="corner l" id="cmp-la"></div><div class="corner r" id="cmp-lb"></div>
+      </div>
+    </div>
+    <aside id="cmp-side">
+      <div class="field"><h3>Left</h3><div class="seg" id="seg-a"></div></div>
+      <div class="field"><h3>Right</h3><div class="seg" id="seg-b"></div></div>
+      <div class="field"><h3>Overlay</h3>
+        <div class="seg" id="seg-ov"><button data-ov="wipe" aria-pressed="true">Wipe</button><button data-ov="diff" aria-pressed="false">Difference</button></div>
+      </div>
+      <div><h3>Candidate</h3><dl id="cmp-dl"></dl></div>
+      <p id="cmp-note"></p>
+      <p>Drag across the image to move the wipe. Difference subtracts the left scan from the right; anything that moved shows twice.</p>
+    </aside>
+  </div>
+</section>
+
+<!-- about / shortcuts -->
+<div id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+  <div class="box">
+    <button class="ghost close" id="sheet-close" aria-label="Close">✕</button>
+    <h2 id="sheet-title">Planet X UI demo</h2>
+    <p>A UI prototype for the Space Apps challenge “Planet X and SPHEREx”. Everything shown is invented placeholder data: the sky texture, the scans, the candidates and their numbers. Nothing here is a detection.</p>
+    <h3>How the real version works</h3>
+    <ul>
+      <li>Pick a patch of sky; the app finds every SPHEREx exposure that covers it (IRSA Simple Image Access).</li>
+      <li>Small cutouts of each epoch are aligned and compared. Sources that shift against the fixed stars are flagged.</li>
+      <li>Flags are cross‑matched against JPL’s known asteroids and comets. Anything left over is a candidate, never a detection.</li>
+    </ul>
+    <h3>Shortcuts</h3>
+    <div class="keys">
+      <kbd>drag</kbd><span>look around</span>
+      <kbd>scroll</kbd><span>zoom</span>
+      <kbd>← → ↑ ↓</kbd><span>pan</span>
+      <kbd>1 – 4</kbd><span>jump to scan</span>
+      <kbd>B</kbd><span>blink</span>
+      <kbd>C</kbd><span>compare selected candidate</span>
+      <kbd>G</kbd><span>grid</span>
+      <kbd>T</kbd><span>tracks</span>
+      <kbd>Esc</kbd><span>back / close</span>
+    </div>
+    <h3>Imagery</h3>
+    <p>Procedural until a real map is dropped into <code>assets/sky_4k.jpg</code> (NASA SVS Deep Star Maps 2020, equirectangular, celestial coordinates). The loader picks it up automatically.</p>
+  </div>
+</div>
+
+<div id="toast" class="glass"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  // =====================================================================
+  // DATA (all placeholder). Shape mirrors data/schema.md in the repo.
+  // =====================================================================
+  const scans = [
+    { id: 1, label: 'Scan 1', date: 'May 2025', has: true },
+    { id: 2, label: 'Scan 2', date: 'Nov 2025', has: true },
+    { id: 3, label: 'Scan 3', date: 'May 2026', has: true },
+    { id: 4, label: 'Scan 4', date: 'Nov 2026', has: false },
+  ];
+  const movers = [
+    { name: 'Candidate 01', tag: 'Known asteroid · 2003 UB',  status: 'Matched',   band: '2.4 µm', pos: [[3.20, 12.0], [3.90, 10.5], [4.55, 9.2]],      note: 'Fast main‑belt mover. Cross‑matched to JPL’s catalog on the first pass.' },
+    { name: 'Candidate 02', tag: 'Known comet · C/2024 R3',    status: 'Matched',   band: '3.1 µm', pos: [[9.80, -22.0], [10.30, -24.0], [10.95, -25.6]], note: 'Extended emission consistent with a coma.' },
+    { name: 'Candidate 03', tag: 'Unmatched · slow mover',     status: 'Candidate', band: '4.6 µm', pos: [[16.10, 41.0], [16.15, 41.2], [16.19, 41.35]],  note: 'No match in the known‑object catalog. A shift this small over six months is consistent with a very distant body. Candidate signal, not a detection.' },
+    { name: 'Candidate 04', tag: 'Known asteroid · 1998 KY26', status: 'Matched',   band: '1.6 µm', pos: [[20.40, -8.0], [21.10, -6.4], [21.85, -4.9]],   note: 'Near‑Earth asteroid. Large shift between scans.' },
+    { name: 'Candidate 05', tag: 'Probable brown dwarf',       status: 'Likely',    band: '4.1 µm', pos: [[6.70, 58.0], [6.78, 57.6], [6.86, 57.2]],      note: 'Bright in the longest bands, faint in the shortest. Motion suggests a nearby cool object.' },
+    { name: 'Candidate 06', tag: 'Unmatched · slow mover',     status: 'Candidate', band: '4.6 µm', pos: [[13.40, -47.0], [13.42, -46.7], [13.45, -46.4]], note: 'Second slow, unmatched source. Three epochs is the minimum for an orbit fit; the solution is still poorly constrained.' },
+  ];
+
+  // =====================================================================
+  // HELPERS
+  // =====================================================================
+  const $ = id => document.getElementById(id);
+  let seed = 11;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const gauss = () => (rnd() + rnd() + rnd() + rnd() - 2) / 2;
+  function toVec(raH, decD, r) {
+    const ra = raH / 12 * Math.PI, dec = decD * Math.PI / 180;
+    return new THREE.Vector3(r * Math.cos(dec) * Math.cos(ra), r * Math.sin(dec), -r * Math.cos(dec) * Math.sin(ra));
+  }
+  const fmtRA = h => { h = ((h % 24) + 24) % 24; const m = Math.round((h % 1) * 60); return `${Math.floor(h)}h ${String(m).padStart(2, '0')}m`; };
+  const fmtDec = d => `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°`;
+  const pad2 = n => String(n).padStart(2, '0');
+  let toastT; function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
+
+  // =====================================================================
+  // SKY SCENE
+  // =====================================================================
+  const stage = $('stage');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  stage.appendChild(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 2000);
+  let yaw = 0.6, pitch = 0.15, tYaw = yaw, tPitch = pitch, tFov = 60;
+
+  // --- backdrop: colourful procedural all-sky, replaced by assets/sky_4k.jpg when available ---
+  let backdrop;
+  function proceduralSky() {
+    const w = 4096, h = 2048, cv = document.createElement('canvas');
+    cv.width = w; cv.height = h; const g = cv.getContext('2d');
+    g.fillStyle = '#02030a'; g.fillRect(0, 0, w, h);
+    const bandY = t => h / 2 + Math.sin(t * Math.PI * 2 + 1.2) * h * 0.22;
+    const blob = (x, y, rad, color) => { const grd = g.createRadialGradient(x, y, 0, x, y, rad); grd.addColorStop(0, color); grd.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = grd; g.fillRect(x - rad, y - rad, rad * 2, rad * 2); };
+    // wide warm glow of the galactic bulge, fading to cool blue away from the plane
+    for (let i = 0; i < 500; i++) { const t = rnd(), x = t * w, y = bandY(t) + gauss() * h * 0.11; const rad = 180 + rnd() * 320; blob(x, y, rad, `hsla(${28 + rnd() * 14}, 70%, ${52 + rnd() * 10}%, 0.028)`); }
+    for (let i = 0; i < 900; i++) { const t = rnd(), x = t * w, y = bandY(t) + gauss() * h * 0.16; const rad = 100 + rnd() * 220; blob(x, y, rad, `hsla(${210 + rnd() * 25}, 60%, 60%, 0.018)`); }
+    // mid-scale nebulosity: pinks and oranges (H-alpha) with a few blue reflection patches
+    for (let i = 0; i < 2600; i++) { const t = rnd(), x = t * w, y = bandY(t) + gauss() * h * 0.08; const rad = 36 + rnd() * 110; const k = rnd();
+      const col = k < 0.55 ? `hsla(${20 + rnd() * 22}, 80%, 58%, 0.045)` : k < 0.8 ? `hsla(${330 + rnd() * 20}, 70%, 60%, 0.035)` : `hsla(${205 + rnd() * 20}, 75%, 62%, 0.04)`; blob(x, y, rad, col); }
+    // fine structure
+    for (let i = 0; i < 9000; i++) { const t = rnd(), x = t * w, y = bandY(t) + gauss() * h * 0.07; const rad = 5 + rnd() * 24; blob(x, y, rad, `hsla(${30 + rnd() * 30}, 60%, 75%, 0.07)`); }
+    // dust lanes
+    g.globalCompositeOperation = 'multiply';
+    for (let i = 0; i < 800; i++) { const t = rnd(), x = t * w, y = bandY(t) + gauss() * h * 0.03; const rad = 18 + rnd() * 120; const grd = g.createRadialGradient(x, y, 0, x, y, rad); grd.addColorStop(0, 'rgba(70,45,35,0.6)'); grd.addColorStop(1, 'rgba(255,255,255,1)'); g.fillStyle = grd; g.fillRect(x - rad, y - rad, rad * 2, rad * 2); }
+    g.globalCompositeOperation = 'source-over';
+    // two Magellanic-cloud-like smudges off the plane
+    blob(w * 0.22, h * 0.84, 150, 'rgba(200,210,255,0.16)'); blob(w * 0.16, h * 0.9, 90, 'rgba(200,210,255,0.14)');
+    // unresolved stars with a little colour
+    for (let i = 0; i < 70000; i++) { const t = rnd(); const y = rnd() < 0.5 ? rnd() * h : bandY(t) + gauss() * h * 0.08; const k = rnd();
+      g.fillStyle = k < 0.15 ? 'rgba(255,205,160,0.45)' : k < 0.3 ? 'rgba(180,200,255,0.45)' : 'rgba(255,255,255,0.4)'; g.fillRect(t * w, y, 1, 1); }
+    return new THREE.CanvasTexture(cv);
+  }
+  function setBackdrop(tex) {
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); tex.encoding = THREE.sRGBEncoding;
+    if (!backdrop) { backdrop = new THREE.Mesh(new THREE.SphereGeometry(800, 64, 48), new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide })); backdrop.rotation.y = Math.PI; scene.add(backdrop); }
+    else { backdrop.material.map.dispose(); backdrop.material.map = tex; backdrop.material.needsUpdate = true; }
+  }
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  setBackdrop(proceduralSky());
+  // real imagery, if the repo's assets folder is present (silently ignored on the hosted single-file demo)
+  new THREE.TextureLoader().load('assets/sky_4k.jpg', tex => { setBackdrop(tex); toast('Loaded assets/sky_4k.jpg'); }, undefined, () => {});
+
+  // --- resolved stars: colour by temperature ---
+  const starVert = `attribute float aSize; varying float vA; varying vec3 vC; uniform float uPR;
+    void main(){ vA = clamp(aSize/4.0, .35, 1.0); vC = color; vec4 mv = modelViewMatrix * vec4(position,1.0);
+    gl_PointSize = aSize * uPR; gl_Position = projectionMatrix * mv; }`;
+  const starFrag = `varying float vA; varying vec3 vC; void main(){ float d = length(gl_PointCoord - .5);
+    float core = smoothstep(.5, .12, d); gl_FragColor = vec4(mix(vC, vec3(1.0), core*.6), core * vA); }`;
+  const haloFrag = `varying float vA; varying vec3 vC; void main(){ float d = length(gl_PointCoord - .5);
+    float a = pow(max(0., 1. - d*2.), 2.2) * .32; gl_FragColor = vec4(vC, a); }`;
+  function starColor() { const k = rnd(); // O/B blue, A/F white, G yellow, K/M orange
+    return k < 0.12 ? [0.68, 0.78, 1.0] : k < 0.5 ? [0.95, 0.96, 1.0] : k < 0.75 ? [1.0, 0.93, 0.78] : [1.0, 0.78, 0.55]; }
+  function pointsLayer(n, sizeFn, frag) {
+    const pos = new Float32Array(n * 3), size = new Float32Array(n), col = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      let u = rnd() * 2 - 1; if (rnd() < 0.5) u = Math.max(-1, Math.min(1, u * 0.6));
+      const th = rnd() * Math.PI * 2, r = Math.sqrt(1 - u * u);
+      pos[i * 3] = r * Math.cos(th) * 600; pos[i * 3 + 1] = u * 600; pos[i * 3 + 2] = r * Math.sin(th) * 600;
+      size[i] = sizeFn(); col.set(starColor(), i * 3);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, vertexColors: true, blending: THREE.AdditiveBlending,
+      uniforms: { uPR: { value: renderer.getPixelRatio() } }, vertexShader: starVert, fragmentShader: frag });
+    return new THREE.Points(geo, mat);
+  }
+  scene.add(pointsLayer(26000, () => Math.pow(rnd(), 4) * 2.6 + 0.7, starFrag));
+  seed = 101; scene.add(pointsLayer(280, () => 18 + rnd() * 24, haloFrag));
+  seed = 101; scene.add(pointsLayer(280, () => 3.2 + rnd() * 1.8, starFrag));
+
+  // --- grid (UI element: white only) ---
+  const grid = new THREE.Group();
+  (function () {
+    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1 });
+    const eq = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28 });
+    const R = 700;
+    for (let raH = 0; raH < 24; raH += 2) { const p = []; for (let d = -90; d <= 90; d += 3) p.push(toVec(raH, d, R)); grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(p), mat)); }
+    for (let dec = -60; dec <= 60; dec += 30) { const p = []; for (let h = 0; h <= 24; h += 0.25) p.push(toVec(h, dec, R)); grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(p), dec === 0 ? eq : mat)); }
+  })();
+  scene.add(grid);
+
+  // --- markers ---
+  const R_M = 500;
+  const markerGroup = new THREE.Group(); scene.add(markerGroup);
+  const trackGroup = new THREE.Group(); trackGroup.visible = false; scene.add(trackGroup);
+  function reticleTex(label, filled) {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d');
+    g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(64, 64, 22, 0, Math.PI * 2); g.stroke();
+    if (filled) { g.fillStyle = '#fff'; g.beginPath(); g.arc(64, 64, 7, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = '#fff'; g.font = '500 30px Inter, Helvetica, Arial, sans-serif'; g.textBaseline = 'middle'; g.fillText(label, 100, 64);
+    return new THREE.CanvasTexture(c);
+  }
+  movers.forEach((m, i) => {
+    m.tex = reticleTex(pad2(i + 1), false); m.texSel = reticleTex(pad2(i + 1), true);
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: m.tex, transparent: true, depthWrite: false }));
+    s.scale.set(40, 20, 1); s.center.set(0.25, 0.5); m.sprite = s; markerGroup.add(s);
+    const pts = m.pos.map(p => toVec(p[0], p[1], R_M));
+    trackGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 })));
+    trackGroup.add(new THREE.Points(new THREE.BufferGeometry().setFromPoints(pts), new THREE.PointsMaterial({ color: 0xffffff, size: 4, sizeAttenuation: false, transparent: true, opacity: 0.6 })));
+  });
+
+  // =====================================================================
+  // STATE
+  // =====================================================================
+  let scan = 1, blink = false, blinkTimer = null, selected = null, filter = 'all', view = 'sky';
+  function setScan(id) {
+    scan = id;
+    movers.forEach(m => { const p = m.pos[id - 1] || m.pos[m.pos.length - 1]; m.sprite.position.copy(toVec(p[0], p[1], R_M)); });
+    document.querySelectorAll('.scan').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.id === id)));
+    if (selected !== null) drawCut();
+  }
+
+  // --- timeline ---
+  const scansEl = $('scans');
+  scans.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = 'scan' + (s.has ? ' has' : ' pending'); b.dataset.id = s.id;
+    b.style.left = `calc(7px + ${i / (scans.length - 1)} * (100% - 14px))`;
+    b.innerHTML = `<i></i><small>${s.label} · ${s.date}</small>`;
+    b.setAttribute('aria-pressed', 'false');
+    if (s.has) b.addEventListener('click', () => { stopBlink(); setScan(s.id); }); else { b.disabled = true; b.title = 'Scheduled'; }
+    scansEl.appendChild(b);
+  });
+  const blinkBtn = $('blink');
+  function stopBlink() { blink = false; clearInterval(blinkTimer); blinkBtn.setAttribute('aria-pressed', 'false'); }
+  function startBlink() {
+    blink = true; blinkBtn.setAttribute('aria-pressed', 'true');
+    const avail = scans.filter(s => s.has).map(s => s.id); let k = avail.indexOf(scan);
+    blinkTimer = setInterval(() => { k = (k + 1) % avail.length; setScan(avail[k]); }, 600);
+  }
+  blinkBtn.addEventListener('click', () => blink ? stopBlink() : startBlink());
+
+  // --- list, filters, detail ---
+  const list = $('list'), detail = $('detail'), emptyEl = $('empty');
+  movers.forEach((m, i) => {
+    const li = document.createElement('li'); li.setAttribute('role', 'option'); li.setAttribute('aria-selected', 'false');
+    li.innerHTML = `<span class="n">${pad2(i + 1)}</span><span>${m.tag.split(' · ')[0]}</span><span class="s">${m.status}</span>`;
+    li.addEventListener('click', () => select(i, true));
+    list.appendChild(li);
+  });
+  function applyFilter() {
+    let shown = 0;
+    [...list.children].forEach((li, i) => { const ok = filter === 'all' || movers[i].status === filter; li.hidden = !ok; if (ok) shown++; });
+    emptyEl.style.display = shown ? 'none' : 'block';
+    movers.forEach((m, i) => { m.sprite.visible = filter === 'all' || m.status === filter; });
+  }
+  document.querySelectorAll('#filters button').forEach(b => b.addEventListener('click', () => {
+    filter = b.dataset.f; document.querySelectorAll('#filters button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); applyFilter();
+  }));
+  function flyTo(raH, decD, fov) {
+    tYaw = -raH / 12 * Math.PI + Math.PI / 2; tPitch = decD * Math.PI / 180; if (fov) tFov = fov;
+    while (tYaw - yaw > Math.PI) tYaw -= Math.PI * 2; while (yaw - tYaw > Math.PI) tYaw += Math.PI * 2;
+  }
+  function select(i, fly) {
+    selected = i;
+    [...list.children].forEach((li, k) => li.setAttribute('aria-selected', String(k === i)));
+    movers.forEach((m, k) => { m.sprite.material.map = k === i ? m.texSel : m.tex; m.sprite.material.needsUpdate = true; });
+    const m = movers[i];
+    $('d-name').textContent = m.name; $('d-tag').textContent = m.tag;
+    const a = m.pos[0], b = m.pos[m.pos.length - 1];
+    const sh = Math.hypot((b[0] - a[0]) * 15 * Math.cos(a[1] * Math.PI / 180), b[1] - a[1]);
+    m.shiftText = (sh < 1 ? `${(sh * 60).toFixed(1)}′` : `${sh.toFixed(2)}°`) + ` over ${m.pos.length} scans`;
+    $('d-shift').textContent = m.shiftText; $('d-band').textContent = m.band; $('d-status').textContent = m.status; $('d-note').textContent = m.note;
+    detail.classList.add('show'); drawCut();
+    if (fly) { const p = m.pos[Math.min(scan, m.pos.length) - 1]; flyTo(p[0], p[1], 22); }
+  }
+  $('d-fly').addEventListener('click', () => { const p = movers[selected].pos[Math.min(scan, movers[selected].pos.length) - 1]; flyTo(p[0], p[1], 22); });
+  $('d-compare').addEventListener('click', () => setView('compare'));
+  $('cut').addEventListener('click', () => setView('compare'));
+
+  // --- cutout generator (shared by the detail card and compare mode) ---
+  function renderCutout(ctx, W, m, scanId, mi) {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, W);
+    let s = 1000 + mi * 7; const r = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+    const img = ctx.createImageData(W, W); let t = 4000 + scanId; const rn = () => { t = (t * 16807) % 2147483647; return (t - 1) / 2147483646; };
+    for (let i = 0; i < img.data.length; i += 4) { const v = 10 + rn() * 22; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; } ctx.putImageData(img, 0, 0);
+    for (let i = 0; i < 26; i++) { const x = r() * W, y = r() * W, rad = (1.5 + r() * 3) * W / 256; const g2 = ctx.createRadialGradient(x, y, 0, x, y, rad * 2.5); g2.addColorStop(0, 'rgba(255,255,255,0.95)'); g2.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g2; ctx.fillRect(x - rad * 3, y - rad * 3, rad * 6, rad * 6); }
+    const k = Math.min(scanId, m.pos.length) - 1, a = m.pos[0], p = m.pos[k];
+    const scale = (m.status === 'Matched' ? 18 : 600) * W / 256; // slow movers exaggerated so the shift is visible at this size
+    const dx = -(p[0] - a[0]) * 15 * Math.cos(a[1] * Math.PI / 180) * scale, dy = -(p[1] - a[1]) * scale;
+    const lim = W * 0.35, x = W / 2 + Math.max(-lim, Math.min(lim, dx)), y = W / 2 + Math.max(-lim, Math.min(lim, dy));
+    const rr = 9 * W / 256; const g3 = ctx.createRadialGradient(x, y, 0, x, y, rr); g3.addColorStop(0, '#fff'); g3.addColorStop(0.4, 'rgba(255,255,255,.9)'); g3.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g3; ctx.fillRect(x - rr * 1.5, y - rr * 1.5, rr * 3, rr * 3);
+    return [x, y, p, k];
+  }
+  const cut = $('cut'), cg = cut.getContext('2d');
+  function drawCut() {
+    const m = movers[selected], W = cut.width;
+    const [x, y, p, k] = renderCutout(cg, W, m, scan, selected);
+    cg.strokeStyle = 'rgba(255,255,255,.6)'; cg.lineWidth = 1; cg.beginPath(); cg.arc(x, y, 16, 0, Math.PI * 2); cg.stroke();
+    $('cut-scan').textContent = `${scans[k].label} · ${scans[k].date}`; $('d-pos').textContent = `${fmtRA(p[0])}, ${fmtDec(p[1])}`;
+  }
+
+  // =====================================================================
+  // COMPARE MODE
+  // =====================================================================
+  let cmpA = 1, cmpB = 2, overlay = 'wipe', cmpBlink = false, cmpTimer = null, wipeX = 0.5;
+  const ca = $('cmp-a'), cb = $('cmp-b'), cga = ca.getContext('2d'), cgb = cb.getContext('2d');
+  function buildSeg(el, get, set) {
+    el.innerHTML = '';
+    scans.filter(s => s.has).forEach(s => { const b = document.createElement('button'); b.textContent = s.label; b.setAttribute('aria-pressed', String(get() === s.id)); b.addEventListener('click', () => { set(s.id); buildSeg(el, get, set); drawCompare(); }); el.appendChild(b); });
+  }
+  function drawCompare() {
+    if (selected === null) return;
+    const m = movers[selected], W = ca.width;
+    renderCutout(cga, W, m, cmpA, selected);
+    renderCutout(cgb, W, m, cmpB, selected);
+    if (overlay === 'diff') {
+      const A = cga.getImageData(0, 0, W, W), B = cgb.getImageData(0, 0, W, W);
+      for (let i = 0; i < A.data.length; i += 4) { const d = B.data[i] - A.data[i]; const v = 128 + d * 0.9; B.data[i] = B.data[i + 1] = B.data[i + 2] = Math.max(0, Math.min(255, v)); }
+      cgb.putImageData(B, 0, 0); cb.style.clipPath = 'none'; $('wipe').style.display = 'none';
+    } else { cb.style.clipPath = `inset(0 0 0 ${wipeX * 100}%)`; $('wipe').style.display = ''; $('wipe').style.left = `${wipeX * 100}%`; }
+    $('cmp-la').textContent = `${scans[cmpA - 1].label} · ${scans[cmpA - 1].date}`;
+    $('cmp-lb').textContent = overlay === 'diff' ? `Difference` : `${scans[cmpB - 1].label} · ${scans[cmpB - 1].date}`;
+    $('cmp-name').textContent = m.name; $('cmp-tag').textContent = m.tag; $('cmp-note').textContent = m.note;
+    $('cmp-dl').innerHTML = `<dt>Shift</dt><dd>${m.shiftText}</dd><dt>Peak band</dt><dd>${m.band}</dd><dt>Status</dt><dd>${m.status}</dd>`;
+  }
+  buildSeg($('seg-a'), () => cmpA, v => cmpA = v); buildSeg($('seg-b'), () => cmpB, v => cmpB = v);
+  document.querySelectorAll('#seg-ov button').forEach(b => b.addEventListener('click', () => { overlay = b.dataset.ov; document.querySelectorAll('#seg-ov button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); drawCompare(); }));
+  const wrap = $('cmp-wrap'); let wiping = false;
+  const setWipe = e => { const r = wrap.getBoundingClientRect(); wipeX = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); if (overlay === 'wipe') { cb.style.clipPath = `inset(0 0 0 ${wipeX * 100}%)`; $('wipe').style.left = `${wipeX * 100}%`; } };
+  wrap.addEventListener('pointerdown', e => { wiping = true; wrap.setPointerCapture(e.pointerId); setWipe(e); });
+  wrap.addEventListener('pointermove', e => wiping && setWipe(e));
+  wrap.addEventListener('pointerup', () => wiping = false); wrap.addEventListener('pointercancel', () => wiping = false);
+  const cmpBlinkBtn = $('cmp-blink');
+  function stopCmpBlink() { cmpBlink = false; clearInterval(cmpTimer); cmpBlinkBtn.setAttribute('aria-pressed', 'false'); if (selected !== null) drawCompare(); }
+  cmpBlinkBtn.addEventListener('click', () => {
+    if (cmpBlink) return stopCmpBlink();
+    cmpBlink = true; cmpBlinkBtn.setAttribute('aria-pressed', 'true'); let on = false; const saved = wipeX;
+    cmpTimer = setInterval(() => { on = !on; const x = on ? 0 : 1; cb.style.clipPath = `inset(0 0 0 ${x * 100}%)`; $('wipe').style.display = 'none'; }, 500);
+    wipeX = saved;
+  });
+  $('cmp-back').addEventListener('click', () => setView('sky'));
+
+  // =====================================================================
+  // VIEWS, GO-TO, HELP, CONTROLS
+  // =====================================================================
+  function setView(v) {
+    if (v === 'compare' && selected === null) { toast('Pick a mover first'); return; }
+    view = v;
+    document.querySelectorAll('#views button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    $('compare').classList.toggle('show', v === 'compare');
+    if (v === 'compare') { stopBlink(); drawCompare(); } else stopCmpBlink();
+  }
+  document.querySelectorAll('#views button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+
+  $('goto').addEventListener('submit', e => {
+    e.preventDefault(); const q = $('goto-in').value.trim(); if (!q) return;
+    const cand = q.match(/^(?:candidate\s*)?(\d{1,2})$/i) || q.match(/^c(\d{1,2})$/i);
+    if (cand) { const i = +cand[1] - 1; if (movers[i]) { select(i, true); $('goto-in').value = ''; return; } }
+    const parts = q.split(/[,\s]+/).filter(Boolean);
+    const parseRA = s => { const m = s.match(/^(\d+(?:\.\d+)?)h(?:(\d+(?:\.\d+)?)m?)?$/i); if (m) return +m[1] + (+m[2] || 0) / 60; const d = parseFloat(s); return isNaN(d) ? null : (Math.abs(d) > 24 ? d / 15 : d); };
+    const parseDec = s => { const m = s.match(/^([+-−]?)(\d+(?:\.\d+)?)(?:d|°)?(?:(\d+(?:\.\d+)?)m?)?$/i); if (!m) return null; const v = +m[2] + (+m[3] || 0) / 60; return m[1] === '-' || m[1] === '−' ? -v : v; };
+    const ra = parts[0] && parseRA(parts[0]), dec = parts[1] && parseDec(parts[1]);
+    if (ra !== null && ra !== undefined && dec !== null && dec !== undefined) { flyTo(ra, dec, 30); $('goto-in').value = ''; }
+    else toast('Try “16h06m, +41” or “candidate 3”');
+  });
+
+  const sheet = $('sheet');
+  $('help').addEventListener('click', () => sheet.classList.add('show'));
+  $('sheet-close').addEventListener('click', () => sheet.classList.remove('show'));
+  sheet.addEventListener('click', e => { if (e.target === sheet) sheet.classList.remove('show'); });
+
+  const gridBtn = $('grid'), trBtn = $('tracks');
+  const toggleGrid = () => { grid.visible = !grid.visible; gridBtn.setAttribute('aria-pressed', String(grid.visible)); };
+  const toggleTracks = () => { trackGroup.visible = !trackGroup.visible; trBtn.setAttribute('aria-pressed', String(trackGroup.visible)); };
+  gridBtn.addEventListener('click', toggleGrid); trBtn.addEventListener('click', toggleTracks);
+  const zoom = f => { tFov = Math.min(100, Math.max(10, tFov * f)); };
+  $('zin').addEventListener('click', () => zoom(0.75)); $('zout').addEventListener('click', () => zoom(1.33));
+  $('reset').addEventListener('click', () => { tYaw = 0.6; tPitch = 0.15; tFov = 60; });
+  stage.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY > 0 ? 1.1 : 0.9); }, { passive: false });
+  const mt = $('mobile-toggle'), panel = $('panel');
+  mt.addEventListener('click', () => { panel.classList.toggle('open'); mt.setAttribute('aria-pressed', String(panel.classList.contains('open'))); });
+
+  let drag = null, moved = 0;
+  stage.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY }; moved = 0; stage.classList.add('dragging'); stage.setPointerCapture(e.pointerId); });
+  stage.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y; moved += Math.abs(dx) + Math.abs(dy);
+    const k = camera.fov / 60 * 0.0035;
+    tYaw -= dx * k; tPitch = Math.max(-1.5, Math.min(1.5, tPitch + dy * k)); yaw = tYaw; pitch = tPitch;
+    drag = { x: e.clientX, y: e.clientY };
+  });
+  stage.addEventListener('pointerup', e => { stage.classList.remove('dragging'); if (drag && moved < 6) pick(e.clientX, e.clientY); drag = null; });
+  stage.addEventListener('pointercancel', () => { drag = null; stage.classList.remove('dragging'); });
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'Escape') { if (sheet.classList.contains('show')) sheet.classList.remove('show'); else if (view === 'compare') setView('sky'); return; }
+    const s = 0.06 * camera.fov / 60;
+    if (e.key === 'ArrowLeft') tYaw += s; else if (e.key === 'ArrowRight') tYaw -= s;
+    else if (e.key === 'ArrowUp') tPitch = Math.min(1.5, tPitch + s); else if (e.key === 'ArrowDown') tPitch = Math.max(-1.5, tPitch - s);
+    else if (e.key === '+' || e.key === '=') zoom(0.75); else if (e.key === '-') zoom(1.33);
+    else if (/^[1-4]$/.test(e.key)) { const sc = scans[+e.key - 1]; if (sc.has) { stopBlink(); setScan(sc.id); } }
+    else if (e.key === 'b' || e.key === 'B') { view === 'compare' ? cmpBlinkBtn.click() : (blink ? stopBlink() : startBlink()); }
+    else if (e.key === 'c' || e.key === 'C') setView(view === 'compare' ? 'sky' : 'compare');
+    else if (e.key === 'g' || e.key === 'G') toggleGrid(); else if (e.key === 't' || e.key === 'T') toggleTracks();
+    else if (e.key === '?') sheet.classList.toggle('show'); else return;
+    e.preventDefault();
+  });
+  function pick(cx, cy) {
+    const w = stage.clientWidth, h = stage.clientHeight; let best = -1, bd = 24; const v = new THREE.Vector3();
+    movers.forEach((m, i) => {
+      if (!m.sprite.visible) return; v.copy(m.sprite.position).project(camera); if (v.z > 1) return;
+      const d = Math.hypot((v.x + 1) / 2 * w - cx, (1 - v.y) / 2 * h - cy); if (d < bd) { bd = d; best = i; }
+    });
+    if (best >= 0) { select(best, false); if (window.innerWidth <= 860) { panel.classList.add('open'); mt.setAttribute('aria-pressed', 'true'); } }
+  }
+
+  // =====================================================================
+  // RENDER LOOP
+  // =====================================================================
+  const raEl = $('ra'), decEl = $('dec');
+  function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+  window.addEventListener('resize', resize); resize();
+  const dir = new THREE.Vector3();
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function frame() {
+    if (view === 'sky') {
+      const e = reduce ? 1 : 0.12;
+      yaw += (tYaw - yaw) * e; pitch += (tPitch - pitch) * e;
+      if (Math.abs(camera.fov - tFov) > 0.01) { camera.fov += (tFov - camera.fov) * e; camera.updateProjectionMatrix(); }
+      camera.rotation.set(0, 0, 0); camera.rotateY(yaw); camera.rotateX(pitch);
+      camera.getWorldDirection(dir);
+      raEl.textContent = 'RA ' + fmtRA(Math.atan2(-dir.z, dir.x) / Math.PI * 12);
+      decEl.textContent = 'Dec ' + fmtDec(Math.asin(dir.y) * 180 / Math.PI);
+      markerGroup.children.forEach(s => s.scale.set(40 * camera.fov / 60, 20 * camera.fov / 60, 1));
+      renderer.render(scene, camera);
+    }
+    requestAnimationFrame(frame);
+  }
+  setScan(1); applyFilter(); frame();
+})();
+</script>
+</body>
+</html>

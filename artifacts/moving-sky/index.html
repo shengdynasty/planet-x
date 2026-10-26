@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SPHEREx Moving Sky — demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EBEF; --panel:#FFFFFF; --panel-2:#F3F4F7; --line:#D5D9E0;
+  --ink:#1B2130; --muted:#5E6776; --accent:#0C8A98; --accent-ink:#FFFFFF;
+  --warn:#9A5A00; --warn-bg:#FFF2DB; --cand:#C8431A; --known:#0C8A98; --var:#7A4CC6; --art:#7A8190;
+  --focus:#0C8A98;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#1A1F29; --panel:#242A36; --panel-2:#2B3240; --line:#3A4252;
+    --ink:#E9ECF1; --muted:#A3ABBA; --accent:#3EC3D1; --accent-ink:#0F1A1C;
+    --warn:#F2B35C; --warn-bg:#3A2F1C; --cand:#FF7A4D; --known:#3EC3D1; --var:#B995F2; --art:#8E97A8;
+    --focus:#3EC3D1;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#1A1F29; --panel:#242A36; --panel-2:#2B3240; --line:#3A4252;
+  --ink:#E9ECF1; --muted:#A3ABBA; --accent:#3EC3D1; --accent-ink:#0F1A1C;
+  --warn:#F2B35C; --warn-bg:#3A2F1C; --cand:#FF7A4D; --known:#3EC3D1; --var:#B995F2; --art:#8E97A8;
+  --focus:#3EC3D1;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Albert Sans",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45;font-feature-settings:"tnum"}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 18px;margin-bottom:14px}
+h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0;flex:1 1 260px}
+.badge{font-size:13px;padding:3px 9px;border-radius:999px;background:var(--warn-bg);color:var(--warn);font-weight:500}
+.lead{margin:0 0 18px;max-width:72ch;color:var(--muted)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.viewer{padding:12px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:6px 12px;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.spacer{flex:1}
+.stretch{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.stretch input{width:110px;accent-color:var(--accent)}
+.stage{position:relative;background:#000;border-radius:6px;overflow:hidden;aspect-ratio:1/1}
+canvas.sky{width:100%;height:100%;display:block;image-rendering:pixelated;cursor:crosshair}
+.flash{position:absolute;top:10px;left:10px;font-weight:600;font-size:13px;padding:3px 9px;border-radius:6px;background:rgba(0,0,0,.55);color:#fff;pointer-events:none}
+.readout{position:absolute;bottom:10px;left:10px;right:10px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:#fff;background:rgba(0,0,0,.5);padding:6px 9px;border-radius:6px;pointer-events:none}
+.readout span b{font-weight:600}
+.warn{display:none;margin-top:10px;padding:9px 12px;border-radius:8px;background:var(--warn-bg);color:var(--warn);font-size:14px}
+.warn.on{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.warn button{border:1px solid currentColor;background:transparent;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:13px}
+.rail{display:flex;flex-direction:column;gap:12px}
+.block{padding:14px}
+.block h2{font-size:14px;font-weight:600;margin:0 0 8px}
+.epochs{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.epochs button{border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:6px 2px;font-size:12px;cursor:pointer;line-height:1.2;color:var(--muted)}
+.epochs button small{display:block;font-size:10.5px;opacity:.8}
+.epochs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.epochs button[aria-pressed="true"] small{opacity:.9}
+.rowlab{font-size:13px;color:var(--muted);margin:8px 0 4px}
+.rowlab:first-child{margin-top:0}
+.baseline{font-size:13px;color:var(--muted);margin-top:8px}
+ul.dets{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+ul.dets li button{width:100%;text-align:left;border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:8px 10px;cursor:pointer;display:grid;grid-template-columns:12px 1fr;gap:10px;align-items:start}
+ul.dets li button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.dot{width:12px;height:12px;border-radius:50%;margin-top:4px;border:2px solid var(--art)}
+.dot.cand{border-color:var(--cand);background:var(--cand)}
+.dot.known{border-color:var(--known)}
+.dot.var{border-color:var(--var)}
+.dot.art{border-color:var(--art);border-style:dashed}
+.dot.left{border-color:var(--known);opacity:.5}
+.dets .t{font-weight:600;font-size:14px}
+.dets .d{font-size:13px;color:var(--muted)}
+.empty{font-size:14px;color:var(--muted)}
+.vet{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.vet figure{margin:0}
+.vet canvas{width:100%;aspect-ratio:1/1;image-rendering:pixelated;border-radius:6px;display:block;background:#000}
+.vet figcaption{font-size:12.5px;color:var(--muted);margin-top:4px}
+.spec{width:100%;height:120px;margin-top:8px;display:block}
+.spec .l{stroke:var(--accent);fill:none;stroke-width:1.6}
+.spec .ax{stroke:var(--line)}
+.spec text{fill:var(--muted);font-size:11px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13.5px;margin-top:6px}
+.kv div:nth-child(odd){color:var(--muted)}
+.note{margin-top:18px;padding:14px;font-size:14px;color:var(--muted)}
+.note h2{font-size:14px;color:var(--ink);margin:0 0 6px}
+.note p{margin:6px 0}
+code{font-size:13px;background:var(--panel-2);padding:1px 5px;border-radius:4px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>SPHEREx Moving Sky</h1>
+  <p class="sub">Compare two passes of the infrared sky and find what moved.</p>
+  <span class="badge">Simulated field</span>
+</header>
+<p class="lead">SPHEREx re-maps the whole sky every six months. Asteroids, comets, brown dwarfs and any undiscovered planet show up only as things that change position between images. Pick a reference pass and a comparison pass, blink them, and the detector flags every source that moved, appeared, vanished or brightened — then checks each one against the known-object ephemeris.</p>
+
+<div class="grid">
+  <section class="panel viewer" aria-label="Sky viewer">
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="View mode">
+        <button id="m-blink" aria-pressed="true">Blink</button>
+        <button id="m-diff" aria-pressed="false">Difference</button>
+        <button id="m-track" aria-pressed="false">Track</button>
+      </div>
+      <div class="seg" role="group" aria-label="Overlays">
+        <button id="o-marks" aria-pressed="true">Flags</button>
+        <button id="o-known" aria-pressed="false">Known objects</button>
+      </div>
+      <span class="spacer"></span>
+      <label class="stretch">Stretch <input id="stretch" type="range" min="0.3" max="3" step="0.05" value="1"></label>
+    </div>
+    <div class="stage">
+      <canvas class="sky" id="sky" width="640" height="640" aria-label="Infrared sky image, false colour"></canvas>
+      <div class="flash" id="flash">Reference</div>
+      <div class="readout" id="readout"><span>Hover the image to read coordinates and surface brightness</span></div>
+    </div>
+    <div class="warn" id="warn"></div>
+  </section>
+
+  <aside class="rail">
+    <div class="panel block">
+      <h2>Observations of this field</h2>
+      <div class="rowlab">Reference pass</div>
+      <div class="epochs" id="epA" role="group" aria-label="Reference epoch"></div>
+      <div class="rowlab">Compare with</div>
+      <div class="epochs" id="epB" role="group" aria-label="Comparison epoch"></div>
+      <div class="baseline" id="baseline"></div>
+    </div>
+    <div class="panel block">
+      <h2 id="dethead">Detections</h2>
+      <ul class="dets" id="dets"></ul>
+    </div>
+    <div class="panel block" id="vetpanel" hidden>
+      <h2 id="vethead">Vetting</h2>
+      <div class="kv" id="vetkv"></div>
+      <div class="vet">
+        <figure><canvas id="stA" width="15" height="15"></canvas><figcaption id="capA">Reference</figcaption></figure>
+        <figure><canvas id="stB" width="15" height="15"></canvas><figcaption id="capB">Compare</figcaption></figure>
+      </div>
+      <svg class="spec" id="spec" viewBox="0 0 340 120" role="img" aria-label="Spectrum across the 102 SPHEREx bands"></svg>
+    </div>
+  </aside>
+</div>
+
+<section class="panel note">
+  <h2>What is simulated here and what is not</h2>
+  <p>Simulated: the star field, the noise, the band response, and three planted objects (a bright main-belt asteroid on a known orbit, a variable star, and one faint, slow, uncatalogued mover at roughly 500 AU — the kind of signal a Planet X would leave). Nothing here is a real detection.</p>
+  <p>Taken from the real mission: the 6.15″ pixel scale, bursts of four exposures ~2.4 minutes apart followed by a revisit hours to a day later, the ~6-month survey cadence, the rule that frames can only be compared at matching wavelength (SPHEREx’s linear variable filters mean wavelength changes across the detector), and the detect → match → ephemeris-check logic.</p>
+  <p>To run on real data, replace the frame generator with cutouts from NASA/IPAC IRSA (SIA collection <code>spherex_qr2</code>, 60–120″ around a target) and the ephemeris stub with JPL Horizons and the small-body identification service. Every other step stays the same.</p>
+</section>
+</div>
+
+<script>
+(() => {
+'use strict';
+// ---------- field setup ----------
+const N = 320;                    // pixels per side
+const SCALE = 6.15;               // arcsec per pixel (SPHEREx)
+const RA0 = 70.42, DEC0 = 19.18;  // field centre, degrees (Taurus, near the ecliptic)
+const SIG = 1.15;                 // PSF sigma, px
+const EPOCHS = [
+  {t:0,       band:0.95, label:'0 d',     sub:'0.95 µm'},
+  {t:0.00167, band:0.95, label:'+2 min',  sub:'0.95 µm'},
+  {t:0.42,    band:1.62, label:'+10 h',   sub:'1.62 µm'},
+  {t:1.0,     band:0.95, label:'+1 d',    sub:'0.95 µm'},
+  {t:2.0,     band:0.95, label:'+2 d',    sub:'0.95 µm'},
+  {t:183.0,   band:0.95, label:'+183 d',  sub:'0.95 µm'},
+  {t:184.0,   band:3.29, label:'+184 d',  sub:'3.29 µm'},
+  {t:366.0,   band:0.95, label:'+366 d',  sub:'0.95 µm'},
+];
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r){ const u = Math.max(r(),1e-9), v = r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+// fixed stars
+const stars = []; { const r = rng(20261114);
+  for (let i=0;i<230;i++){ const amp = Math.exp(gauss(r)*1.1 - 0.4); stars.push({x:r()*N, y:r()*N, amp:Math.min(amp,60), c:0.3+r()*1.2}); } }
+const starFlux = (s, band) => s.amp * Math.exp(-s.c*(band-0.95));
+
+// planted objects. Positions in px; t in days.
+const P = 2*Math.PI/365.25;
+const OBJ = {
+  asteroid: { name:'Main-belt asteroid (catalogued)', kind:'known',
+    pos:t => t<=2.5 ? [38 + 27*t, 262 - 9*t] : [-999,-999],
+    flux:(band)=> 7.5*(1+0.25*(band-0.95)) + (band>3? 2.5*(band-3):0),
+    spec:'asteroid' },
+  px: { name:'Slow uncatalogued mover', kind:'cand',
+    pos:t => [188 + 0.30*t + 55*Math.sin(P*t), 118 + 0.12*t + 22*Math.cos(P*t)],
+    flux:(band)=> 1.35 * (band>3? 0.35 : 1),
+    spec:'ice' },
+  variable: { name:'Variable star', kind:'var', pos:t=>[96,92],
+    flux:(band,t)=> (t>100? 9.5:4.2)*Math.exp(-0.5*(band-0.95)), spec:'star' },
+};
+const KNOWN = [OBJ.asteroid]; // the "ephemeris service" only knows this one
+const ARTIFACT = {epoch:3, x:261, y:71, amp:5.5};
+
+const frames = new Map();
+function frame(i){
+  if (frames.has(i)) return frames.get(i);
+  const e = EPOCHS[i], r = rng(1000+i), img = new Float32Array(N*N);
+  const bg = 0.6 + 1.3*(e.band-0.75);
+  for (let p=0;p<N*N;p++){ const y=(p/N)|0, x=p%N; img[p] = bg*(1+0.08*(y/N)) + 0.11*gauss(r); }
+  const stamp = (x,y,amp) => { const x0=Math.round(x), y0=Math.round(y);
+    for (let dy=-4;dy<=4;dy++) for (let dx=-4;dx<=4;dx++){ const xx=x0+dx, yy=y0+dy; if(xx<0||yy<0||xx>=N||yy>=N) continue;
+      const d2=(xx-x)**2+(yy-y)**2; img[yy*N+xx] += amp*Math.exp(-d2/(2*SIG*SIG)); } };
+  for (const s of stars) stamp(s.x, s.y, starFlux(s,e.band));
+  for (const k in OBJ){ const o=OBJ[k], [x,y]=o.pos(e.t); if (x>-5) stamp(x,y,o.flux(e.band,e.t)); }
+  if (i===ARTIFACT.epoch) img[ARTIFACT.y*N+ARTIFACT.x] += ARTIFACT.amp;
+  frames.set(i,img); return img;
+}
+
+// ---------- detection ----------
+function stats(img){ const s = new Float32Array(4000); for (let k=0;k<4000;k++) s[k]=img[(k*25733)%(N*N)]; s.sort();
+  const med=s[2000]; const d=new Float32Array(4000); for(let k=0;k<4000;k++) d[k]=Math.abs(s[k]-med); d.sort(); return {med, sig:1.4826*d[2000]}; }
+function detect(img,k=5){ const {med,sig}=stats(img), thr=med+k*sig, out=[];
+  for (let y=4;y<N-4;y++) for (let x=4;x<N-4;x++){ const v=img[y*N+x]; if (v<thr) continue; let mx=true;
+    for (let dy=-1;dy<=1&&mx;dy++) for (let dx=-1;dx<=1;dx++){ if(!dx&&!dy) continue; if (img[(y+dy)*N+x+dx]>v){mx=false;break;} }
+    if (!mx) continue;
+    // centroid + neighbour ratio (PSF sanity)
+    let sx=0,sy=0,sw=0,nb=0; for (let dy=-2;dy<=2;dy++) for (let dx=-2;dx<=2;dx++){ const w=Math.max(img[(y+dy)*N+x+dx]-med,0); sx+=w*(x+dx); sy+=w*(y+dy); sw+=w; }
+    for (let dy=-1;dy<=1;dy++) for (let dx=-1;dx<=1;dx++){ if(dx||dy) nb+=img[(y+dy)*N+x+dx]-med; }
+    out.push({x:sw?sx/sw:x, y:sw?sy/sw:y, peak:v-med, flux:sw, sig, spike:(v-med)/Math.max(nb/8,0.5*sig)}); }
+  return out; }
+const dist = (a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function nearest(list,p){ let best=null,bd=1e9; for(const q of list){ const d=dist(p,q); if(d<bd){bd=d;best=q;} } return [best,bd]; }
+
+function analyse(ia, ib){
+  // Hysteresis: a source must be >5σ to count as detected, but only needs a >3σ counterpart to count as "still there".
+  const fa=frame(ia), fb=frame(ib);
+  const A=detect(fa,5), B=detect(fb,5), Alo=detect(fa,3), Blo=detect(fb,3);
+  const ta=EPOCHS[ia].t, tb=EPOCHS[ib].t, dt=Math.abs(tb-ta), sig=A.length?A[0].sig:0.1;
+  const res=[], appeared=[], vanished=[];
+  const FIRM=7*sig;
+  for (const b of B){ const [a,d]=nearest(Alo.filter(q=>q.peak>0.35*b.peak),b);
+    if (a && d<2.2){ const ratio=b.peak/a.peak;
+      if ((ratio>1.8||ratio<0.55) && Math.min(a.peak,b.peak)>12*sig) res.push({kind:'var', title:'Brightness change, fixed position', x:b.x,y:b.y, from:a, to:b, detail:`×${ratio.toFixed(2)} in peak, no motion`});
+    } else if (b.peak>FIRM) appeared.push(b); }
+  for (const a of A){ if(a.peak<=FIRM) continue; const [b,d]=nearest(Blo.filter(q=>q.peak>0.35*a.peak),a); if(!(b && d<2.2)) vanished.push(a); }
+  const knownAt = (t,p)=>{ for(const k of KNOWN){ const [x,y]=k.pos(t); if (Math.hypot(x-p.x,y-p.y)<3) return k; } return null; };
+  const usedV=new Set();
+  const partner = b => { let best=null,bd=1e9; for(const v of vanished){ if(usedV.has(v)) continue; const r=b.peak/v.peak; if(r<0.5||r>2) continue; const d=dist(v,b); if(d<bd){bd=d;best=v;} } return [best,bd]; };
+  for (const b of appeared){
+    if (b.spike>3.2){ res.push({kind:'art', title:'Single-pixel spike', x:b.x,y:b.y,to:b, detail:'Not PSF-shaped: cosmic ray or hot pixel'}); continue; }
+    const k = knownAt(tb,b);
+    const [v,dv] = partner(b);
+    const rate = v ? dv*SCALE/dt : null;
+    if (k){ if(v) usedV.add(v); res.push({kind:'known', title:k.name, x:b.x,y:b.y, from:v, to:b, obj:k, detail:v?`Moved ${(dv*SCALE).toFixed(0)}″ in ${fmtDt(dt)} — matches ephemeris`:'Matches ephemeris'}); continue; }
+    if (v){ usedV.add(v); res.push({kind:'cand', title:'Uncatalogued mover', x:b.x,y:b.y, from:v, to:b, detail:`${(dv*SCALE).toFixed(0)}″ in ${fmtDt(dt)} = ${fmtRate(rate,dt)}. No ephemeris match.`}); }
+    else res.push({kind:'cand', title:'New source, no counterpart', x:b.x,y:b.y, to:b, detail:'Appeared with nothing vanishing nearby'});
+  }
+  for (const v of vanished){ if(usedV.has(v)) continue;
+    if (v.spike>3.2){ res.push({kind:'art', title:'Single-pixel spike in reference', x:v.x,y:v.y,from:v, detail:'Not PSF-shaped: cosmic ray or hot pixel'}); continue; }
+    const k=knownAt(ta,v);
+    res.push({kind:'left', title:k?`${k.name} — left the cutout`:'Source vanished', x:v.x,y:v.y, from:v, detail:k?'Ephemeris puts it outside this field now':'Faded or moved out of field'}); }
+  const order={cand:0,known:1,var:2,art:3,left:4}; res.sort((p,q)=>order[p.kind]-order[q.kind]);
+  return res;
+}
+function fmtDt(dt){ return dt<0.04? `${(dt*1440).toFixed(1)} min` : dt<1.5? `${(dt*24).toFixed(1)} h` : `${dt.toFixed(0)} d`; }
+function fmtRate(r,dt){ return dt<1.5? `${(r/24).toFixed(1)}″/h` : dt<30? `${r.toFixed(1)}″/day` : `${(r*365.25/3600).toFixed(2)}°/yr`; }
+
+// ---------- rendering ----------
+const INF = [[0,0,4],[40,11,84],[101,21,110],[159,42,99],[212,72,66],[245,125,21],[250,193,39],[252,255,164]];
+const DIV = [[33,102,172],[146,197,222],[40,40,44],[244,165,130],[178,24,43]];
+function cmap(stops,v){ v=Math.min(Math.max(v,0),1)*(stops.length-1); const i=Math.min(v|0,stops.length-2), f=v-i; const a=stops[i],b=stops[i+1]; return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; }
+const off = document.createElement('canvas'); off.width=off.height=N; const octx=off.getContext('2d'); const idata=octx.createImageData(N,N);
+const sky = document.getElementById('sky'), ctx = sky.getContext('2d'); ctx.imageSmoothingEnabled=false;
+const S = sky.width/N;
+let mode='blink', showMarks=true, showKnown=false, stretch=1, A=0, B=5, blinkPhase=0, selected=null, results=[], timer=null;
+
+function drawImage(img, diverging){
+  const {med,sig}=stats(img); const d=idata.data;
+  if (diverging){ const lim=6*sig*stretch; for(let p=0;p<N*N;p++){ const c=cmap(DIV,0.5+img[p]/(2*lim)); d[p*4]=c[0];d[p*4+1]=c[1];d[p*4+2]=c[2];d[p*4+3]=255; } }
+  else { const lo=med-2*sig, hi=med+40*sig/stretch; const k=4;
+    for(let p=0;p<N*N;p++){ let v=(img[p]-lo)/(hi-lo); v=Math.asinh(Math.max(v,0)*k)/Math.asinh(k); const c=cmap(INF,v); d[p*4]=c[0];d[p*4+1]=c[1];d[p*4+2]=c[2];d[p*4+3]=255; } }
+  octx.putImageData(idata,0,0); ctx.drawImage(off,0,0,sky.width,sky.height);
+}
+function circle(x,y,r,col,dash){ ctx.beginPath(); ctx.setLineDash(dash||[]); ctx.lineWidth=2; ctx.strokeStyle=col; ctx.arc((x+.5)*S,(y+.5)*S,r,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); }
+function colorFor(k){ const cs=getComputedStyle(document.documentElement); return {cand:cs.getPropertyValue('--cand'),known:cs.getPropertyValue('--known'),var:cs.getPropertyValue('--var'),art:cs.getPropertyValue('--art'),left:cs.getPropertyValue('--known')}[k].trim(); }
+function render(){
+  const fa=frame(A), fb=frame(B), matched=EPOCHS[A].band===EPOCHS[B].band;
+  const flash=document.getElementById('flash');
+  if (mode==='blink'){ const showB=blinkPhase%2===1; drawImage(showB?fb:fa,false); flash.textContent=showB?`Compare · ${EPOCHS[B].label}`:`Reference · ${EPOCHS[A].label}`; }
+  else if (mode==='diff'){ const d=new Float32Array(N*N); for(let p=0;p<N*N;p++) d[p]=fb[p]-fa[p]; drawImage(d,true); flash.textContent='Compare − Reference'; }
+  else { const band=EPOCHS[B].band; const st=new Float32Array(N*N); let n=0;
+    EPOCHS.forEach((e,i)=>{ if(e.band!==band) return; n++; const f=frame(i); for(let p=0;p<N*N;p++) if(f[p]>st[p]) st[p]=f[p]; });
+    drawImage(st,false); flash.textContent=`Max-stack of ${n} passes at ${band} µm`; }
+  if (showKnown){ const t=EPOCHS[mode==='blink'&&blinkPhase%2===0?A:B].t; for(const k of KNOWN){ const [x,y]=k.pos(t); if(x>-5) circle(x,y,13,colorFor('known'),[4,4]); } }
+  if (showMarks && matched){ for(const r of results){ const col=colorFor(r.kind);
+      if (r.to){ circle(r.to.x,r.to.y,r.kind==='cand'?11:9,col,r.kind==='art'?[3,3]:[]); }
+      if (r.from&&r.to&&r.kind!=='var'){ ctx.beginPath(); ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.setLineDash([2,4]); ctx.moveTo((r.from.x+.5)*S,(r.from.y+.5)*S); ctx.lineTo((r.to.x+.5)*S,(r.to.y+.5)*S); ctx.stroke(); ctx.setLineDash([]); circle(r.from.x,r.from.y,5,col,[2,2]); }
+      else if (r.from && !r.to) circle(r.from.x,r.from.y,9,col,[2,3]);
+      if (r===selected){ circle(r.x,r.y,18,col); } } }
+}
+function tick(){ blinkPhase++; render(); }
+function setTimer(){ clearInterval(timer); timer=null; if(mode==='blink' && !matchMedia('(prefers-reduced-motion: reduce)').matches) timer=setInterval(tick,650); }
+
+// ---------- UI ----------
+function epochButtons(id, get, set){ const el=document.getElementById(id); el.innerHTML='';
+  EPOCHS.forEach((e,i)=>{ const b=document.createElement('button'); b.innerHTML=`${e.label}<small>${e.sub}</small>`; b.setAttribute('aria-pressed',String(get()===i)); b.addEventListener('click',()=>{ set(i); update(); }); el.appendChild(b); }); }
+function update(){
+  epochButtons('epA',()=>A,i=>A=i); epochButtons('epB',()=>B,i=>B=i);
+  const a=EPOCHS[A], b=EPOCHS[B], dt=Math.abs(b.t-a.t), matched=a.band===b.band;
+  document.getElementById('baseline').textContent = A===B? 'Pick two different passes.' : `Baseline ${fmtDt(dt)} · ${matched?`both at ${a.band} µm`:`${a.band} vs ${b.band} µm`}`;
+  const warn=document.getElementById('warn');
+  if (!matched){ warn.className='warn on'; warn.innerHTML=`<span>These passes were taken at different wavelengths (${a.band} and ${b.band} µm). Blinking them shows colour differences, not motion, so detection is off.</span>`;
+    const btn=document.createElement('button'); btn.textContent='Pick the nearest matching pass'; btn.addEventListener('click',()=>{ let best=-1,bd=1e9; EPOCHS.forEach((e,i)=>{ if(i!==A&&e.band===a.band&&Math.abs(e.t-b.t)<bd){bd=Math.abs(e.t-b.t);best=i;} }); B=best; update(); }); warn.appendChild(btn);
+    results=[]; }
+  else { warn.className='warn'; warn.innerHTML=''; results = A===B? [] : analyse(A,B); }
+  if (selected && !results.includes(selected)) selected=null;
+  renderList(); renderVet(); blinkPhase=0; render(); setTimer();
+}
+function renderList(){ const ul=document.getElementById('dets'); ul.innerHTML='';
+  const h=document.getElementById('dethead'); h.textContent = results.length? `Detections (${results.length})` : 'Detections';
+  if (!results.length){ const li=document.createElement('li'); li.className='empty'; li.textContent = EPOCHS[A].band!==EPOCHS[B].band? 'Choose two passes at the same wavelength to compare.' : A===B? 'Choose a comparison pass.' : 'Nothing changed between these passes above 5σ.'; ul.appendChild(li); return; }
+  for (const r of results){ const li=document.createElement('li'); const b=document.createElement('button'); b.setAttribute('aria-pressed',String(r===selected));
+    b.innerHTML=`<span class="dot ${r.kind}"></span><span><span class="t">${r.title}</span><br><span class="d">${r.detail}</span></span>`;
+    b.addEventListener('click',()=>{ selected = selected===r? null : r; renderList(); renderVet(); render(); }); li.appendChild(b); ul.appendChild(li); }
+}
+function radec(x,y){ const ra = RA0 - (x-N/2)*SCALE/3600/Math.cos(DEC0*Math.PI/180); const dec = DEC0 - (y-N/2)*SCALE/3600; return [ra,dec]; }
+function fmtRA(ra){ const h=ra/15, hh=h|0, m=(h-hh)*60, mm=m|0, s=(m-mm)*60; return `${String(hh).padStart(2,'0')}h ${String(mm).padStart(2,'0')}m ${s.toFixed(1).padStart(4,'0')}s`; }
+function fmtDec(d){ const sg=d<0?'−':'+', a=Math.abs(d), dd=a|0, m=(a-dd)*60, mm=m|0, s=(m-mm)*60; return `${sg}${dd}° ${String(mm).padStart(2,'0')}′ ${s.toFixed(0).padStart(2,'0')}″`; }
+function stamp(canvasId, img, cx, cy){ const c=document.getElementById(canvasId), g=c.getContext('2d'), id=g.createImageData(15,15); const {med,sig}=stats(img);
+  for(let j=0;j<15;j++) for(let i=0;i<15;i++){ const x=Math.round(cx)-7+i, y=Math.round(cy)-7+j; const v=(x<0||y<0||x>=N||y>=N)?med:img[y*N+x]; let n=(v-med)/(12*sig); n=Math.asinh(Math.max(n,0)*4)/Math.asinh(4); const col=cmap(INF,n); const p=(j*15+i)*4; id.data[p]=col[0];id.data[p+1]=col[1];id.data[p+2]=col[2];id.data[p+3]=255; }
+  g.putImageData(id,0,0); }
+function spectrum(kind){ const pts=[]; for(let i=0;i<102;i++){ const l=0.75+i*(4.25/101); let v;
+  if (kind==='asteroid') v=1+0.25*(l-0.95)+(l>3?0.9*(l-3)**1.5:0);
+  else if (kind==='ice'){ v=1.1-0.05*l; for(const [c,w,d] of [[1.5,0.07,0.35],[2.0,0.08,0.5],[3.05,0.2,0.85]]) v*=1-d*Math.exp(-((l-c)**2)/(2*w*w)); }
+  else v=Math.exp(-0.5*(l-0.95))*1.3;
+  pts.push([l,v]); } return pts; }
+function renderVet(){ const p=document.getElementById('vetpanel'); if(!selected){ p.hidden=true; return; } p.hidden=false; const r=selected;
+  const [ra,dec]=radec(r.x,r.y); const kv=document.getElementById('vetkv');
+  const rows=[['Position',`${fmtRA(ra)}, ${fmtDec(dec)}`],['Pixel',`${r.x.toFixed(1)}, ${r.y.toFixed(1)}`]];
+  if (r.to) rows.push(['Peak above sky',`${r.to.peak.toFixed(2)} MJy/sr`]);
+  if (r.from&&r.to) rows.push(['Displacement',`${(dist(r.from,r.to)*SCALE).toFixed(1)}″`]);
+  rows.push(['Verdict', {cand:'Worth a follow-up: not in catalogue, PSF-shaped, consistent two-epoch motion. Needs a third epoch and an orbit fit before it is anything.', known:'Identified. Position agrees with the ephemeris.', var:'Photometric variable, not a mover.', art:'Reject. Single-frame, not PSF-shaped.', left:'Known object no longer inside the cutout.'}[r.kind]]);
+  kv.innerHTML=rows.map(([k,v])=>`<div>${k}</div><div>${v}</div>`).join('');
+  stamp('stA',frame(A),r.from?r.from.x:r.x,r.from?r.from.y:r.y); stamp('stB',frame(B),r.to?r.to.x:r.x,r.to?r.to.y:r.y);
+  document.getElementById('capA').textContent=`Reference ${EPOCHS[A].label}, 15×15 px`; document.getElementById('capB').textContent=`Compare ${EPOCHS[B].label}, 15×15 px`;
+  const svg=document.getElementById('spec'); const kind=r.kind==='known'?'asteroid':r.kind==='cand'?'ice':'star';
+  const pts=spectrum(kind); const mx=Math.max(...pts.map(p=>p[1]));
+  const X=l=>20+(l-0.75)/4.25*300, Y=v=>100-v/mx*85;
+  const path=pts.map((p,i)=>`${i?'L':'M'}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(' ');
+  const label = r.kind==='cand' ? 'Reflected sunlight with water-ice absorption at 1.5, 2.0 and 3 µm — why it fades at 3.29 µm' : r.kind==='known' ? 'Reflected sunlight, thermal rise past 3 µm' : 'Stellar continuum';
+  svg.innerHTML=`<line class="ax" x1="20" y1="100" x2="320" y2="100"/><path class="l" d="${path}"/>${[1,2,3,4,5].map(l=>`<text x="${X(l)}" y="114" text-anchor="middle">${l} µm</text>`).join('')}<text x="20" y="12">${r.kind==='art'||r.kind==='left'?'Spectrum not extracted':label}</text>`;
+}
+
+// toolbar
+const modes={ 'm-blink':'blink','m-diff':'diff','m-track':'track' };
+for (const id in modes) document.getElementById(id).addEventListener('click',()=>{ mode=modes[id]; for(const k in modes) document.getElementById(k).setAttribute('aria-pressed',String(k===id)); blinkPhase=0; render(); setTimer(); });
+document.getElementById('o-marks').addEventListener('click',e=>{ showMarks=!showMarks; e.currentTarget.setAttribute('aria-pressed',String(showMarks)); render(); });
+document.getElementById('o-known').addEventListener('click',e=>{ showKnown=!showKnown; e.currentTarget.setAttribute('aria-pressed',String(showKnown)); render(); });
+document.getElementById('stretch').addEventListener('input',e=>{ stretch=parseFloat(e.target.value); render(); });
+sky.addEventListener('mousemove',e=>{ const rect=sky.getBoundingClientRect(); const x=Math.floor((e.clientX-rect.left)/rect.width*N), y=Math.floor((e.clientY-rect.top)/rect.height*N); if(x<0||y<0||x>=N||y>=N) return;
+  const img=frame(mode==='blink'&&blinkPhase%2===0?A:B); const [ra,dec]=radec(x,y);
+  document.getElementById('readout').innerHTML=`<span>RA <b>${fmtRA(ra)}</b></span><span>Dec <b>${fmtDec(dec)}</b></span><span>Pixel <b>${x}, ${y}</b></span><span>Value <b>${img[y*N+x].toFixed(2)} MJy/sr</b></span>`; });
+sky.addEventListener('click',e=>{ const rect=sky.getBoundingClientRect(); const x=(e.clientX-rect.left)/rect.width*N, y=(e.clientY-rect.top)/rect.height*N; let best=null,bd=14; for(const r of results){ const d=Math.hypot(r.x-x,r.y-y); if(d<bd){bd=d;best=r;} } selected=best; renderList(); renderVet(); render(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
+update();
+})();
+</script>
+</body>
+</html>
