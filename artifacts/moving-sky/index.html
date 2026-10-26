@@ -51,6 +51,7 @@ h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .seg button{background:transparent;border:0;padding:6px 12px;cursor:pointer;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg[hidden]{display:none}
 .spacer{flex:1}
 .stretch{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
 .stretch input{width:110px;accent-color:var(--accent)}
@@ -123,6 +124,7 @@ code{font-size:13px;background:var(--panel-2);padding:1px 5px;border-radius:4px}
         <button id="o-marks" aria-pressed="true">Flags</button>
         <button id="o-known" aria-pressed="false">Known objects</button>
       </div>
+      <div class="seg" id="flipwrap" hidden><button id="flip">Show comparison</button></div>
       <span class="spacer"></span>
       <label class="stretch">Stretch <input id="stretch" type="range" min="0.3" max="3" step="0.05" value="1"></label>
     </div>
@@ -201,7 +203,8 @@ const OBJ = {
     flux:(band)=> 7.5*(1+0.25*(band-0.95)) + (band>3? 2.5*(band-3):0),
     spec:'asteroid' },
   px: { name:'Slow uncatalogued mover', kind:'cand',
-    pos:t => [188 + 0.30*t + 55*Math.sin(P*t), 118 + 0.12*t + 22*Math.cos(P*t)],
+    // ~500 AU: Keplerian drift ~0.03°/yr (0.05 px/day) plus the yearly parallax loop from Earth's orbit (1 AU/500 AU ≈ 410″ ≈ 55–67 px)
+    pos:t => [188 + 0.05*t + 55*Math.sin(P*t), 118 + 0.02*t + 22*Math.cos(P*t)],
     flux:(band)=> 1.35 * (band>3? 0.35 : 1),
     spec:'ice' },
   variable: { name:'Variable star', kind:'var', pos:t=>[96,92],
@@ -271,8 +274,8 @@ function analyse(ia, ib){
   const order={cand:0,known:1,var:2,art:3,left:4}; res.sort((p,q)=>order[p.kind]-order[q.kind]);
   return res;
 }
-function fmtDt(dt){ return dt<0.04? `${(dt*1440).toFixed(1)} min` : dt<1.5? `${(dt*24).toFixed(1)} h` : `${dt.toFixed(0)} d`; }
-function fmtRate(r,dt){ return dt<1.5? `${(r/24).toFixed(1)}″/h` : dt<30? `${r.toFixed(1)}″/day` : `${(r*365.25/3600).toFixed(2)}°/yr`; }
+function fmtDt(dt){ return dt<0.04? `${(dt*1440).toFixed(1)} min` : dt<0.9? `${(dt*24).toFixed(1)} h` : `${dt.toFixed(dt<10?1:0)} d`; }
+function fmtRate(r,dt){ return dt<0.9? `${(r/24).toFixed(1)}″/h` : dt<30? `${r.toFixed(1)}″/day` : `${(r*365.25/3600).toFixed(2)}°/yr`; }
 
 // ---------- rendering ----------
 const INF = [[0,0,4],[40,11,84],[101,21,110],[159,42,99],[212,72,66],[245,125,21],[250,193,39],[252,255,164]];
@@ -281,7 +284,7 @@ function cmap(stops,v){ v=Math.min(Math.max(v,0),1)*(stops.length-1); const i=Ma
 const off = document.createElement('canvas'); off.width=off.height=N; const octx=off.getContext('2d'); const idata=octx.createImageData(N,N);
 const sky = document.getElementById('sky'), ctx = sky.getContext('2d'); ctx.imageSmoothingEnabled=false;
 const S = sky.width/N;
-let mode='blink', showMarks=true, showKnown=false, stretch=1, A=0, B=5, blinkPhase=0, selected=null, results=[], timer=null;
+let mode='blink', showMarks=true, showKnown=false, stretch=1, A=0, B=5, blinkPhase=0, selected=null, results=[], timer=null, shown=null;
 
 function drawImage(img, diverging){
   const {med,sig}=stats(img); const d=idata.data;
@@ -295,20 +298,26 @@ function colorFor(k){ const cs=getComputedStyle(document.documentElement); retur
 function render(){
   const fa=frame(A), fb=frame(B), matched=EPOCHS[A].band===EPOCHS[B].band;
   const flash=document.getElementById('flash');
-  if (mode==='blink'){ const showB=blinkPhase%2===1; drawImage(showB?fb:fa,false); flash.textContent=showB?`Compare · ${EPOCHS[B].label}`:`Reference · ${EPOCHS[A].label}`; }
-  else if (mode==='diff'){ const d=new Float32Array(N*N); for(let p=0;p<N*N;p++) d[p]=fb[p]-fa[p]; drawImage(d,true); flash.textContent='Compare − Reference'; }
-  else { const band=EPOCHS[B].band; const st=new Float32Array(N*N); let n=0;
-    EPOCHS.forEach((e,i)=>{ if(e.band!==band) return; n++; const f=frame(i); for(let p=0;p<N*N;p++) if(f[p]>st[p]) st[p]=f[p]; });
-    drawImage(st,false); flash.textContent=`Max-stack of ${n} passes at ${band} µm`; }
-  if (showKnown){ const t=EPOCHS[mode==='blink'&&blinkPhase%2===0?A:B].t; for(const k of KNOWN){ const [x,y]=k.pos(t); if(x>-5) circle(x,y,13,colorFor('known'),[4,4]); } }
+  let knownT;
+  if (mode==='blink'){ const showB=blinkPhase%2===1; shown=showB?fb:fa; drawImage(shown,false); flash.textContent=showB?`Compare · ${EPOCHS[B].label}`:`Reference · ${EPOCHS[A].label}`; knownT=[EPOCHS[showB?B:A].t]; }
+  else if (mode==='diff'){ const d=new Float32Array(N*N); for(let p=0;p<N*N;p++) d[p]=fb[p]-fa[p]; shown=d; drawImage(d,true); flash.textContent='Compare − Reference'; knownT=[EPOCHS[A].t,EPOCHS[B].t]; }
+  else { // stack the reference-band passes inside the chosen baseline, so the trail matches the flagged pair
+    const band=EPOCHS[A].band, lo=Math.min(EPOCHS[A].t,EPOCHS[B].t), hi=Math.max(EPOCHS[A].t,EPOCHS[B].t); const st=new Float32Array(N*N).fill(-Infinity); knownT=[];
+    EPOCHS.forEach((e,i)=>{ if(e.band!==band||e.t<lo||e.t>hi) return; knownT.push(e.t); const f=frame(i); for(let p=0;p<N*N;p++) if(f[p]>st[p]) st[p]=f[p]; });
+    shown=st; drawImage(st,false); const n=knownT.length, [e0,e1]=EPOCHS[A].t<=EPOCHS[B].t?[A,B]:[B,A]; flash.textContent=`Max-stack of ${n} pass${n===1?'':'es'} at ${band} µm, ${EPOCHS[e0].label} to ${EPOCHS[e1].label}`; }
+  if (showKnown){ for(const t of knownT) for(const k of KNOWN){ const [x,y]=k.pos(t); if(x>-5) circle(x,y,13,colorFor('known'),[4,4]); } }
   if (showMarks && matched){ for(const r of results){ const col=colorFor(r.kind);
       if (r.to){ circle(r.to.x,r.to.y,r.kind==='cand'?11:9,col,r.kind==='art'?[3,3]:[]); }
       if (r.from&&r.to&&r.kind!=='var'){ ctx.beginPath(); ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.setLineDash([2,4]); ctx.moveTo((r.from.x+.5)*S,(r.from.y+.5)*S); ctx.lineTo((r.to.x+.5)*S,(r.to.y+.5)*S); ctx.stroke(); ctx.setLineDash([]); circle(r.from.x,r.from.y,5,col,[2,2]); }
       else if (r.from && !r.to) circle(r.from.x,r.from.y,9,col,[2,3]);
       if (r===selected){ circle(r.x,r.y,18,col); } } }
 }
-function tick(){ blinkPhase++; render(); }
-function setTimer(){ clearInterval(timer); timer=null; if(mode==='blink' && !matchMedia('(prefers-reduced-motion: reduce)').matches) timer=setInterval(tick,650); }
+function tick(){ blinkPhase++; render(); syncFlip(); }
+const reducedMQ = matchMedia('(prefers-reduced-motion: reduce)');
+// Reduced motion: no auto-blink, but a manual flip button so the comparison frame is still reachable.
+function syncFlip(){ const w=document.getElementById('flipwrap'), f=document.getElementById('flip'); w.hidden = !(mode==='blink' && reducedMQ.matches);
+  const showB=blinkPhase%2===1; f.textContent = showB? 'Show reference' : 'Show comparison'; }
+function setTimer(){ clearInterval(timer); timer=null; if(mode==='blink' && !reducedMQ.matches) timer=setInterval(tick,650); syncFlip(); }
 
 // ---------- UI ----------
 function epochButtons(id, get, set){ const el=document.getElementById(id); el.innerHTML='';
@@ -319,12 +328,19 @@ function update(){
   document.getElementById('baseline').textContent = A===B? 'Pick two different passes.' : `Baseline ${fmtDt(dt)} · ${matched?`both at ${a.band} µm`:`${a.band} vs ${b.band} µm`}`;
   const warn=document.getElementById('warn');
   if (!matched){ warn.className='warn on'; warn.innerHTML=`<span>These passes were taken at different wavelengths (${a.band} and ${b.band} µm). Blinking them shows colour differences, not motion, so detection is off.</span>`;
-    const btn=document.createElement('button'); btn.textContent='Pick the nearest matching pass'; btn.addEventListener('click',()=>{ let best=-1,bd=1e9; EPOCHS.forEach((e,i)=>{ if(i!==A&&e.band===a.band&&Math.abs(e.t-b.t)<bd){bd=Math.abs(e.t-b.t);best=i;} }); B=best; update(); }); warn.appendChild(btn);
+    let best=-1,bd=1e9; EPOCHS.forEach((e,i)=>{ if(i!==A&&e.band===a.band&&Math.abs(e.t-b.t)<bd){bd=Math.abs(e.t-b.t);best=i;} });
+    if (best>=0){ const btn=document.createElement('button'); btn.textContent=`Compare with ${EPOCHS[best].label} instead`; btn.title='Nearest pass in time at the reference wavelength'; btn.addEventListener('click',()=>{ B=best; update(); }); warn.appendChild(btn); }
+    else warn.insertAdjacentHTML('beforeend',`<span>No other pass of this field was taken at ${a.band} µm, so pick a different reference.</span>`);
     results=[]; }
   else { warn.className='warn'; warn.innerHTML=''; results = A===B? [] : analyse(A,B); }
-  if (selected && !results.includes(selected)) selected=null;
+  if (selected) selected = rematch(selected, results);
   renderList(); renderVet(); blinkPhase=0; render(); setTimer();
 }
+// analyse() builds fresh objects, so keep the selection by finding the same source again:
+// same kind, and either endpoint (or the marker position) within 3 px of the old one.
+function rematch(s, list){ const near=(p,q)=>p&&q&&dist(p,q)<3; let best=null,bd=1e9;
+  for (const r of list){ if (r.kind!==s.kind) continue; if (!(near(r,s)||near(r.from,s.from)||near(r.to,s.to))) continue; const d=dist(r,s); if(d<bd){bd=d;best=r;} }
+  return best; }
 function renderList(){ const ul=document.getElementById('dets'); ul.innerHTML='';
   const h=document.getElementById('dethead'); h.textContent = results.length? `Detections (${results.length})` : 'Detections';
   if (!results.length){ const li=document.createElement('li'); li.className='empty'; li.textContent = EPOCHS[A].band!==EPOCHS[B].band? 'Choose two passes at the same wavelength to compare.' : A===B? 'Choose a comparison pass.' : 'Nothing changed between these passes above 5σ.'; ul.appendChild(li); return; }
@@ -348,6 +364,8 @@ function renderVet(){ const p=document.getElementById('vetpanel'); if(!selected)
   const rows=[['Position',`${fmtRA(ra)}, ${fmtDec(dec)}`],['Pixel',`${r.x.toFixed(1)}, ${r.y.toFixed(1)}`]];
   if (r.to) rows.push(['Peak above sky',`${r.to.peak.toFixed(2)} MJy/sr`]);
   if (r.from&&r.to) rows.push(['Displacement',`${(dist(r.from,r.to)*SCALE).toFixed(1)}″`]);
+  if (r.kind==='cand') rows.push(['Spectrum','Water-ice absorption at 1.5, 2.0 and 3 µm, which is why it fades at 3.29 µm']);
+  document.getElementById('vethead').textContent = `Vetting: ${r.title}`;
   rows.push(['Verdict', {cand:'Worth a follow-up: not in catalogue, PSF-shaped, consistent two-epoch motion. Needs a third epoch and an orbit fit before it is anything.', known:'Identified. Position agrees with the ephemeris.', var:'Photometric variable, not a mover.', art:'Reject. Single-frame, not PSF-shaped.', left:'Known object no longer inside the cutout.'}[r.kind]]);
   kv.innerHTML=rows.map(([k,v])=>`<div>${k}</div><div>${v}</div>`).join('');
   stamp('stA',frame(A),r.from?r.from.x:r.x,r.from?r.from.y:r.y); stamp('stB',frame(B),r.to?r.to.x:r.x,r.to?r.to.y:r.y);
@@ -356,7 +374,7 @@ function renderVet(){ const p=document.getElementById('vetpanel'); if(!selected)
   const pts=spectrum(kind); const mx=Math.max(...pts.map(p=>p[1]));
   const X=l=>20+(l-0.75)/4.25*300, Y=v=>100-v/mx*85;
   const path=pts.map((p,i)=>`${i?'L':'M'}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(' ');
-  const label = r.kind==='cand' ? 'Reflected sunlight with water-ice absorption at 1.5, 2.0 and 3 µm — why it fades at 3.29 µm' : r.kind==='known' ? 'Reflected sunlight, thermal rise past 3 µm' : 'Stellar continuum';
+  const label = r.kind==='cand' ? 'Reflected sunlight, water-ice dips' : r.kind==='known' ? 'Reflected sunlight, thermal rise past 3 µm' : 'Stellar continuum';
   svg.innerHTML=`<line class="ax" x1="20" y1="100" x2="320" y2="100"/><path class="l" d="${path}"/>${[1,2,3,4,5].map(l=>`<text x="${X(l)}" y="114" text-anchor="middle">${l} µm</text>`).join('')}<text x="20" y="12">${r.kind==='art'||r.kind==='left'?'Spectrum not extracted':label}</text>`;
 }
 
@@ -367,10 +385,14 @@ document.getElementById('o-marks').addEventListener('click',e=>{ showMarks=!show
 document.getElementById('o-known').addEventListener('click',e=>{ showKnown=!showKnown; e.currentTarget.setAttribute('aria-pressed',String(showKnown)); render(); });
 document.getElementById('stretch').addEventListener('input',e=>{ stretch=parseFloat(e.target.value); render(); });
 sky.addEventListener('mousemove',e=>{ const rect=sky.getBoundingClientRect(); const x=Math.floor((e.clientX-rect.left)/rect.width*N), y=Math.floor((e.clientY-rect.top)/rect.height*N); if(x<0||y<0||x>=N||y>=N) return;
-  const img=frame(mode==='blink'&&blinkPhase%2===0?A:B); const [ra,dec]=radec(x,y);
-  document.getElementById('readout').innerHTML=`<span>RA <b>${fmtRA(ra)}</b></span><span>Dec <b>${fmtDec(dec)}</b></span><span>Pixel <b>${x}, ${y}</b></span><span>Value <b>${img[y*N+x].toFixed(2)} MJy/sr</b></span>`; });
+  const img=shown||frame(A); const [ra,dec]=radec(x,y); // read the image actually on screen (blink frame, difference or stack)
+  document.getElementById('readout').innerHTML=`<span>RA <b>${fmtRA(ra)}</b></span><span>Dec <b>${fmtDec(dec)}</b></span><span>Pixel <b>${x}, ${y}</b></span><span>${mode==='diff'?'Difference':mode==='track'?'Stack max':'Value'} <b>${img[y*N+x].toFixed(2)} MJy/sr</b></span>`; });
 sky.addEventListener('click',e=>{ const rect=sky.getBoundingClientRect(); const x=(e.clientX-rect.left)/rect.width*N, y=(e.clientY-rect.top)/rect.height*N; let best=null,bd=14; for(const r of results){ const d=Math.hypot(r.x-x,r.y-y); if(d<bd){bd=d;best=r;} } selected=best; renderList(); renderVet(); render(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']}); // explicit theme toggle
+reducedMQ.addEventListener('change',()=>{ blinkPhase=0; render(); setTimer(); });
+document.getElementById('flip').addEventListener('click',()=>{ blinkPhase++; render(); syncFlip(); });
+if (location.hash === '#test') window.__ms = {analyse, EPOCHS, OBJ, fmtDt, fmtRate};
 update();
 })();
 </script>
