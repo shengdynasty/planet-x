@@ -20,7 +20,7 @@ SPHEREx re-maps the whole sky every six months. A far-off planet barely shifts b
 
 ```sh
 python3 -m http.server 8000 --bind 127.0.0.1   # from the repo root
-open http://localhost:8000/app/                 # simulated data
+open http://localhost:8000/                     # homepage; "Open the sky" → /app/ (simulated data)
 
 node server/index.mjs                           # optional: live SPHEREx data on :8787
 ```
