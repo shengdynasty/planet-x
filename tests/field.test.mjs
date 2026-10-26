@@ -20,6 +20,9 @@ process.on('exit', cleanup);
 for (let i = 0; i < 50; i++) { try { await fetch(BASE); break; } catch { await new Promise(r => setTimeout(r, 100)); } }
 
 const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+// Hermetic: never talk to a live data server on :8787 (tests/live.test.mjs covers live mode).
+{ const nc = browser.newContext.bind(browser); browser.newContext = async (o) => { const c = await nc(o); await c.route(/^http:\/\/(localhost|127\.0\.0\.1):8787\//, r => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: '{"ok":false,"note":"blocked by test"}' })); return c; }; }
+
 let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
 
 async function open(ctxOpts = {}, query = '') {
@@ -31,7 +34,7 @@ async function open(ctxOpts = {}, query = '') {
   await p.goto(BASE + query); await p.waitForFunction(() => window.__field?.state.results.length > 0);
   await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(150);
   // the data module is written in parallel by another agent; until it lands the view falls back to simulateField()
-  const real = () => errs.filter(e => hasData || !/data\/index\.js/.test(e) && !/Failed to load resource.*404/.test(e));
+  const real = () => errs.filter(e => !/\/favicon\.ico$/.test(e)).filter(e => hasData || !/data\/index\.js/.test(e) && !/Failed to load resource.*404/.test(e));
   return { ctx, p, errs, real };
 }
 const det = p => p.locator('.fv-dets li').allInnerTexts();
