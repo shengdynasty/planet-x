@@ -29,7 +29,7 @@ export function renderCutout(ctx, W, c, scanId) {
   // without one draws the field only
   const k = Math.max(0, posIndex(c, scanId)), a = (c.pos || []).find(Boolean), p = posAt(c, scanId);
   if (!a || !p) return [W / 2, W / 2, null, k];
-  const scale = (pipelineStatus(c) === 'Matched' ? 18 : 600) * W / 256; // same rule as the panel cutout
+  const scale = (pipelineStatus(c) === 'Matched' ? 18 : pipelineStatus(c) === 'Likely' ? 6000 : 2600) * W / 256; // same rule as the panel cutout
   let dRa = p[0] - a[0]; if (dRa > 12) dRa -= 24; if (dRa < -12) dRa += 24;
   const dx = -dRa * 15 * Math.cos(a[1] * Math.PI / 180) * scale, dy = -(p[1] - a[1]) * scale;
   const lim = W * 0.35, x = W / 2 + Math.max(-lim, Math.min(lim, dx)), y = W / 2 + Math.max(-lim, Math.min(lim, dy));

@@ -26,7 +26,7 @@ export function renderCutout(ctx, W, m, scanId, mi) {
   // pos has one entry per scan, null where the mover was not observed: offsets are from the first observed position
   const k = Math.max(0, posIndex(m, scanId)), a = (m.pos || []).find(Boolean), p = posAt(m, scanId);
   if (!a || !p) return [W / 2, W / 2, null, k]; // not observed in this scan: field only, no mover
-  const scale = (pipelineStatus(m) === 'Matched' ? 18 : 600) * W / 256; // slow movers exaggerated so the shift is visible
+  const scale = (pipelineStatus(m) === 'Matched' ? 18 : pipelineStatus(m) === 'Likely' ? 6000 : 2600) * W / 256; // slow movers exaggerated so the shift is visible
   const dx = -(p[0] - a[0]) * 15 * Math.cos(a[1] * Math.PI / 180) * scale, dy = -(p[1] - a[1]) * scale;
   const lim = W * 0.35, x = W / 2 + Math.max(-lim, Math.min(lim, dx)), y = W / 2 + Math.max(-lim, Math.min(lim, dy));
   const rr = 9 * W / 256; const g3 = ctx.createRadialGradient(x, y, 0, x, y, rr);

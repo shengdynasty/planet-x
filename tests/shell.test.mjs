@@ -46,7 +46,8 @@ async function open({ width, height, scheme = 'dark', mobile = false, reduced = 
   await page.waitForTimeout(300);
   return { ctx, page, errors, notFound };
 }
-const settle = page => page.waitForFunction(() => window.__sky.settled, null, { timeout: 10000 }).then(() => page.waitForTimeout(80));
+// Settling takes ~95 frames; SwiftShader under load can drop below 1 fps, so allow minutes, not seconds.
+const settle = page => page.waitForFunction(() => window.__sky.settled, null, { timeout: 180000 }).then(() => page.waitForTimeout(80));
 const view = page => page.evaluate(() => window.__px.get('view'));
 const sepDeg = (r1, d1, r2, d2) => { // hours, degrees
   const a = r1 / 12 * Math.PI, b = r2 / 12 * Math.PI, p = d1 * Math.PI / 180, q = d2 * Math.PI / 180;

@@ -21,10 +21,10 @@ const PH = ' (placeholder)'; // designations below are invented stand-ins, not r
 const SIM_RAW = [
   { tag: 'Known asteroid · 2003 UB' + PH, status: 'Matched', band: '2.4 µm', pos: [[3.20, 12.0], [3.90, 10.5], [4.55, 9.2]], note: 'Fast main‑belt mover. Cross‑matched to JPL’s catalog on the first pass.' },
   { tag: 'Known comet · C/2024 R3' + PH, status: 'Matched', band: '3.1 µm', pos: [[9.80, -22.0], [10.30, -24.0], [10.95, -25.6]], note: 'Extended emission consistent with a coma.' },
-  { tag: 'Unmatched · slow mover', status: 'Candidate', band: '4.6 µm', pos: [[16.10, 41.0], [16.15, 41.2], [16.19, 41.35]], note: 'No match in the known‑object catalog. A shift this small over six months is consistent with a very distant body. Candidate signal, not a detection.' },
+  { tag: 'Unmatched · slow mover', status: 'Candidate', band: '4.6 µm', pos: [[16.100, 41.000], [16.1014, 41.013], [16.1026, 41.024]], note: 'No match in the known‑object catalog. A shift this small over six months is consistent with a very distant body. Candidate signal, not a detection.' },
   { tag: 'Known asteroid · 1998 KY26' + PH, status: 'Matched', band: '1.6 µm', pos: [[20.40, -8.0], [21.10, -6.4], [21.85, -4.9]], note: 'Near‑Earth asteroid. Large shift between scans.' },
-  { tag: 'Probable brown dwarf', status: 'Likely', band: '4.1 µm', pos: [[6.70, 58.0], [6.78, 57.6], [6.86, 57.2]], note: 'Bright in the longest bands, faint in the shortest. Motion suggests a nearby cool object.' },
-  { tag: 'Unmatched · slow mover', status: 'Candidate', band: '4.6 µm', pos: [[13.40, -47.0], [13.42, -46.7], [13.45, -46.4]], note: 'Second slow, unmatched source. Three epochs is the minimum for an orbit fit; the solution is still poorly constrained.' },
+  { tag: 'Probable brown dwarf', status: 'Likely', band: '4.1 µm', pos: [[6.700, 58.000], [6.7004, 57.996], [6.7008, 57.992]], note: 'Bright in the longest bands, faint in the shortest. Motion suggests a nearby cool object.' },
+  { tag: 'Unmatched · slow mover', status: 'Candidate', band: '4.6 µm', pos: [[13.400, -47.000], [13.4011, -46.991], [13.4021, -46.983]], note: 'Second slow, unmatched source. Three epochs is the minimum for an orbit fit; the solution is still poorly constrained.' },
 ];
 
 /** @type {import('../core/types.js').Candidate[]} */
