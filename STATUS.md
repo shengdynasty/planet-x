@@ -16,10 +16,16 @@ _Last updated: 2026-10-25_
 - Pitch deck v1 published (9 slides, private): https://claude.ai/artifact/UAqhztF4edsXdn2mTzs6fw — source in docs/deck/. Demo slides have screenshot placeholders, filled after QA.
 - Repo initialised; baseline snapshots of both published artifacts committed (`artifacts/`, commit d7a194f). Checksums match the published versions.
 
-## In progress
-- `build/live`: pipeline misreads real (undersampled) SPHEREx stars as single-pixel spikes; fix without changing sim results; known-object match wins over artifact test; live loading UX (10–70 s cold), empty live panel state; Psyche end-to-end through the UI
-- Independent review of the merged app (read-only) for integration bugs
-- Live server running on localhost:8787; cache warming for the home and Psyche fields
+## PAUSED (2026-10-25, by user request) — resume from here
+All agents stopped. Nothing published. main has every test suite green as of the last commit.
+- `build/live` (worktree agent-a5a2790d3e10c14c2), 2 commits, NOT merged, unverified:
+  9d91008 pipeline: PSF-aware artifact test (real SPHEREx stars are ~1 px; old spike test called them artifacts), ephemeris match wins over artifact test
+  d4ff84f data/server: live size mapping (fixes review #1: size=1968 → HTTP 400 → silent sim fallback), progress endpoint, one pos per scan (null = unobserved), merged candidate poll, persisted field-added candidates
+  Still to do there: Field view live loading UI + Cancel, live empty panel state, Psyche end-to-end through the UI, focus restore leaving Field, escaping band labels, re-run all suites (sim parity 57/57 must hold).
+- `fix/review` (worktree agent-a23478079f0de4009): started, no commits (one uncommitted edit to tests/shell.test.mjs). Covers review findings #2,3,5,7,8,10,12,13: shortcuts behind Export dialog, stale Field patch, Compare crash on empty pos, null-safe pos helper, illustrative-cutout label, XSS in scan labels, search vs sky markers, `?` in Field, marker labels.
+- main, uncommitted: app/js/core/store.js — nested set() calls queued so subscribers see consistent value/prev. pipeline 57/57 + workflow 88/88 pass with it; shell suite showed "badge/candidates" failures, most likely because the live server on :8787 was up (app booted in live mode), not the store change — verify with the server stopped before committing.
+- Full review report (13 confirmed findings + repro scripts): scratchpad/review/
+- Running processes: static server :8000, live data server :8787 (cache warm for home + Psyche fields).
 
 ## Next
 - (a) Fix the fly-to bug + interaction QA (UI demo)
