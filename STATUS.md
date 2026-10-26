@@ -3,6 +3,7 @@
 _Last updated: 2026-10-25_
 
 ## Done
+- Review fixes merged (212b04c): 9 findings in sky/compare/panel (shortcuts behind dialogs, stale Field patch, Compare crash, null-safe per-scan positions, illustrative-cutout label, XSS in scan labels, search vs sky markers, `?` in Field, label consistency); hermetic shell tests. Store re-entrancy fix and favicon committed. Suites on main: review 64, shell 87, workflow 88, pipeline 57, field all pass.
 - Live data merged (build/data): local server `node server/index.mjs` (port 8787) pulls real SPHEREx exposures via IRSA SIA (spherex_qr2 + qr3), cutouts with own FITS/WCS parsing, wavelength from each file's spectral WCS, JPL sb_ident + Horizons. Home field: 321 exposures, 3 epochs; 16 Psyche recovered within 2″ of Horizons. Client falls back to sim in ~0 ms when the server is absent (claude.ai sandbox). Cold costs: ~10 s per field, ~70 s with JPL.
 - **App assembled on main** — http://localhost:8000/app/ — shell merged (76/76): top bar Sky · Compare · Field + data badge, real NASA sky with correct orientation, render-on-change, Compare, help sheet with credits; review panel and Field view mounted. Field default size unified at 1968″. Only the data module is still the built-in stand-in.
 - Old UI demo mobile/a11y/perf merged: first frame 10.4 s → 0.7 s (desktop), 13.7 s → 0.5 s (phone, 4× throttle); keyboard list, focus traps, pinch zoom, 40px targets.
@@ -22,8 +23,6 @@ Nothing published. main has every test suite green as of the last commit.
   9d91008 pipeline: PSF-aware artifact test (real SPHEREx stars are ~1 px; old spike test called them artifacts), ephemeris match wins over artifact test
   d4ff84f data/server: live size mapping (fixes review #1: size=1968 → HTTP 400 → silent sim fallback), progress endpoint, one pos per scan (null = unobserved), merged candidate poll, persisted field-added candidates
   Still to do there: Field view live loading UI + Cancel, live empty panel state, Psyche end-to-end through the UI, focus restore leaving Field, escaping band labels, re-run all suites (sim parity 57/57 must hold).
-- `fix/review` (worktree agent-a23478079f0de4009): started, no commits (one uncommitted edit to tests/shell.test.mjs). Covers review findings #2,3,5,7,8,10,12,13: shortcuts behind Export dialog, stale Field patch, Compare crash on empty pos, null-safe pos helper, illustrative-cutout label, XSS in scan labels, search vs sky markers, `?` in Field, marker labels.
-- main, uncommitted: app/js/core/store.js — nested set() calls queued so subscribers see consistent value/prev. pipeline 57/57 + workflow 88/88 pass with it; shell suite showed "badge/candidates" failures, most likely because the live server on :8787 was up (app booted in live mode), not the store change — verify with the server stopped before committing.
 - Full review report (13 confirmed findings + repro scripts): scratchpad/review/
 - Running processes: static server :8000, live data server :8787 (cache warm for home + Psyche fields).
 
