@@ -139,6 +139,10 @@ console.log('desktop 1440×900, dark');
   await page.click('#views [data-view="compare"]');
   ok(await view(page) === 'compare' && await page.isVisible('#view-compare .cmp-wrap'), 'Compare view opens for the selection');
   ok((await page.textContent('#view-compare .cmp-name')) === target.name, 'Compare shows the selected candidate');
+  ok(await page.evaluate(() => document.activeElement && document.activeElement.classList.contains('cmp-back')), 'focus moves to "← Sky" when Compare opens');
+  ok(await page.evaluate(() => document.getElementById('stage').inert && document.getElementById('panel').inert), 'sky HUD is inert behind Compare');
+  await page.focus('#view-compare .cmp-wrap'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
+  ok(+(await page.getAttribute('#view-compare .cmp-wrap', 'aria-valuenow')) > 50, 'wipe is a keyboard slider');
   await page.click('#view-compare [data-ov="diff"]');
   ok((await page.textContent('#view-compare .cmp-lb')) === 'Difference', 'Difference overlay');
   await page.screenshot({ path: path.join(SHOTS, 'desktop-dark-compare.png') });
@@ -208,10 +212,12 @@ for (const scheme of ['dark', 'light']) {
     .map(el => [el, el.getBoundingClientRect()]).filter(([, r]) => r.width < 40 || r.height < 40).map(([el, r]) => `${el.id || el.textContent.trim()} ${Math.round(r.width)}×${Math.round(r.height)}`));
   ok(small.length === 0, `tap targets ≥ 40px ${small.join(', ')}`);
   ok(!(await page.evaluate(() => document.getElementById('panel').classList.contains('open'))), 'panel starts closed');
+  ok(await page.evaluate(() => document.getElementById('panel').inert), 'closed bottom sheet is inert');
+  ok(await page.isVisible('#readout .pos') && await page.isVisible('#grid') && await page.isVisible('#tracks'), 'RA/Dec readout and Grid/Tracks visible on phones');
   await page.screenshot({ path: path.join(SHOTS, `phone-${scheme}-sky.png`) });
   await page.tap('#mobile-toggle');
   await page.waitForTimeout(350);
-  ok(await page.evaluate(() => document.getElementById('panel').classList.contains('open')), '☰ opens the bottom sheet');
+  ok(await page.evaluate(() => document.getElementById('panel').classList.contains('open') && !document.getElementById('panel').inert), '☰ opens the bottom sheet (no longer inert)');
   const pr = await page.locator('#panel').boundingBox(), tr = await page.locator('#top').boundingBox(), br = await page.locator('#bottom').boundingBox();
   ok(pr.y >= tr.y + tr.height && pr.y + pr.height <= br.y + 1, `sheet sits between top bar and timeline (${Math.round(pr.y)}–${Math.round(pr.y + pr.height)})`);
   await page.screenshot({ path: path.join(SHOTS, `phone-${scheme}-panel.png`) });
@@ -240,6 +246,25 @@ for (const scheme of ['dark', 'light']) {
   await page.screenshot({ path: path.join(SHOTS, `phone-${scheme}-compare.png`) });
   await page.tap('#help'); await page.waitForTimeout(100);
   await page.screenshot({ path: path.join(SHOTS, `phone-${scheme}-help.png`) });
+  ok(errors.length === 0, `no console errors (${errors.join(' | ')})`);
+  await ctx.close();
+}
+
+// =====================================================================
+console.log('landscape phone 844×390');
+{
+  const { ctx, page, errors } = await open({ width: 844, height: 390, mobile: true });
+  ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'no horizontal overflow');
+  await page.tap('#mobile-toggle'); await page.waitForTimeout(350);
+  const pr = await page.locator('#panel').boundingBox(), tr = await page.locator('#top').boundingBox(), br = await page.locator('#bottom').boundingBox();
+  ok(pr.x > 844 / 2 && pr.x + pr.width <= 844 && pr.y >= tr.y + tr.height && pr.y + pr.height <= br.y + 1, `panel docks on the right (${Math.round(pr.x)},${Math.round(pr.y)} ${Math.round(pr.width)}×${Math.round(pr.height)})`);
+  await page.screenshot({ path: path.join(SHOTS, 'landscape-panel.png') });
+  await page.tap('#mobile-toggle'); await page.waitForTimeout(300);
+  await page.evaluate(() => window.__px.set('selectedId', 'c03'));
+  await page.tap('#views [data-view="compare"]'); await page.waitForTimeout(250);
+  const cw = await page.locator('#view-compare .cmp-wrap').boundingBox(), side = await page.locator('#view-compare .cmp-side').boundingBox();
+  ok(cw && side && cw.x + cw.width <= side.x + 1 && cw.y + cw.height <= 390 && cw.width >= 180, `Compare image and controls side by side (image ${cw && Math.round(cw.width)}px)`);
+  await page.screenshot({ path: path.join(SHOTS, 'landscape-compare.png') });
   ok(errors.length === 0, `no console errors (${errors.join(' | ')})`);
   await ctx.close();
 }

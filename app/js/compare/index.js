@@ -120,7 +120,7 @@ export function mountCompare(el, store) {
     if (!store.selected()) return;
     blinkBtn.setAttribute('aria-pressed', 'true'); let on = false; wipe.hidden = true;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    blinkTimer = setInterval(() => { on = !on; cb.style.clipPath = `inset(0 0 0 ${on ? 0 : 100}%)`; }, reduce ? 1000 : 500);
+    blinkTimer = setInterval(() => { on = !on; cb.style.clipPath = `inset(0 0 0 ${on ? 0 : 100}%)`; }, reduce ? 1200 : 500);
   }
   blinkBtn.addEventListener('click', () => (blinkTimer ? stopBlink() : startBlink()));
   const back = () => store.set('view', 'sky');
@@ -133,6 +133,8 @@ export function mountCompare(el, store) {
     if (e.key === 'b' || e.key === 'B') { blinkBtn.click(); e.preventDefault(); }
   });
 
+  // focus moves to "← Sky" when Compare opens and goes back to where it was when it closes
+  let returnFocus = null, shown = false;
   function show(v) {
     const on = v === 'compare';
     el.hidden = !on;
@@ -140,7 +142,16 @@ export function mountCompare(el, store) {
       const sel = store.get('selectedId');
       if (sel !== lastSel) { pickDefaults(); lastSel = sel; }
       buildSegs(); draw();
-    } else stopBlink();
+      if (!shown) { returnFocus = document.activeElement; q('.cmp-back').focus({ preventScroll: true }); }
+    } else {
+      stopBlink();
+      if (shown && el.contains(document.activeElement) || shown && document.activeElement === document.body) {
+        const r = returnFocus;
+        // defer: the view we return to updates its own inert state in the same 'view' change
+        setTimeout(() => { if (r && document.contains(r) && !r.closest('[inert]') && r.getClientRects().length) r.focus({ preventScroll: true }); }, 0);
+      }
+    }
+    shown = on;
   }
   store.on('view', show);
   store.on('selectedId', () => { if (store.get('view') === 'compare') { stopBlink(); pickDefaults(); lastSel = store.get('selectedId'); buildSegs(); draw(); } });

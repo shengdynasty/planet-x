@@ -111,8 +111,12 @@ body:not([data-view="sky"]) #top::before { content: ""; position: fixed; left: 0
 /* ---------- tablets and phones ---------- */
 #mobile-toggle { display: none; }
 @media (max-width: 860px) {
-  #readout .pos, #goto { display: none; }
+  #goto { display: none; }
   #readout { padding: 2px; }
+  /* position readout: a line of its own under the Grid/Tracks pill (its containing block: backdrop-filter), on the dark sky */
+  #readout .pos { position: absolute; right: 2px; top: calc(100% + 8px); white-space: nowrap; font-size: 12px; color: #b4b4b4; text-shadow: 0 1px 3px rgba(0,0,0,.9); pointer-events: none; }
+  #readout .pos b { color: #f2f2f2; }
+  body.panel-open #readout .pos { display: none; } /* the open sheet / docked panel sits right under it */
   #panel { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bottom-h) + 26px); height: min(56vh, calc(100dvh - var(--top-h) - var(--bottom-h) - 40px)); transform: translateY(calc(100% + 140px)); transition: transform .25s, visibility 0s .25s; visibility: hidden; }
   #panel.open { transform: none; visibility: visible; transition: transform .25s, visibility 0s; }
   #mobile-toggle { display: inline-grid; }
@@ -145,4 +149,10 @@ body:not([data-view="sky"]) #top::before { content: ""; position: fixed; left: 0
   #bottom { left: 12px; right: 12px; gap: 8px; }
   #panel { left: 12px; right: 12px; }
 }
-@media (prefers-reduced-motion: reduce) { #panel, #toast { transition: none; } }
+/* landscape phones: the panel docks on the right instead of rising from the bottom */
+@media (max-width: 860px) and (orientation: landscape) {
+  #panel { left: auto; right: 12px; width: min(340px, 46vw); top: calc(var(--top-h) + 8px); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bottom-h) + 26px); height: auto; transform: translateX(calc(100% + 40px)); }
+  #panel.open { transform: none; }
+  #toast { bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bottom-h) + 28px); }
+}
+@media (prefers-reduced-motion: reduce) { #panel, #panel.open, #toast { transition: none; } }
