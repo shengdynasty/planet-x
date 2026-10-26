@@ -261,6 +261,7 @@ export function mountCandidates(el, store) {
     if (!c) { detail.hidden = true; shownId = null; return; }
     detail.hidden = false;
     const isNew = shownId !== c.id; shownId = c.id;
+    if (isNew) detail.scrollTop = 0; // a newly selected candidate starts at its name and cutout
     $('#cx-d-name').textContent = c.name || c.id;
     detail.querySelector('.cx-dhead .cx-sim').hidden = !c.simulated;
     $('.cx-tag').textContent = c.tag || '';
