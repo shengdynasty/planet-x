@@ -29,7 +29,8 @@ const browser = await chromium.launch({
 });
 
 // Missing sibling modules (another agent's, not merged yet) 404 and fall back by design; anything else is an error.
-const benign = t => /Failed to load resource: the server responded with a status of 404/.test(t);
+// The :8787 live server is blocked (see open()), so its aborted request (net::ERR_FAILED) is expected too.
+const benign = t => /Failed to load resource: (the server responded with a status of 404|net::ERR_FAILED)/.test(t);
 async function open({ width, height, scheme = 'dark', mobile = false, reduced = false }) {
   const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: mobile ? 2 : 1, isMobile: mobile, hasTouch: mobile, colorScheme: scheme, reducedMotion: reduced ? 'reduce' : 'no-preference' });
   const page = await ctx.newPage();
@@ -37,6 +38,8 @@ async function open({ width, height, scheme = 'dark', mobile = false, reduced = 
   page.on('console', m => { if (m.type() === 'error') (benign(m.text()) ? notFound : errors).push(m.text()); });
   page.on('pageerror', e => errors.push(String(e)));
   page.on('response', r => { if (r.status() === 404) notFound.push(r.url()); });
+  // hermetic: these checks expect simulated data even when a local live server is running on :8787
+  await page.route(/(localhost|127\.0\.0\.1):8787/, r => r.abort());
   await page.goto(URL_);
   await page.waitForFunction(() => document.documentElement.dataset.ready === 'true', null, { timeout: 15000 });
   await page.waitForFunction(() => window.__sky && window.__sky.backdrop, null, { timeout: 20000 });
