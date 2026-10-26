@@ -235,7 +235,8 @@ for (const [vname, vopts] of VIEWS) for (const theme of ['light', 'dark']) {
       ['muted on panel-2', c('--muted'), c('--panel-2'), 4.5], ['muted on bg (.lead/.sub)', c('--muted'), c('--bg'), 4.5],
       ['badge/.warn text', c('--warn'), c('--warn-bg'), 4.5], ['pressed button text', c('--accent-ink'), c('--accent'), 4.5],
       ['focus ring on panel', c('--focus'), c('--panel'), 3], ['focus ring on bg', c('--focus'), c('--bg'), 3],
-      ...['--cand', '--known', '--var', '--art'].map(n => [`.dot ${n} on panel-2 (3:1)`, c(n), c('--panel-2'), 3]),
+      // list swatches are grey and told apart by shape (filled / solid / dashed / dotted), as in the app's Field view
+      ...['--ink', '--muted'].map(n => [`.dot ${n} on panel-2 (3:1)`, c(n), c('--panel-2'), 3]),
       ['.flash over brightest pixel', [255, 255, 255], over([0, 0, 0], v.flashA, INF_MAX), 4.5],
       ['.flash over diff max', [255, 255, 255], over([0, 0, 0], v.flashA, DIV_MAX), 4.5],
       ['.readout over brightest pixel', [255, 255, 255], over([0, 0, 0], v.readA, INF_MAX), 4.5],

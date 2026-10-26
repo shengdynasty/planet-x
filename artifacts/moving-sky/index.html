@@ -6,42 +6,47 @@
 <title>SPHEREx Moving Sky — demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#E9EBEF; --panel:#FFFFFF; --panel-2:#F3F4F7; --line:#D5D9E0;
-  --ink:#1B2130; --muted:#5E6776; --accent:#0A7F8C; --accent-ink:#FFFFFF;
-  --warn:#9A5A00; --warn-bg:#FFF2DB; --cand:#C8431A; --known:#0C8A98; --var:#7A4CC6; --art:#7A8190;
-  --focus:#0C8A98;
+  /* Palette and type match the Planet X app (app/css/base.css): UI is black / white / grey; only imagery has colour. */
+  --bg:#f4f4f4; --panel:#ffffff; --panel-2:#f8f8f8; --line:rgba(0,0,0,.12);
+  --ink:#111111; --muted:#666666; --accent:#111111; --accent-ink:#ffffff;
+  --warn:#111111; --warn-bg:#ececec;
+  --focus:#111111;
+  /* overlay marks on the (always dark) image: same colours as the app's Field view */
+  --cand:#ffffff; --known:#79e0ec; --var:#cdb0ff; --art:#b4b4b4;
+  color-scheme:light;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme:dark;
-    --bg:#1A1F29; --panel:#242A36; --panel-2:#2B3240; --line:#3A4252;
-    --ink:#E9ECF1; --muted:#A3ABBA; --accent:#3EC3D1; --accent-ink:#0F1A1C;
-    --warn:#F2B35C; --warn-bg:#3A2F1C; --cand:#FF7A4D; --known:#3EC3D1; --var:#B995F2; --art:#8E97A8;
-    --focus:#3EC3D1;
+    --bg:#000000; --panel:#0c0c0c; --panel-2:#141414; --line:rgba(255,255,255,.14);
+    --ink:#f2f2f2; --muted:#a0a0a0; --accent:#f2f2f2; --accent-ink:#000000;
+    --warn:#f2f2f2; --warn-bg:#1a1a1a;
+    --focus:#f2f2f2;
   }
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --bg:#1A1F29; --panel:#242A36; --panel-2:#2B3240; --line:#3A4252;
-  --ink:#E9ECF1; --muted:#A3ABBA; --accent:#3EC3D1; --accent-ink:#0F1A1C;
-  --warn:#F2B35C; --warn-bg:#3A2F1C; --cand:#FF7A4D; --known:#3EC3D1; --var:#B995F2; --art:#8E97A8;
-  --focus:#3EC3D1;
+  --bg:#000000; --panel:#0c0c0c; --panel-2:#141414; --line:rgba(255,255,255,.14);
+  --ink:#f2f2f2; --muted:#a0a0a0; --accent:#f2f2f2; --accent-ink:#000000;
+  --warn:#f2f2f2; --warn-bg:#1a1a1a;
+  --focus:#f2f2f2;
 }
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:inherit}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Albert Sans",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45;font-feature-settings:"tnum"}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Inter",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
 button,select,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
 header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 18px;margin-bottom:14px}
-h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
+h1{font-size:22px;font-weight:600;margin:0;letter-spacing:-.01em}
 .sub{color:var(--muted);margin:0;flex:1 1 260px}
-.badge{font-size:13px;padding:3px 9px;border-radius:999px;background:var(--warn-bg);color:var(--warn);font-weight:500}
+.badge{display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:4px 10px;border-radius:7px;border:1px solid var(--line);color:var(--ink);font-weight:400}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;border:1.5px solid var(--muted)}
 .lead{margin:0 0 18px;max-width:72ch;color:var(--muted)}
 .grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
 @media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}}
@@ -62,12 +67,12 @@ canvas.sky{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .flash{position:absolute;top:10px;left:10px;font-weight:600;font-size:13px;padding:3px 9px;border-radius:6px;background:rgba(0,0,0,.55);color:#fff;pointer-events:none}
 .readout{position:absolute;bottom:10px;left:10px;right:10px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:#fff;background:rgba(0,0,0,.6);padding:6px 9px;border-radius:6px;pointer-events:none}
 .readout span b{font-weight:600}
-.warn{display:none;margin-top:10px;padding:9px 12px;border-radius:8px;background:var(--warn-bg);color:var(--warn);font-size:14px}
+.warn{display:none;margin-top:10px;padding:9px 12px;border-radius:8px;background:var(--warn-bg);border:1px solid var(--line);color:var(--warn);font-size:14px}
 .warn.on{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .warn button{border:1px solid currentColor;background:transparent;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:13px}
 .rail{display:flex;flex-direction:column;gap:12px}
 .block{padding:14px}
-.block h2{font-size:14px;font-weight:600;margin:0 0 8px}
+.block h2{font-size:13px;font-weight:500;margin:0 0 8px}
 .epochs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
 @media (min-width:600px) and (max-width:880px){.epochs{grid-template-columns:repeat(8,1fr)}}
 .epochs button{border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:6px 2px;font-size:12px;cursor:pointer;line-height:1.2;color:var(--muted);min-height:44px;white-space:nowrap}
@@ -80,13 +85,13 @@ canvas.sky{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 ul.dets{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 ul.dets li button{width:100%;text-align:left;border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:8px 10px;cursor:pointer;display:grid;grid-template-columns:12px 1fr;gap:10px;align-items:start}
 ul.dets li button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-.dot{width:12px;height:12px;border-radius:50%;margin-top:4px;border:2px solid var(--art)}
-.dot.cand{border-color:var(--cand);background:var(--cand)}
-.dot.known{border-color:var(--known)}
-.dot.var{border-color:var(--var)}
-.dot.art{border-color:var(--art);border-style:dashed}
-.dot.left{border-color:var(--known);border-style:dotted}
-.dets .t{font-weight:600;font-size:14px}
+.dot{width:12px;height:12px;border-radius:50%;margin-top:4px;border:1.6px solid var(--muted)}
+.dot.cand{border-color:var(--ink);background:var(--ink)}
+.dot.known{border-color:var(--ink);border-radius:2px}
+.dot.var{border-color:var(--ink);border-radius:1px;transform:scale(.8) rotate(45deg)}
+.dot.art{border-style:dashed}
+.dot.left{border-color:var(--ink);border-style:dotted}
+.dets .t{font-weight:500;font-size:14px}
 .dets .d{font-size:13px;color:var(--muted)}
 .empty{font-size:14px;color:var(--muted)}
 .vet{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
@@ -100,7 +105,7 @@ ul.dets li button[aria-pressed="true"]{border-color:var(--accent);box-shadow:ins
 .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13.5px;margin-top:6px}
 .kv div:nth-child(odd){color:var(--muted)}
 .note{margin-top:18px;padding:14px;font-size:14px;color:var(--muted)}
-.note h2{font-size:14px;color:var(--ink);margin:0 0 6px}
+.note h2{font-size:13px;font-weight:500;color:var(--ink);margin:0 0 6px}
 .note p{margin:6px 0}
 code{font-size:13px;background:var(--panel-2);padding:1px 5px;border-radius:4px}
 @media (pointer:coarse){.seg button,.warn button{min-height:44px}.stretch input{height:44px}}

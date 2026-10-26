@@ -106,12 +106,12 @@ await btn('epB', 4).click(); await p.click('#m-diff'); await p.click('#o-known')
 await p.screenshot({ path: OUT + '/05-diff-known.png' }); await p.click('#o-known'); await p.click('#m-blink');
 ok(errs.length === 0, 'no page errors: ' + errs.join(' | '));
 
-// data-theme switch should re-render the canvas overlays (marker colours come from CSS vars)
+// overlay marks sit on the always-dark image, so their colours (the app's Field view colours) don't change with the theme
 await btn('epB', 5).click(); await p.click('#m-diff');
 const sample = () => p.evaluate(() => { const c = document.getElementById('sky'); return c.toDataURL().length; });
 const s0 = await sample();
 await p.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark')); await p.waitForTimeout(100);
-ok(s0 !== await sample(), 'canvas re-renders on data-theme change');
+ok(s0 === await sample(), 'canvas overlay colours stay the same on a data-theme change');
 await p.screenshot({ path: OUT + '/06-dark.png', fullPage: true });
 await p.close();
 
