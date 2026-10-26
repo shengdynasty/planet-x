@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data source · dev</title>
+<link rel="stylesheet" href="../css/base.css">
+<style>
+  body { padding: 16px; font: 14px/1.45 Inter, system-ui, sans-serif; background: var(--bg, #000); color: var(--ink, #fff); }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  pre { background: rgba(127,127,127,.12); padding: 8px; border-radius: 6px; overflow-x: auto; font-size: 12px; max-height: 40vh; }
+  #frames { display: flex; gap: 8px; flex-wrap: wrap; }
+  figure { margin: 0; } canvas { width: 160px; height: 160px; image-rendering: pixelated; border: 1px solid #555; }
+  figcaption { font-size: 11px; opacity: .8; max-width: 160px; }
+  form { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; } input { width: 7em; }
+</style>
+</head>
+<body>
+<h1>Data source</h1>
+<p id="source">…</p>
+<form id="q"><label>RA° <input name="ra" value="70.42"></label><label>Dec° <input name="dec" value="19.18"></label>
+  <label>size″ <input name="size" value="120"></label><label><input type="checkbox" name="known"> known objects (slow first time)</label><button>Get field</button></form>
+<p id="status"></p>
+<div id="frames"></div>
+<h2>Scans</h2><pre id="scans"></pre>
+<h2>Candidates</h2><pre id="cands"></pre>
+<script type="module">
+  import * as store from '../js/core/store.js';
+  import { initData, getField } from '../js/data/index.js';
+  const $ = id => document.getElementById(id);
+  const show = () => {
+    const s = store.get('source'); $('source').textContent = `${s.mode} · ${s.note}`;
+    $('scans').textContent = JSON.stringify(store.get('scans'), null, 1);
+    $('cands').textContent = JSON.stringify(store.get('candidates'), null, 1);
+  };
+  store.on('*', show);
+  store.listen('toast', m => { $('status').textContent = m; });
+  const t0 = performance.now();
+  await initData(store);
+  window.__initMs = performance.now() - t0; show();
+  $('q').addEventListener('submit', async e => {
+    e.preventDefault(); const f = new FormData(e.target);
+    $('status').textContent = 'Loading…'; $('frames').innerHTML = ''; const t = performance.now();
+    try {
+      const fld = await getField({ ra: +f.get('ra'), dec: +f.get('dec'), sizeArcsec: +f.get('size'), known: !!f.get('known') });
+      $('status').textContent = `${fld.simulated ? 'SIMULATED' : 'LIVE'} field N=${fld.N}, ${fld.epochs.length} frames, ${(performance.now() - t).toFixed(0)} ms` + (fld.fallbackReason ? ' — ' + fld.fallbackReason : '');
+      fld.epochs.forEach((ep, i) => {
+        const img = fld.frame(i), N = fld.N, s = [...img].sort((a, b) => a - b), lo = s[N * N >> 2], hi = s[Math.floor(N * N * 0.995)];
+        const c = document.createElement('canvas'); c.width = c.height = N; const ctx = c.getContext('2d'), id = ctx.createImageData(N, N);
+        for (let p = 0; p < N * N; p++) { const v = Math.max(0, Math.min(255, 255 * Math.asinh((img[p] - lo) / (hi - lo) * 3) / Math.asinh(3))); id.data.set([v, v, v, 255], 4 * p); }
+        ctx.putImageData(id, 0, 0);
+        const fig = document.createElement('figure'); fig.append(c); const cap = document.createElement('figcaption');
+        cap.textContent = `${ep.label} · ${ep.sub}`; fig.append(cap); $('frames').append(fig);
+      });
+      window.__field = fld;
+    } catch (err) { $('status').textContent = 'Error: ' + err.message; }
+  });
+</script>
+</body>
+</html>
