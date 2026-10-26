@@ -54,3 +54,4 @@ _Last updated: 2026-10-25_
 - SPHEREx Moving Sky demo (reference, read-only): https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b
 
 - 2026-10-26: App artifact republished with the Sky view polish (version 1793039454-6cef): https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW
+- 2026-10-26: Full site (homepage + app + Moving Sky) published as one artifact: https://claude.ai/artifact/7coFfmF9zDLmKXTMB4A8iC (private until shared). Cross-page links now point at explicit index.html files.
