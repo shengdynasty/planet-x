@@ -3,6 +3,7 @@
 _Last updated: 2026-10-25_
 
 ## Done
+- Live data merged (build/data): local server `node server/index.mjs` (port 8787) pulls real SPHEREx exposures via IRSA SIA (spherex_qr2 + qr3), cutouts with own FITS/WCS parsing, wavelength from each file's spectral WCS, JPL sb_ident + Horizons. Home field: 321 exposures, 3 epochs; 16 Psyche recovered within 2″ of Horizons. Client falls back to sim in ~0 ms when the server is absent (claude.ai sandbox). Cold costs: ~10 s per field, ~70 s with JPL.
 - **App assembled on main** — http://localhost:8000/app/ — shell merged (76/76): top bar Sky · Compare · Field + data badge, real NASA sky with correct orientation, render-on-change, Compare, help sheet with credits; review panel and Field view mounted. Field default size unified at 1968″. Only the data module is still the built-in stand-in.
 - Old UI demo mobile/a11y/perf merged: first frame 10.4 s → 0.7 s (desktop), 13.7 s → 0.5 s (phone, 4× throttle); keyboard list, focus traps, pinch zoom, 40px targets.
 - Field view + pipeline merged (8296257): detection output identical to Moving Sky on all 30 same-wavelength pairs (57/57); Field view in the UI demo look, "Flagged sources" wording, add-to-review-list and show-on-sky wired to the store (ra/dec in degrees).
@@ -15,9 +16,10 @@ _Last updated: 2026-10-25_
 - Pitch deck v1 published (9 slides, private): https://claude.ai/artifact/UAqhztF4edsXdn2mTzs6fw — source in docs/deck/. Demo slides have screenshot placeholders, filled after QA.
 - Repo initialised; baseline snapshots of both published artifacts committed (`artifacts/`, commit d7a194f). Checksums match the published versions.
 
-## In progress — full app build (started 2026-10-25, est. 1–1.5 h wall-clock)
-Goal: one app in `app/` that merges both demos in the UI demo's look. Contracts: `app/ARCHITECTURE.md`. Preview: http://localhost:8000/app/
-- `build/data` — simulated source + live source via local Node server (IRSA SPHEREx cutouts, JPL small-body ID)
+## In progress
+- `build/live`: pipeline misreads real (undersampled) SPHEREx stars as single-pixel spikes; fix without changing sim results; known-object match wins over artifact test; live loading UX (10–70 s cold), empty live panel state; Psyche end-to-end through the UI
+- Independent review of the merged app (read-only) for integration bugs
+- Live server running on localhost:8787; cache warming for the home and Psyche fields
 
 ## Next
 - (a) Fix the fly-to bug + interaction QA (UI demo)
