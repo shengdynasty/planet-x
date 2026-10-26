@@ -91,7 +91,10 @@ function useSim(store, why) {
 export async function initData(store) {
   storeRef = store;
   let health = null;
-  try { health = await getJSON('/api/health', HEALTH_TIMEOUT_MS); } catch { /* no server, or sandboxed (claude.ai): stay quiet */ }
+  // a hosted copy (GitHub Pages, claude.ai) can't reach a visitor's localhost, and Chrome would ask them for
+  // local-network access, so only look for the local server when the page is served locally or one is configured
+  const local = /^(localhost|127\.0\.0\.1|\[::1\]|)$/.test(location.hostname) || globalThis.PLANETX_SERVER;
+  if (local) try { health = await getJSON('/api/health', HEALTH_TIMEOUT_MS); } catch { /* no server, or sandboxed (claude.ai): stay quiet */ }
   if (!health || !health.ok) return useSim(store, 'no local data server');
   try {
     const home = health.home || HOME;

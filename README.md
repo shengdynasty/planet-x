@@ -4,6 +4,8 @@ A NASA Space Apps Challenge 2026 project: search NASA's **SPHEREx** all-sky infr
 
 SPHEREx re-maps the whole sky every six months. A far-off planet barely shifts between those passes, so the app compares the same patch of sky across epochs, flags what moved, appeared, vanished or brightened, and checks each one against JPL's catalogue of known asteroids and comets. Whatever is left is a **candidate for human review, never a detection**.
 
+**Live demo:** https://shengdynasty.github.io/planet-x/ (simulated data; real SPHEREx data needs the local server below)
+
 > **Status:** hackathon prototype. Without the local data server, everything shown is simulated and labelled as such.
 
 ## What's here
