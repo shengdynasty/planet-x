@@ -3,6 +3,7 @@
 _Last updated: 2026-10-25_
 
 ## Done
+- Real sky merged (6ba33d3): NASA SVS Deep Star Maps 2020 (Gaia DR2), app/assets/sky_4k.jpg + sky_2k.jpg. Orientation verified on Orion, Vega, Polaris, Pleiades, LMC and the 12h seam; the old setup was mirrored E–W (fix: backdrop.scale.x = -1). Credit: NASA/GSFC SVS; Gaia DR2: ESA/Gaia/DPAC.
 - Moving Sky mobile/a11y/perf merged (98c9f2a): 4×2 epoch grid, touch readout, live-region announcements, AA contrast, slider jank 833 ms → ~1 ms at 4× throttle. Both Moving Sky suites pass on main.
 - Moving Sky correctness + interactions merged (6df1285): slow mover's drift corrected to a real ~500 AU rate (0.03°/yr), the "nearest matching pass" crash fixed, Track honours the selected window, selection survives epoch changes, reduced-motion flip button, spectrum label overflow, theme redraw. `node qa/moving-sky.test.mjs`: ALL PASS on main.
 - Write-up merged (docs/WRITEUP.md, docs/PITCH-OUTLINE.md). Placeholders: [Team member names], [UI demo link], [Moving Sky demo link], [Video link].
@@ -15,7 +16,6 @@ Goal: one app in `app/` that merges both demos in the UI demo's look. Contracts:
 - `build/field` — pure detection pipeline (must match Moving Sky exactly) + Field analysis view
 - `build/data` — simulated source + live source via local Node server (IRSA SPHEREx cutouts, JPL small-body ID)
 - `build/workflow` — candidate review panel: filter/sort/search, status + notes, persistence, CSV/JSON export
-- `build/assets` — real NASA SVS Deep Star Maps sky texture, orientation verified against bright stars
 - Still finishing on the old single-file UI demo: `fix/flyto`, `qa/mobile-a11y-perf` (findings get forwarded to shell)
 
 ## Next
