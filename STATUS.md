@@ -3,6 +3,7 @@
 _Last updated: 2026-10-25_
 
 ## Done
+- Candidate review panel merged (5f75917): filter/sort/search, keyboard listbox, Follow-up/Rejected review with notes (localStorage), CSV/JSON export with copy fallback for the sandbox. 88/88 tests pass on main. Contracts updated: flyto ra/dec in degrees; Candidate.pipelineStatus.
 - Real sky merged (6ba33d3): NASA SVS Deep Star Maps 2020 (Gaia DR2), app/assets/sky_4k.jpg + sky_2k.jpg. Orientation verified on Orion, Vega, Polaris, Pleiades, LMC and the 12h seam; the old setup was mirrored E–W (fix: backdrop.scale.x = -1). Credit: NASA/GSFC SVS; Gaia DR2: ESA/Gaia/DPAC.
 - Moving Sky mobile/a11y/perf merged (98c9f2a): 4×2 epoch grid, touch readout, live-region announcements, AA contrast, slider jank 833 ms → ~1 ms at 4× throttle. Both Moving Sky suites pass on main.
 - Moving Sky correctness + interactions merged (6df1285): slow mover's drift corrected to a real ~500 AU rate (0.03°/yr), the "nearest matching pass" crash fixed, Track honours the selected window, selection survives epoch changes, reduced-motion flip button, spectrum label overflow, theme redraw. `node qa/moving-sky.test.mjs`: ALL PASS on main.
@@ -15,7 +16,6 @@ Goal: one app in `app/` that merges both demos in the UI demo's look. Contracts:
 - `build/shell` — page, top bar (Sky · Compare · Field, data-source badge), 3D sky, Compare; folds in fly-to + known UI-demo bugs
 - `build/field` — pure detection pipeline (must match Moving Sky exactly) + Field analysis view
 - `build/data` — simulated source + live source via local Node server (IRSA SPHEREx cutouts, JPL small-body ID)
-- `build/workflow` — candidate review panel: filter/sort/search, status + notes, persistence, CSV/JSON export
 - Still finishing on the old single-file UI demo: `fix/flyto`, `qa/mobile-a11y-perf` (findings get forwarded to shell)
 
 ## Next
