@@ -181,6 +181,7 @@ export function mountField(el, store) {
   function startLoading(seq, data) {
     loading = true; loadStart = Date.now(); clearInterval(timer); timer = null;
     $('loading').hidden = false; $('flash').textContent = 'Loading live field…';
+    if (!field) { $('source').textContent = 'Live · loading'; $('source').title = ''; }
     const r = req || {}, d = data.liveSize ? data.liveSize(r.sizeArcsec) : r.sizeArcsec;
     $('loadT').textContent = `Loading SPHEREx frames for RA ${fmtRA(r.ra)}, Dec ${fmtDec(r.dec)} · ${d}″${r.det ? ` · D${r.det}` : ''}…`;
     renderSteps(null); renderLive();
@@ -199,11 +200,11 @@ export function mountField(el, store) {
   // Stages from the server's /api/progress (cold builds only). Without it, the elapsed time is all we show.
   function renderSteps(builds) {
     const ol = $('loadSteps');
-    if (!builds) { ol.innerHTML = ''; ol.hidden = true; return; }
+    if (!builds || !builds.length) { ol.innerHTML = ''; ol.hidden = true; return; } // warm, finished, or not reported
     ol.hidden = false;
     const quick = builds.find(b => !b.known), full = builds.find(b => b.known), b = quick || full;
     const ORDER = ['sia', 'headers', 'cutouts', 'horizons'], at = b ? ORDER.indexOf(b.stage) : -1;
-    const st = (i, lab, n) => `<li class="${at > i || (!b && i < 3) ? 'done' : at === i ? 'now' : ''}">${esc(lab)}${at === i && n ? ` <span>${n}</span>` : ''}</li>`;
+    const st = (i, lab, n) => `<li class="${at > i || (!quick && full && i < 3 && at < 0) ? 'done' : at === i ? 'now' : ''}">${esc(lab)}${at === i && n ? ` <span>${n}</span>` : ''}</li>`;
     let html = st(0, 'Find SPHEREx exposures (IRSA SIA)') + st(1, 'Read headers: wavelength at the target', b && b.total ? `${b.done}/${b.total}` : '')
       + st(2, 'Download and align cutouts', b && b.stage === 'cutouts' ? `${b.done}/${b.total}` : '');
     const j = full && full.jpl;
