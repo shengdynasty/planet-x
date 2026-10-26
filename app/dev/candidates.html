@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Movers panel (dev)</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/candidates.css">
+<style>
+  /* Stand-in for the shell: a black stage, a fake sky control strip, and the demo's #panel container. */
+  #stage { display: block; cursor: default; }
+  #fake-sky { position: fixed; z-index: 2; left: 16px; top: 14px; right: 312px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: #9a9a9a; }
+  #fake-sky .glass { border-radius: 8px; padding: 6px 8px; display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  #fake-sky b { color: #f2f2f2; font-weight: 500; margin-right: 4px; }
+  #fake-sky button { color: var(--ink); }
+  #log { position: fixed; z-index: 2; left: 16px; bottom: 16px; right: 312px; max-height: 30vh; overflow: auto; font: 11px/1.5 ui-monospace, Menlo, monospace; color: #9a9a9a; white-space: pre-wrap; margin: 0; }
+  #announce { position: fixed; z-index: 2; left: 16px; top: 120px; color: #9a9a9a; font-size: 11px; }
+  #announce::before { content: "announce: "; color: #6a6a6a; }
+  #panel {
+    top: calc(env(safe-area-inset-top, 0px) + 54px); right: 16px; width: 280px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 86px);
+    border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;
+  }
+  @media (max-width: 860px) {
+    #fake-sky { right: 16px; }
+    #log { display: none; }
+    #announce { top: auto; bottom: 8px; }
+    #panel { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 36px); height: 56vh; max-height: 56vh; transform: translateY(calc(100% + 120px)); transition: transform .25s; }
+    #panel.open { transform: none; }
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="fake-sky" class="hud">
+  <div class="glass" role="group" aria-label="Fake sky">
+    <b>Fake sky</b>
+    <button data-sel="c03">Pick c03</button>
+    <button data-sel="c05">Pick c05</button>
+    <button data-sel="">Deselect</button>
+    <button id="add">Add c07</button>
+  </div>
+  <div class="glass" role="group" aria-label="Scan">
+    <button data-scan="1">Scan 1</button><button data-scan="2">2</button><button data-scan="3">3</button>
+    <button id="theme">Theme</button>
+    <button id="sheet">Sheet</button>
+  </div>
+</div>
+<aside class="hud glass open" id="panel" aria-label="Movers"></aside>
+<div id="announce" role="status" aria-live="polite"></div>
+<pre id="log" class="hud"></pre>
+
+<script type="module">
+  import * as store from '../js/core/store.js';
+  import { mountCandidates } from '../js/candidates/index.js';
+
+  const scans = [
+    { id: 1, label: 'Scan 1', date: 'May 2025', has: true },
+    { id: 2, label: 'Scan 2', date: 'Nov 2025', has: true },
+    { id: 3, label: 'Scan 3', date: 'May 2026', has: true },
+    { id: 4, label: 'Scan 4', date: 'Nov 2026', has: false },
+  ];
+  // The six placeholder movers from artifacts/ui-demo, as Candidates.
+  const movers = [
+    { name: 'Candidate 01', tag: 'Known asteroid · 2003 UB',  status: 'Matched',   band: '2.4 µm', match: '2003 UB', pos: [[3.20, 12.0], [3.90, 10.5], [4.55, 9.2]],      note: 'Fast main‑belt mover. Cross‑matched to JPL’s catalog on the first pass.' },
+    { name: 'Candidate 02', tag: 'Known comet · C/2024 R3',    status: 'Matched',   band: '3.1 µm', match: 'C/2024 R3', pos: [[9.80, -22.0], [10.30, -24.0], [10.95, -25.6]], note: 'Extended emission consistent with a coma.' },
+    { name: 'Candidate 03', tag: 'Unmatched · slow mover',     status: 'Candidate', band: '4.6 µm', pos: [[16.10, 41.0], [16.15, 41.2], [16.19, 41.35]],  note: 'No match in the known‑object catalog. A shift this small over six months is consistent with a very distant body. A candidate only, not a confirmed object.' },
+    { name: 'Candidate 04', tag: 'Known asteroid · 1998 KY26', status: 'Matched',   band: '1.6 µm', match: '1998 KY26', pos: [[20.40, -8.0], [21.10, -6.4], [21.85, -4.9]],   note: 'Near‑Earth asteroid. Large shift between scans.' },
+    { name: 'Candidate 05', tag: 'Probable brown dwarf',       status: 'Likely',    band: '4.1 µm', pos: [[6.70, 58.0], [6.78, 57.6], [6.86, 57.2]],      note: 'Bright in the longest bands, faint in the shortest. Motion suggests a nearby cool object.' },
+    { name: 'Candidate 06', tag: 'Unmatched · slow mover',     status: 'Candidate', band: '4.6 µm', pos: [[13.40, -47.0], [13.42, -46.7], [13.45, -46.4]], note: 'Second slow, unmatched source. Three epochs is the minimum for an orbit fit; the solution is still poorly constrained.' },
+  ].map((m, i) => ({ id: 'c0' + (i + 1), simulated: true, ...m }));
+
+  store.set('scans', scans);
+  store.set('scan', 3);
+  store.set('candidates', movers);
+  mountCandidates(document.getElementById('panel'), store);
+
+  // ---- fake sky / shell ----
+  const log = document.getElementById('log');
+  const say = s => { log.textContent = (s + '\n' + log.textContent).slice(0, 4000); };
+  window.__events = [];
+  ['flyto', 'toast'].forEach(ev => store.listen(ev, p => { window.__events.push([ev, p]); say(`${ev} ${JSON.stringify(p)}`); }));
+  ['view', 'field', 'selectedId', 'scan'].forEach(k => store.on(k, v => { window.__events.push([k, v]); say(`${k} = ${JSON.stringify(v)}`); }));
+  document.querySelectorAll('[data-sel]').forEach(b => b.addEventListener('click', () => store.set('selectedId', b.dataset.sel || null)));
+  document.querySelectorAll('[data-scan]').forEach(b => b.addEventListener('click', () => store.set('scan', +b.dataset.scan)));
+  document.getElementById('add').addEventListener('click', () => {
+    if (store.get('candidates').some(c => c.id === 'c07')) return;
+    store.set('candidates', [...store.get('candidates'), {
+      id: 'c07', name: 'Candidate 07', tag: 'Unmatched · slow mover', status: 'Candidate', band: '4.4 µm', simulated: true,
+      pos: [[2.10, -5.0], [2.12, -4.9], [2.13, -4.85]], note: 'Added at runtime by the field view.',
+    }]);
+  });
+  document.getElementById('theme').addEventListener('click', () => {
+    const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    r.dataset.theme = dark ? 'light' : 'dark';
+  });
+  document.getElementById('sheet').addEventListener('click', () => document.getElementById('panel').classList.toggle('open'));
+</script>
+</body>
+</html>
