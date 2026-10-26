@@ -76,6 +76,7 @@ const TEMPLATE = `
     <section class="fv-live" data-ref="live" hidden>
       <h3>Live request</h3>
       <form data-ref="liveform" class="fv-liveform">
+        <label class="fv-wide">Centre, RA and Dec in degrees <input data-ref="lpos" type="text" inputmode="decimal" placeholder="70.2635, 19.0558" autocomplete="off" spellcheck="false"></label>
         <label>Size <select data-ref="lsize"><option value="120">120″ (20 px)</option><option value="300">300″ (49 px)</option><option value="600">600″ (98 px)</option></select></label>
         <label>Detector <select data-ref="ldet">${DETECTORS.map(([d, r]) => `<option value="${d}">D${d} · ${r}</option>`).join('')}</select></label>
         <label class="fv-wide">Anchor on date <input data-ref="lt" type="text" inputmode="decimal" placeholder="MJD or 2026-02-15 (optional)" autocomplete="off" spellcheck="false"></label>
@@ -182,7 +183,7 @@ export function mountField(el, store) {
     $('loading').hidden = false; $('flash').textContent = 'Loading live field…';
     const r = req || {}, d = data.liveSize ? data.liveSize(r.sizeArcsec) : r.sizeArcsec;
     $('loadT').textContent = `Loading SPHEREx frames for RA ${fmtRA(r.ra)}, Dec ${fmtDec(r.dec)} · ${d}″${r.det ? ` · D${r.det}` : ''}…`;
-    renderSteps(null);
+    renderSteps(null); renderLive();
     const tick = () => { $('loadEl').textContent = `${fmtSecs(Date.now() - loadStart)} elapsed · a new field takes ~10 s for frames and ~1–2 min for JPL known objects; cached fields open instantly.`; };
     tick(); tickT = setInterval(tick, 500);
     const poll = async () => {
@@ -224,20 +225,26 @@ export function mountField(el, store) {
       : `Known-object check incomplete (${knownState.slice(8)}).`;
   }
   function renderLive() {
-    const sec = $('live'), on = liveSource() && !!field && (!field.simulated || !!field.fallbackReason);
+    // shown while loading too, so a slow request can be changed without waiting for it
+    const sec = $('live'), on = liveSource() && (loading || (!!field && (!field.simulated || !!field.fallbackReason)));
     sec.hidden = !on; if (!on) return;
-    const r = req || {}, size = field.request?.sizeArcsec ?? (field.sizeArcsec ? Math.round(field.sizeArcsec) : 300);
+    const r = req || {}, size = loading || !field ? (r.sizeArcsec > 600 ? 300 : Math.round(r.sizeArcsec || 120)) : field.request?.sizeArcsec ?? (field.sizeArcsec ? Math.round(field.sizeArcsec) : 300);
     const sz = $('lsize'); if (![...sz.options].some(o => +o.value === size)) sz.add(new Option(`${size}″`, String(size)));
-    sz.value = String(size); $('ldet').value = String(r.det || field.detector || 1);
+    sz.value = String(size); $('ldet').value = String(r.det || (field && !loading && field.detector) || 1);
     $('lt').value = Number.isFinite(r.t) ? String(r.t) : '';
-    $('livenote').textContent = field.simulated ? '' : `Real SPHEREx frames on detector D${field.detector} at ${field.band} µm. The artifact test uses a PSF width of ${psfModel(field).sigma.toFixed(2)} px ${psfModel(field).from === 'stars' ? `measured from ${psfModel(field).nStars} stars in these frames` : '(typical value; too few stars to measure)'}.`;
+    $('lpos').value = Number.isFinite(r.ra) ? `${+r.ra.toFixed(5)}, ${+r.dec.toFixed(5)}` : '';
+    $('livenote').textContent = loading || !field || field.simulated ? '' : `Real SPHEREx frames on detector D${field.detector} at ${field.band} µm. The artifact test uses a PSF width of ${psfModel(field).sigma.toFixed(2)} px ${psfModel(field).from === 'stars' ? `measured from ${psfModel(field).nStars} stars in these frames` : '(typical value; too few stars to measure)'}.`;
   }
   function submitLive(e) {
     e.preventDefault();
     const r = req || store.get('field') || {}, t = parseAnchor($('lt').value);
     if (Number.isNaN(t)) { $('lt').setAttribute('aria-invalid', 'true'); announce('Anchor date not understood. Use an MJD like 61087.13 or a date like 2026-02-15.'); $('lt').focus(); return; }
     $('lt').removeAttribute('aria-invalid');
-    const next = { ra: r.ra, dec: r.dec, sizeArcsec: +$('lsize').value, det: +$('ldet').value };
+    const m = $('lpos').value.trim().match(/^([+-]?\d+(?:\.\d+)?)\s*[, ]\s*([+-−]?\d+(?:\.\d+)?)$/);
+    const ra = m ? +m[1] : NaN, dec = m ? +m[2].replace('−', '-') : NaN;
+    if (!(ra >= 0 && ra < 360 && dec >= -90 && dec <= 90)) { $('lpos').setAttribute('aria-invalid', 'true'); announce('Centre not understood. Use RA, Dec in degrees, e.g. 70.2635, 19.0558.'); $('lpos').focus(); return; }
+    $('lpos').removeAttribute('aria-invalid');
+    const next = { ra, dec, sizeArcsec: +$('lsize').value, det: +$('ldet').value };
     if (t != null) next.t = t;
     store.set('field', next);
   }

@@ -134,7 +134,7 @@
 .fv-liveform .fv-wide { grid-column: 1 / -1; }
 .fv-liveform select { background: transparent; color: var(--ink); border: 1px solid var(--edge); border-radius: 6px; padding: 6px; font: inherit; font-size: 12px; min-width: 0; }
 .fv-liveform select option { color: #000; }
-.fv-liveform input[aria-invalid="true"] { border-color: var(--ink); }
+.fv-liveform input[aria-invalid="true"] { border-color: var(--ink); border-width: 2px; }
 .fv-liveform button { grid-column: 1 / -1; justify-self: start; }
 .fv-example { margin-top: 8px; align-self: flex-start; font-size: 12px; }
 @media (max-width: 860px) { .fv-pill-warn { grid-column: 1 / -1; grid-row: auto; max-width: none; } }

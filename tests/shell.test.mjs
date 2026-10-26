@@ -27,9 +27,6 @@ const browser = await chromium.launch({
   executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
-// Hermetic: never talk to a live data server on :8787 (tests/live.test.mjs covers live mode).
-{ const nc = browser.newContext.bind(browser); browser.newContext = async (o) => { const c = await nc(o); await c.route(/^http:\/\/(localhost|127\.0\.0\.1):8787\//, r => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: '{"ok":false,"note":"blocked by test"}' })); return c; }; }
-
 
 // Missing sibling modules (another agent's, not merged yet) 404 and fall back by design; anything else is an error.
 // The :8787 live server is blocked (see open()), so its aborted request (net::ERR_FAILED) is expected too.
