@@ -16,8 +16,8 @@ _Last updated: 2026-10-25_
 - Pitch deck v1 published (9 slides, private): https://claude.ai/artifact/UAqhztF4edsXdn2mTzs6fw — source in docs/deck/. Demo slides have screenshot placeholders, filled after QA.
 - Repo initialised; baseline snapshots of both published artifacts committed (`artifacts/`, commit d7a194f). Checksums match the published versions.
 
-## PAUSED (2026-10-25, by user request) — resume from here
-All agents stopped. Nothing published. main has every test suite green as of the last commit.
+## RESUMED 2026-10-26 (was paused 2026-10-25) — `build/live` and `fix/review` agents running again
+Nothing published. main has every test suite green as of the last commit.
 - `build/live` (worktree agent-a5a2790d3e10c14c2), 2 commits, NOT merged, unverified:
   9d91008 pipeline: PSF-aware artifact test (real SPHEREx stars are ~1 px; old spike test called them artifacts), ephemeris match wins over artifact test
   d4ff84f data/server: live size mapping (fixes review #1: size=1968 → HTTP 400 → silent sim fallback), progress endpoint, one pos per scan (null = unobserved), merged candidate poll, persisted field-added candidates
