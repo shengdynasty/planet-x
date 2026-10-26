@@ -10,7 +10,7 @@
 <style>
 :root{
   --bg:#E9EBEF; --panel:#FFFFFF; --panel-2:#F3F4F7; --line:#D5D9E0;
-  --ink:#1B2130; --muted:#5E6776; --accent:#0C8A98; --accent-ink:#FFFFFF;
+  --ink:#1B2130; --muted:#5E6776; --accent:#0A7F8C; --accent-ink:#FFFFFF;
   --warn:#9A5A00; --warn-bg:#FFF2DB; --cand:#C8431A; --known:#0C8A98; --var:#7A4CC6; --art:#7A8190;
   --focus:#0C8A98;
   box-sizing:border-box;
@@ -50,15 +50,17 @@ h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .seg button{background:transparent;border:0;padding:6px 12px;cursor:pointer;color:var(--muted)}
+.seg button:focus-visible{outline-color:currentColor;outline-offset:-4px}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .seg[hidden]{display:none}
 .spacer{flex:1}
 .stretch{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
 .stretch input{width:110px;accent-color:var(--accent)}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .stage{position:relative;background:#000;border-radius:6px;overflow:hidden;aspect-ratio:1/1}
-canvas.sky{width:100%;height:100%;display:block;image-rendering:pixelated;cursor:crosshair}
+canvas.sky{width:100%;height:100%;display:block;image-rendering:pixelated;cursor:crosshair;touch-action:pan-y pinch-zoom}
 .flash{position:absolute;top:10px;left:10px;font-weight:600;font-size:13px;padding:3px 9px;border-radius:6px;background:rgba(0,0,0,.55);color:#fff;pointer-events:none}
-.readout{position:absolute;bottom:10px;left:10px;right:10px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:#fff;background:rgba(0,0,0,.5);padding:6px 9px;border-radius:6px;pointer-events:none}
+.readout{position:absolute;bottom:10px;left:10px;right:10px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:#fff;background:rgba(0,0,0,.6);padding:6px 9px;border-radius:6px;pointer-events:none}
 .readout span b{font-weight:600}
 .warn{display:none;margin-top:10px;padding:9px 12px;border-radius:8px;background:var(--warn-bg);color:var(--warn);font-size:14px}
 .warn.on{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -66,8 +68,9 @@ canvas.sky{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .rail{display:flex;flex-direction:column;gap:12px}
 .block{padding:14px}
 .block h2{font-size:14px;font-weight:600;margin:0 0 8px}
-.epochs{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
-.epochs button{border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:6px 2px;font-size:12px;cursor:pointer;line-height:1.2;color:var(--muted)}
+.epochs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+@media (min-width:600px) and (max-width:880px){.epochs{grid-template-columns:repeat(8,1fr)}}
+.epochs button{border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:6px 2px;font-size:12px;cursor:pointer;line-height:1.2;color:var(--muted);min-height:44px;white-space:nowrap}
 .epochs button small{display:block;font-size:10.5px;opacity:.8}
 .epochs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .epochs button[aria-pressed="true"] small{opacity:.9}
@@ -82,7 +85,7 @@ ul.dets li button[aria-pressed="true"]{border-color:var(--accent);box-shadow:ins
 .dot.known{border-color:var(--known)}
 .dot.var{border-color:var(--var)}
 .dot.art{border-color:var(--art);border-style:dashed}
-.dot.left{border-color:var(--known);opacity:.5}
+.dot.left{border-color:var(--known);border-style:dotted}
 .dets .t{font-weight:600;font-size:14px}
 .dets .d{font-size:13px;color:var(--muted)}
 .empty{font-size:14px;color:var(--muted)}
@@ -100,6 +103,12 @@ ul.dets li button[aria-pressed="true"]{border-color:var(--accent);box-shadow:ins
 .note h2{font-size:14px;color:var(--ink);margin:0 0 6px}
 .note p{margin:6px 0}
 code{font-size:13px;background:var(--panel-2);padding:1px 5px;border-radius:4px}
+@media (pointer:coarse){.seg button,.warn button{min-height:44px}.stretch input{height:44px}}
+@media (max-width:640px), (pointer:coarse){
+  .stage{aspect-ratio:auto}
+  canvas.sky{height:auto;aspect-ratio:1/1}
+  .readout{position:static;background:#000;border-radius:0;padding:8px 10px}
+}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 </head>
@@ -129,21 +138,22 @@ code{font-size:13px;background:var(--panel-2);padding:1px 5px;border-radius:4px}
       <label class="stretch">Stretch <input id="stretch" type="range" min="0.3" max="3" step="0.05" value="1"></label>
     </div>
     <div class="stage">
-      <canvas class="sky" id="sky" width="640" height="640" aria-label="Infrared sky image, false colour"></canvas>
+      <canvas class="sky" id="sky" width="640" height="640" role="img" aria-label="Infrared sky image, false colour. Flagged sources are listed under Detections; select one there to vet it." aria-describedby="flash"></canvas>
       <div class="flash" id="flash">Reference</div>
-      <div class="readout" id="readout"><span>Hover the image to read coordinates and surface brightness</span></div>
+      <div class="readout" id="readout"><span>Hover or tap the image to read coordinates and surface brightness</span></div>
     </div>
-    <div class="warn" id="warn"></div>
+    <div role="status"><div class="warn" id="warn"></div></div>
   </section>
 
   <aside class="rail">
     <div class="panel block">
       <h2>Observations of this field</h2>
-      <div class="rowlab">Reference pass</div>
-      <div class="epochs" id="epA" role="group" aria-label="Reference epoch"></div>
-      <div class="rowlab">Compare with</div>
-      <div class="epochs" id="epB" role="group" aria-label="Comparison epoch"></div>
+      <div class="rowlab" id="labA">Reference pass</div>
+      <div class="epochs" id="epA" role="group" aria-labelledby="labA"></div>
+      <div class="rowlab" id="labB">Compare with</div>
+      <div class="epochs" id="epB" role="group" aria-labelledby="labB"></div>
       <div class="baseline" id="baseline"></div>
+      <div class="vh" id="announce" role="status" aria-live="polite"></div>
     </div>
     <div class="panel block">
       <h2 id="dethead">Detections</h2>
@@ -241,6 +251,9 @@ function detect(img,k=5){ const {med,sig}=stats(img), thr=med+k*sig, out=[];
     out.push({x:sw?sx/sw:x, y:sw?sy/sw:y, peak:v-med, flux:sw, sig, spike:(v-med)/Math.max(nb/8,0.5*sig)}); }
   return out; }
 const dist = (a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+// perf: frames are immutable once generated, so stats/detect results can be cached per image
+{ const memo = fn => { const c=new WeakMap(); return (img,...a) => { let m=c.get(img); if(!m) c.set(img,m=new Map()); const key=a.join(','); if(!m.has(key)) m.set(key,fn(img,...a)); return m.get(key); }; };
+  stats = memo(stats); detect = memo(detect); }
 function nearest(list,p){ let best=null,bd=1e9; for(const q of list){ const d=dist(p,q); if(d<bd){bd=d;best=q;} } return [best,bd]; }
 
 function analyse(ia, ib){
@@ -300,10 +313,13 @@ function render(){
   const flash=document.getElementById('flash');
   let knownT;
   if (mode==='blink'){ const showB=blinkPhase%2===1; shown=showB?fb:fa; drawImage(shown,false); flash.textContent=showB?`Compare · ${EPOCHS[B].label}`:`Reference · ${EPOCHS[A].label}`; knownT=[EPOCHS[showB?B:A].t]; }
-  else if (mode==='diff'){ const d=new Float32Array(N*N); for(let p=0;p<N*N;p++) d[p]=fb[p]-fa[p]; shown=d; drawImage(d,true); flash.textContent='Compare − Reference'; knownT=[EPOCHS[A].t,EPOCHS[B].t]; }
+  else if (mode==='diff'){ const key=A+','+B; if(diffCache.key!==key){ const d=new Float32Array(N*N); for(let p=0;p<N*N;p++) d[p]=fb[p]-fa[p]; diffCache={key,d}; } shown=diffCache.d; drawImage(shown,true); flash.textContent='Compare − Reference'; knownT=[EPOCHS[A].t,EPOCHS[B].t]; }
   else { // stack the reference-band passes inside the chosen baseline, so the trail matches the flagged pair
-    const band=EPOCHS[A].band, lo=Math.min(EPOCHS[A].t,EPOCHS[B].t), hi=Math.max(EPOCHS[A].t,EPOCHS[B].t); const st=new Float32Array(N*N).fill(-Infinity); knownT=[];
-    EPOCHS.forEach((e,i)=>{ if(e.band!==band||e.t<lo||e.t>hi) return; knownT.push(e.t); const f=frame(i); for(let p=0;p<N*N;p++) if(f[p]>st[p]) st[p]=f[p]; });
+    const band=EPOCHS[A].band, lo=Math.min(EPOCHS[A].t,EPOCHS[B].t), hi=Math.max(EPOCHS[A].t,EPOCHS[B].t); const key=band+','+lo+','+hi; let c=stackCache.get(key);
+    if(!c){ const st=new Float32Array(N*N).fill(-Infinity), ts=[];
+      EPOCHS.forEach((e,i)=>{ if(e.band!==band||e.t<lo||e.t>hi) return; ts.push(e.t); const f=frame(i); for(let p=0;p<N*N;p++) if(f[p]>st[p]) st[p]=f[p]; });
+      stackCache.set(key,c={st,ts}); }
+    const st=c.st; knownT=c.ts.slice();
     shown=st; drawImage(st,false); const n=knownT.length, [e0,e1]=EPOCHS[A].t<=EPOCHS[B].t?[A,B]:[B,A]; flash.textContent=`Max-stack of ${n} pass${n===1?'':'es'} at ${band} µm, ${EPOCHS[e0].label} to ${EPOCHS[e1].label}`; }
   if (showKnown){ for(const t of knownT) for(const k of KNOWN){ const [x,y]=k.pos(t); if(x>-5) circle(x,y,13,colorFor('known'),[4,4]); } }
   if (showMarks && matched){ for(const r of results){ const col=colorFor(r.kind);
@@ -312,6 +328,8 @@ function render(){
       else if (r.from && !r.to) circle(r.from.x,r.from.y,9,col,[2,3]);
       if (r===selected){ circle(r.x,r.y,18,col); } } }
 }
+let diffCache={}, rafPending=false; const stackCache=new Map(); // perf: per-pair difference and per-baseline max-stack
+function scheduleRender(){ if(rafPending) return; rafPending=true; requestAnimationFrame(()=>{ rafPending=false; render(); }); }
 function tick(){ blinkPhase++; render(); syncFlip(); }
 const reducedMQ = matchMedia('(prefers-reduced-motion: reduce)');
 // Reduced motion: no auto-blink, but a manual flip button so the comparison frame is still reachable.
@@ -320,12 +338,17 @@ function syncFlip(){ const w=document.getElementById('flipwrap'), f=document.get
 function setTimer(){ clearInterval(timer); timer=null; if(mode==='blink' && !reducedMQ.matches) timer=setInterval(tick,650); syncFlip(); }
 
 // ---------- UI ----------
-function epochButtons(id, get, set){ const el=document.getElementById(id); el.innerHTML='';
-  EPOCHS.forEach((e,i)=>{ const b=document.createElement('button'); b.innerHTML=`${e.label}<small>${e.sub}</small>`; b.setAttribute('aria-pressed',String(get()===i)); b.addEventListener('click',()=>{ set(i); update(); }); el.appendChild(b); }); }
+const spokenT = l => l.replace(/(\d+) (d|h|min)$/,(_,n,u)=>`${n} ${{d:'day',h:'hour',min:'minute'}[u]}${n==='1'?'':'s'}`);
+function announce(msg){ document.getElementById('announce').textContent=msg; }
+function announceSel(){ announce(selected? `Selected: ${selected.title}. ${selected.detail}` : 'Selection cleared'); }
+function epochButtons(id, get, set){ const el=document.getElementById(id);
+  if (!el.children.length) EPOCHS.forEach((e,i)=>{ const b=document.createElement('button'); b.innerHTML=`${e.label}<small>${e.sub}</small>`; b.setAttribute('aria-label',`${spokenT(e.label)}, ${e.band} µm`); b.addEventListener('click',()=>{ set(i); update(); }); el.appendChild(b); });
+  [...el.children].forEach((b,i)=>b.setAttribute('aria-pressed',String(get()===i))); }
 function update(){
   epochButtons('epA',()=>A,i=>A=i); epochButtons('epB',()=>B,i=>B=i);
   const a=EPOCHS[A], b=EPOCHS[B], dt=Math.abs(b.t-a.t), matched=a.band===b.band;
-  document.getElementById('baseline').textContent = A===B? 'Pick two different passes.' : `Baseline ${fmtDt(dt)} · ${matched?`both at ${a.band} µm`:`${a.band} vs ${b.band} µm`}`;
+  const baseTxt = A===B? 'Pick two different passes.' : `Baseline ${fmtDt(dt)} · ${matched?`both at ${a.band} µm`:`${a.band} vs ${b.band} µm`}`, bl=document.getElementById('baseline');
+  if (bl.textContent!==baseTxt){ bl.textContent=baseTxt; announce(`Reference ${spokenT(a.label)}, compare ${spokenT(b.label)}. ${baseTxt}`); }
   const warn=document.getElementById('warn');
   if (!matched){ warn.className='warn on'; warn.innerHTML=`<span>These passes were taken at different wavelengths (${a.band} and ${b.band} µm). Blinking them shows colour differences, not motion, so detection is off.</span>`;
     let best=-1,bd=1e9; EPOCHS.forEach((e,i)=>{ if(i!==A&&e.band===a.band&&Math.abs(e.t-b.t)<bd){bd=Math.abs(e.t-b.t);best=i;} });
@@ -336,6 +359,7 @@ function update(){
   if (selected) selected = rematch(selected, results);
   renderList(); renderVet(); blinkPhase=0; render(); setTimer();
 }
+const KIND={cand:'Candidate',known:'Known object',var:'Variable',art:'Artifact',left:'Left the field'};
 // analyse() builds fresh objects, so keep the selection by finding the same source again:
 // same kind, and either endpoint (or the marker position) within 3 px of the old one.
 function rematch(s, list){ const near=(p,q)=>p&&q&&dist(p,q)<3; let best=null,bd=1e9;
@@ -345,8 +369,8 @@ function renderList(){ const ul=document.getElementById('dets'); ul.innerHTML=''
   const h=document.getElementById('dethead'); h.textContent = results.length? `Detections (${results.length})` : 'Detections';
   if (!results.length){ const li=document.createElement('li'); li.className='empty'; li.textContent = EPOCHS[A].band!==EPOCHS[B].band? 'Choose two passes at the same wavelength to compare.' : A===B? 'Choose a comparison pass.' : 'Nothing changed between these passes above 5σ.'; ul.appendChild(li); return; }
   for (const r of results){ const li=document.createElement('li'); const b=document.createElement('button'); b.setAttribute('aria-pressed',String(r===selected));
-    b.innerHTML=`<span class="dot ${r.kind}"></span><span><span class="t">${r.title}</span><br><span class="d">${r.detail}</span></span>`;
-    b.addEventListener('click',()=>{ selected = selected===r? null : r; renderList(); renderVet(); render(); }); li.appendChild(b); ul.appendChild(li); }
+    b.innerHTML=`<span class="dot ${r.kind}" aria-hidden="true"></span><span><span class="t"><span class="vh">${KIND[r.kind]}: </span>${r.title}</span><br><span class="d">${r.detail}</span></span>`;
+    b.addEventListener('click',()=>{ selected = selected===r? null : r; const i=results.indexOf(r); renderList(); renderVet(); render(); ul.querySelectorAll('button')[i]?.focus(); announceSel(); }); li.appendChild(b); ul.appendChild(li); }
 }
 function radec(x,y){ const ra = RA0 - (x-N/2)*SCALE/3600/Math.cos(DEC0*Math.PI/180); const dec = DEC0 - (y-N/2)*SCALE/3600; return [ra,dec]; }
 function fmtRA(ra){ const h=ra/15, hh=h|0, m=(h-hh)*60, mm=m|0, s=(m-mm)*60; return `${String(hh).padStart(2,'0')}h ${String(mm).padStart(2,'0')}m ${s.toFixed(1).padStart(4,'0')}s`; }
@@ -376,6 +400,7 @@ function renderVet(){ const p=document.getElementById('vetpanel'); if(!selected)
   const path=pts.map((p,i)=>`${i?'L':'M'}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(' ');
   const label = r.kind==='cand' ? 'Reflected sunlight, water-ice dips' : r.kind==='known' ? 'Reflected sunlight, thermal rise past 3 µm' : 'Stellar continuum';
   svg.innerHTML=`<line class="ax" x1="20" y1="100" x2="320" y2="100"/><path class="l" d="${path}"/>${[1,2,3,4,5].map(l=>`<text x="${X(l)}" y="114" text-anchor="middle">${l} µm</text>`).join('')}<text x="20" y="12">${r.kind==='art'||r.kind==='left'?'Spectrum not extracted':label}</text>`;
+  svg.setAttribute('aria-label',`Spectrum of the selected ${r.title}: ${r.kind==='art'||r.kind==='left'?'not extracted':label}`);
 }
 
 // toolbar
@@ -383,17 +408,19 @@ const modes={ 'm-blink':'blink','m-diff':'diff','m-track':'track' };
 for (const id in modes) document.getElementById(id).addEventListener('click',()=>{ mode=modes[id]; for(const k in modes) document.getElementById(k).setAttribute('aria-pressed',String(k===id)); blinkPhase=0; render(); setTimer(); });
 document.getElementById('o-marks').addEventListener('click',e=>{ showMarks=!showMarks; e.currentTarget.setAttribute('aria-pressed',String(showMarks)); render(); });
 document.getElementById('o-known').addEventListener('click',e=>{ showKnown=!showKnown; e.currentTarget.setAttribute('aria-pressed',String(showKnown)); render(); });
-document.getElementById('stretch').addEventListener('input',e=>{ stretch=parseFloat(e.target.value); render(); });
-sky.addEventListener('mousemove',e=>{ const rect=sky.getBoundingClientRect(); const x=Math.floor((e.clientX-rect.left)/rect.width*N), y=Math.floor((e.clientY-rect.top)/rect.height*N); if(x<0||y<0||x>=N||y>=N) return;
+document.getElementById('stretch').addEventListener('input',e=>{ stretch=parseFloat(e.target.value); scheduleRender(); });
+const readoutAt=e=>{ const rect=sky.getBoundingClientRect(); const x=Math.floor((e.clientX-rect.left)/rect.width*N), y=Math.floor((e.clientY-rect.top)/rect.height*N); if(x<0||y<0||x>=N||y>=N) return;
   const img=shown||frame(A); const [ra,dec]=radec(x,y); // read the image actually on screen (blink frame, difference or stack)
-  document.getElementById('readout').innerHTML=`<span>RA <b>${fmtRA(ra)}</b></span><span>Dec <b>${fmtDec(dec)}</b></span><span>Pixel <b>${x}, ${y}</b></span><span>${mode==='diff'?'Difference':mode==='track'?'Stack max':'Value'} <b>${img[y*N+x].toFixed(2)} MJy/sr</b></span>`; });
-sky.addEventListener('click',e=>{ const rect=sky.getBoundingClientRect(); const x=(e.clientX-rect.left)/rect.width*N, y=(e.clientY-rect.top)/rect.height*N; let best=null,bd=14; for(const r of results){ const d=Math.hypot(r.x-x,r.y-y); if(d<bd){bd=d;best=r;} } selected=best; renderList(); renderVet(); render(); });
+  document.getElementById('readout').innerHTML=`<span>RA <b>${fmtRA(ra)}</b></span><span>Dec <b>${fmtDec(dec)}</b></span><span>Pixel <b>${x}, ${y}</b></span><span>${mode==='diff'?'Difference':mode==='track'?'Stack max':'Value'} <b>${img[y*N+x].toFixed(2)} MJy/sr</b></span>`; };
+sky.addEventListener('pointermove',readoutAt); sky.addEventListener('pointerdown',readoutAt);
+sky.addEventListener('click',e=>{ const rect=sky.getBoundingClientRect(); const x=(e.clientX-rect.left)/rect.width*N, y=(e.clientY-rect.top)/rect.height*N; let best=null,bd=14; for(const r of results){ const d=Math.hypot(r.x-x,r.y-y); if(d<bd){bd=d;best=r;} } selected=best; renderList(); renderVet(); render(); announceSel(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
 new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']}); // explicit theme toggle
 reducedMQ.addEventListener('change',()=>{ blinkPhase=0; render(); setTimer(); });
-document.getElementById('flip').addEventListener('click',()=>{ blinkPhase++; render(); syncFlip(); });
+document.getElementById('flip').addEventListener('click',()=>{ blinkPhase++; render(); syncFlip(); announce(`Showing ${document.getElementById('flash').textContent}`); });
 if (location.hash === '#test') window.__ms = {analyse, EPOCHS, OBJ, fmtDt, fmtRate};
 update();
+{ const idle=window.requestIdleCallback||(f=>setTimeout(f,120)); let i=0; const warm=()=>{ while(i<EPOCHS.length&&frames.has(i)) i++; if(i<EPOCHS.length){ frame(i); idle(warm); } }; idle(warm); }
 })();
 </script>
 </body>
