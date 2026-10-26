@@ -112,7 +112,7 @@ for (const [vname, vopts] of VIEWS) for (const theme of ['light', 'dark']) {
   const L = await page.evaluate(() => {
     const de = document.documentElement;
     const eb = [...document.querySelectorAll('.epochs button')];
-    const tb = [...document.querySelectorAll('.toolbar button, .toolbar input, .epochs button, .dets button')];
+    const tb = [...document.querySelectorAll('.toolbar button, .toolbar input, .epochs button, .dets button')].filter(b => b.getClientRects().length);
     const ro = document.getElementById('readout').getBoundingClientRect(), cv = document.getElementById('sky').getBoundingClientRect();
     return { hscroll: de.scrollWidth - de.clientWidth,
       epOverflow: eb.filter(b => b.scrollWidth > b.clientWidth + 1 || b.scrollHeight > b.clientHeight + 1).length,
