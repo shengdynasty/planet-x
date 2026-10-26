@@ -6,7 +6,7 @@ import { VIEW } from './config.js';
 const $ = id => document.getElementById(id);
 const narrow = () => window.matchMedia('(max-width: 860px)').matches;
 const isTyping = t => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
-const FIELD_SIZE_ARCSEC = 600;
+const FIELD_SIZE_ARCSEC = 1968; // 320 px × 6.15″, same default as the review panel
 
 export function mountHud(store) {
   let sky = null;                                 // attached after mountSky
