@@ -3,6 +3,7 @@
 _Last updated: 2026-10-25_
 
 ## Done
+- **Published the full app to the existing UI demo link** (2026-10-26, version 1793021478-fb62, 31 files, shared "anyone with the link"): https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW — runs on simulated data there (sandbox blocks the local server). Before publishing, merged in a newer version another session had published at 03:20 UTC (realistic slow-mover positions for c03/c05/c06 + cutout exaggeration; its fly-to/RA/timeline fixes were already in the app). Its code referenced a "master.md track 4" plan that is not in this repo.
 - **Live integration merged (d2273cd)** — real SPHEREx data end to end. PSF-aware artifact test (real stars are ~1 px; sim results byte-identical, pipeline 75/75 incl. 57 parity checks + a real SPHEREx fixture). On the real Psyche field: before, 9 "spikes" incl. Psyche itself; after, 16 Psyche = Known object 1.3″ from Horizons, cosmic rays/bad pixels = artifacts, 1 variable, 1 faint candidate. Field live loading overlay with stages + Cancel, two-step load (frames first, JPL after), live request box (centre/size/detector/date, Psyche example), live empty panel state, field-added candidates persisted, visible fallback reason.
 - Go-to → Field now uses the fly-to target (was 0.03–0.06° off when pressed mid-easing); verified 0.00000° on 3 targets.
 - **All suites green on main (2026-10-26):** pipeline 75, data 5 (+2 network skips), field ALL PASS, workflow 88, shell 87, review 64, live ALL PASS (against :8787).
@@ -21,7 +22,7 @@ _Last updated: 2026-10-25_
 - Repo initialised; baseline snapshots of both published artifacts committed (`artifacts/`, commit d7a194f). Checksums match the published versions.
 
 ## In progress
-- Nothing running. Waiting on the user: whether/where to publish (UI demo artifact, Moving Sky artifact, or the new app).
+- Nothing running.
 
 - Full review report (13 confirmed findings + repro scripts): scratchpad/review/
 - Running processes: static server :8000, live data server :8787 (cache warm for home + Psyche fields).
@@ -42,6 +43,6 @@ _Last updated: 2026-10-25_
 - GitHub (private): https://github.com/shengdynasty/planet-x — `main` pushed 2026-10-26. Push again after each merge.
 
 ## Artifact URLs
-- UI demo (republish target): https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW
+- Planet X app (was the UI demo; now the full app): https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW
 - Pitch deck (new, private): https://claude.ai/artifact/UAqhztF4edsXdn2mTzs6fw
 - SPHEREx Moving Sky demo (reference, read-only): https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b
