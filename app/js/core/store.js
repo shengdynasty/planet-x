@@ -12,7 +12,8 @@
 //   layers      { grid: boolean, tracks: boolean }           [shell]
 //
 // Events (fire-and-forget, payload in brackets):
-//   'flyto'  {ra, dec, fov?}       ask the sky to centre on a position
+//   'flyto'  {ra, dec, fov?}       ask the sky to centre on a position. ra and dec in DEGREES (same as `field`);
+//                                  senders may add raHours for convenience, receivers must use ra/15.
 //   'toast'  string                show a transient message
 //   'announce' string              polite screen-reader announcement
 
