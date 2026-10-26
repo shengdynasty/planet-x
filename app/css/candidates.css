@@ -52,9 +52,25 @@
 .cx-mid { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .cx-lab { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; }
 .cx-sub { font-size: 11px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; }
-.cx-list .s { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
-.cx-list li[aria-selected="true"] .n, .cx-list li[aria-selected="true"] .s, .cx-list li[aria-selected="true"] .cx-sub { color: var(--ink-2); }
+.cx-list .s { font-size: 11px; color: var(--ink-3); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+/* status by form as well as word: unmatched candidates stand out, pipeline matches recede */
+.cx-list .s::before { content: ""; width: 6px; height: 6px; border-radius: 50%; border: 1px solid transparent; flex: none; }
+.cx-list .s-candidate { color: var(--ink); }
+.cx-list .s-candidate::before { background: var(--ink); border-color: var(--ink); }
+.cx-list .s-follow-up { color: var(--ink); }
+.cx-list .s-follow-up::before { border-color: var(--ink); }
+.cx-list .s-likely { color: var(--ink-2); }
+.cx-list .s-likely::before { border-color: var(--ink-2); }
+.cx-list .s-rejected { text-decoration: line-through; text-decoration-color: var(--ink-3); }
+.cx-list li[aria-selected="true"] .n, .cx-list li[aria-selected="true"] .s-matched, .cx-list li[aria-selected="true"] .s-rejected, .cx-list li[aria-selected="true"] .cx-sub { color: var(--ink-2); }
 .cx-sim { font-size: 10px; line-height: 1; padding: 2px 5px; border: 1px solid var(--edge); border-radius: 4px; color: var(--ink-2); letter-spacing: .01em; white-space: nowrap; }
+/* in the list the label is quiet inline text; the top-bar badge and the detail header carry the bordered chip */
+.cx-list .cx-sim { border: 0; padding: 0; font-size: 11px; line-height: inherit; color: var(--ink-3); }
+.cx-list .cx-sim::before { content: "·"; margin-right: 6px; }
+/* the list fades out at the bottom while there is more to scroll to */
+.cx-list.more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); }
+/* desktop: with nothing selected, the panel is only as tall as its list */
+@media (min-width: 861px) { #panel:not(:has(.cx.has-detail)) { bottom: auto; max-height: calc(100dvh - var(--top-h) - 8px - env(safe-area-inset-bottom, 0px) - 86px); } }
 .cx-empty { padding: 18px 14px; color: var(--ink-3); line-height: 1.5; }
 .cx-empty button { margin-top: 8px; padding: 6px 8px; font-size: 11px; }
 

@@ -95,6 +95,10 @@ export function mountCandidates(el, store) {
   el.innerHTML = TEMPLATE;
   const $ = sel => el.querySelector(sel);
   const root = $('.cx'), list = $('.cx-list'), detail = $('.cx-detail'), empty = $('.cx-empty');
+  // fade the list's last row while there is more below it (see .cx-list.more)
+  const syncMore = () => list.classList.toggle('more', list.scrollHeight - list.scrollTop - list.clientHeight > 2);
+  list.addEventListener('scroll', syncMore, { passive: true });
+  if (window.ResizeObserver) new ResizeObserver(syncMore).observe(list);
   const count = $('.cx-count'), q = $('.cx-q'), sortSel = $('.cx-sort'), fsel = $('.cx-fsel');
   const moreBtn = $('.cx-more'), noteEl = $('.cx-rnote'), savedEl = $('.cx-saved');
   const cut = $('.cx-cut'), cg = cut.getContext('2d');
@@ -157,10 +161,11 @@ export function mountCandidates(el, store) {
       li.setAttribute('aria-selected', String(c.id === sel));
       li.setAttribute('aria-label', optionLabel(c));
       li.tabIndex = c.id === focusId ? 0 : -1;
-      li.innerHTML = html`<span class="n">${esc(F.shortId(c))}</span><span class="cx-mid"><span class="cx-lab">${esc(F.shortTag(c))}</span><span class="cx-sub">${esc(c.band || '')}${c.simulated ? ' <span class="cx-sim">Simulated</span>' : ''}</span></span><span class="s">${esc(c.status)}</span>`;
+      li.innerHTML = html`<span class="n">${esc(F.shortId(c))}</span><span class="cx-mid"><span class="cx-lab">${esc(F.shortTag(c))}</span><span class="cx-sub">${esc(c.band || '')}${c.simulated ? ' <span class="cx-sim">Simulated</span>' : ''}</span></span><span class="s s-${esc(String(c.status).toLowerCase().replace(/[^a-z]+/g, '-'))}">${esc(c.status)}</span>`;
       return li;
     }));
     list.hidden = !vis.length;
+    syncMore();
     empty.hidden = !!vis.length;
     const filtered = f.status !== 'all' || String(f.query || '').trim();
     const src = store.get('source') || {}, liveEmpty = !all.length && src.mode === 'live' && src.live !== false;
