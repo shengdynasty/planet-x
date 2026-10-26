@@ -1,0 +1,1356 @@
+{
+ "source": "artifacts/moving-sky/index.html",
+ "epochs": [
+  {
+   "t": 0,
+   "band": 0.95,
+   "label": "0 d",
+   "sub": "0.95 µm"
+  },
+  {
+   "t": 0.00167,
+   "band": 0.95,
+   "label": "+2 min",
+   "sub": "0.95 µm"
+  },
+  {
+   "t": 0.42,
+   "band": 1.62,
+   "label": "+10 h",
+   "sub": "1.62 µm"
+  },
+  {
+   "t": 1,
+   "band": 0.95,
+   "label": "+1 d",
+   "sub": "0.95 µm"
+  },
+  {
+   "t": 2,
+   "band": 0.95,
+   "label": "+2 d",
+   "sub": "0.95 µm"
+  },
+  {
+   "t": 183,
+   "band": 0.95,
+   "label": "+183 d",
+   "sub": "0.95 µm"
+  },
+  {
+   "t": 184,
+   "band": 3.29,
+   "label": "+184 d",
+   "sub": "3.29 µm"
+  },
+  {
+   "t": 366,
+   "band": 0.95,
+   "label": "+366 d",
+   "sub": "0.95 µm"
+  }
+ ],
+ "pairs": [
+  {
+   "a": 0,
+   "b": 1,
+   "results": []
+  },
+  {
+   "a": 0,
+   "b": 3,
+   "results": [
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Moved 175″ in 1.0 d — matches ephemeris",
+     "x": 65.0274,
+     "y": 253.0086,
+     "from": {
+      "x": 37.9591,
+      "y": 262.0343,
+      "peak": 7.8142
+     },
+     "to": {
+      "x": 65.0274,
+      "y": 253.0086,
+      "peak": 7.5243
+     }
+    },
+    {
+     "kind": "art",
+     "title": "Single-pixel spike",
+     "detail": "Not PSF-shaped: cosmic ray or hot pixel",
+     "x": 260.8774,
+     "y": 71.0466,
+     "from": null,
+     "to": {
+      "x": 260.8774,
+      "y": 71.0466,
+      "peak": 5.631
+     }
+    }
+   ]
+  },
+  {
+   "a": 0,
+   "b": 4,
+   "results": [
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Moved 350″ in 2.0 d — matches ephemeris",
+     "x": 91.9736,
+     "y": 244.0321,
+     "from": {
+      "x": 37.9591,
+      "y": 262.0343,
+      "peak": 7.8142
+     },
+     "to": {
+      "x": 91.9736,
+      "y": 244.0321,
+      "peak": 7.4611
+     }
+    }
+   ]
+  },
+  {
+   "a": 0,
+   "b": 5,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "254″ in 183 d = 0.14°/yr. No ephemeris match.",
+     "x": 196.8932,
+     "y": 99.7215,
+     "from": {
+      "x": 188.0087,
+      "y": 140.0837,
+      "peak": 1.4004
+     },
+     "to": {
+      "x": 196.8932,
+      "y": 99.7215,
+      "peak": 1.1837
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×2.31 in peak, no motion",
+     "x": 96.0157,
+     "y": 92.0034,
+     "from": {
+      "x": 96.0214,
+      "y": 92.0673,
+      "peak": 4.1652
+     },
+     "to": {
+      "x": 96.0157,
+      "y": 92.0034,
+      "peak": 9.6025
+     }
+    },
+    {
+     "kind": "left",
+     "title": "Main-belt asteroid (catalogued) — left the cutout",
+     "detail": "Ephemeris puts it outside this field now",
+     "x": 37.9591,
+     "y": 262.0343,
+     "from": {
+      "x": 37.9591,
+      "y": 262.0343,
+      "peak": 7.8142
+     },
+     "to": null
+    }
+   ]
+  },
+  {
+   "a": 0,
+   "b": 7,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "124″ in 366 d = 0.03°/yr. No ephemeris match.",
+     "x": 206.8976,
+     "y": 147.332,
+     "from": {
+      "x": 188.0087,
+      "y": 140.0837,
+      "peak": 1.4004
+     },
+     "to": {
+      "x": 206.8976,
+      "y": 147.332,
+      "peak": 1.4675
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×2.30 in peak, no motion",
+     "x": 96.0141,
+     "y": 92.0158,
+     "from": {
+      "x": 96.0214,
+      "y": 92.0673,
+      "peak": 4.1652
+     },
+     "to": {
+      "x": 96.0141,
+      "y": 92.0158,
+      "peak": 9.5613
+     }
+    },
+    {
+     "kind": "left",
+     "title": "Main-belt asteroid (catalogued) — left the cutout",
+     "detail": "Ephemeris puts it outside this field now",
+     "x": 37.9591,
+     "y": 262.0343,
+     "from": {
+      "x": 37.9591,
+      "y": 262.0343,
+      "peak": 7.8142
+     },
+     "to": null
+    }
+   ]
+  },
+  {
+   "a": 1,
+   "b": 0,
+   "results": []
+  },
+  {
+   "a": 1,
+   "b": 3,
+   "results": [
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Moved 175″ in 1.0 d — matches ephemeris",
+     "x": 65.0274,
+     "y": 253.0086,
+     "from": {
+      "x": 38.0231,
+      "y": 261.9989,
+      "peak": 7.7665
+     },
+     "to": {
+      "x": 65.0274,
+      "y": 253.0086,
+      "peak": 7.5243
+     }
+    },
+    {
+     "kind": "art",
+     "title": "Single-pixel spike",
+     "detail": "Not PSF-shaped: cosmic ray or hot pixel",
+     "x": 260.8774,
+     "y": 71.0466,
+     "from": null,
+     "to": {
+      "x": 260.8774,
+      "y": 71.0466,
+      "peak": 5.631
+     }
+    }
+   ]
+  },
+  {
+   "a": 1,
+   "b": 4,
+   "results": [
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Moved 350″ in 2.0 d — matches ephemeris",
+     "x": 91.9736,
+     "y": 244.0321,
+     "from": {
+      "x": 38.0231,
+      "y": 261.9989,
+      "peak": 7.7665
+     },
+     "to": {
+      "x": 91.9736,
+      "y": 244.0321,
+      "peak": 7.4611
+     }
+    }
+   ]
+  },
+  {
+   "a": 1,
+   "b": 5,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "254″ in 183 d = 0.14°/yr. No ephemeris match.",
+     "x": 196.8932,
+     "y": 99.7215,
+     "from": {
+      "x": 187.9032,
+      "y": 140.0048,
+      "peak": 1.2088
+     },
+     "to": {
+      "x": 196.8932,
+      "y": 99.7215,
+      "peak": 1.1837
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×2.42 in peak, no motion",
+     "x": 96.0157,
+     "y": 92.0034,
+     "from": {
+      "x": 96.0043,
+      "y": 92.0023,
+      "peak": 3.9666
+     },
+     "to": {
+      "x": 96.0157,
+      "y": 92.0034,
+      "peak": 9.6025
+     }
+    },
+    {
+     "kind": "left",
+     "title": "Main-belt asteroid (catalogued) — left the cutout",
+     "detail": "Ephemeris puts it outside this field now",
+     "x": 38.0231,
+     "y": 261.9989,
+     "from": {
+      "x": 38.0231,
+      "y": 261.9989,
+      "peak": 7.7665
+     },
+     "to": null
+    }
+   ]
+  },
+  {
+   "a": 1,
+   "b": 7,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "125″ in 366 d = 0.03°/yr. No ephemeris match.",
+     "x": 206.8976,
+     "y": 147.332,
+     "from": {
+      "x": 187.9032,
+      "y": 140.0048,
+      "peak": 1.2088
+     },
+     "to": {
+      "x": 206.8976,
+      "y": 147.332,
+      "peak": 1.4675
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×2.41 in peak, no motion",
+     "x": 96.0141,
+     "y": 92.0158,
+     "from": {
+      "x": 96.0043,
+      "y": 92.0023,
+      "peak": 3.9666
+     },
+     "to": {
+      "x": 96.0141,
+      "y": 92.0158,
+      "peak": 9.5613
+     }
+    },
+    {
+     "kind": "left",
+     "title": "Main-belt asteroid (catalogued) — left the cutout",
+     "detail": "Ephemeris puts it outside this field now",
+     "x": 38.0231,
+     "y": 261.9989,
+     "from": {
+      "x": 38.0231,
+      "y": 261.9989,
+      "peak": 7.7665
+     },
+     "to": null
+    }
+   ]
+  },
+  {
+   "a": 3,
+   "b": 0,
+   "results": [
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Moved 175″ in 1.0 d — matches ephemeris",
+     "x": 37.9591,
+     "y": 262.0343,
+     "from": {
+      "x": 65.0274,
+      "y": 253.0086,
+      "peak": 7.5243
+     },
+     "to": {
+      "x": 37.9591,
+      "y": 262.0343,
+      "peak": 7.8142
+     }
+    },
+    {
+     "kind": "art",
+     "title": "Single-pixel spike in reference",
+     "detail": "Not PSF-shaped: cosmic ray or hot pixel",
+     "x": 260.8774,
+     "y": 71.0466,
+     "from": {
+      "x": 260.8774,
+      "y": 71.0466,
+      "peak": 5.631
+     },
+     "to": null
+    }
+   ]
+  },
+  {
+   "a": 3,
+   "b": 1,
+   "results": [
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Moved 175″ in 1.0 d — matches ephemeris",
+     "x": 38.0231,
+     "y": 261.9989,
+     "from": {
+      "x": 65.0274,
+      "y": 253.0086,
+      "peak": 7.5243
+     },
+     "to": {
+      "x": 38.0231,
+      "y": 261.9989,
+      "peak": 7.7665
+     }
+    },
+    {
+     "kind": "art",
+     "title": "Single-pixel spike in reference",
+     "detail": "Not PSF-shaped: cosmic ray or hot pixel",
+     "x": 260.8774,
+     "y": 71.0466,
+     "from": {
+      "x": 260.8774,
+      "y": 71.0466,
+      "peak": 5.631
+     },
+     "to": null
+    }
+   ]
+  },
+  {
+   "a": 3,
+   "b": 4,
+   "results": [
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Moved 175″ in 1.0 d — matches ephemeris",
+     "x": 91.9736,
+     "y": 244.0321,
+     "from": {
+      "x": 65.0274,
+      "y": 253.0086,
+      "peak": 7.5243
+     },
+     "to": {
+      "x": 91.9736,
+      "y": 244.0321,
+      "peak": 7.4611
+     }
+    },
+    {
+     "kind": "art",
+     "title": "Single-pixel spike in reference",
+     "detail": "Not PSF-shaped: cosmic ray or hot pixel",
+     "x": 260.8774,
+     "y": 71.0466,
+     "from": {
+      "x": 260.8774,
+      "y": 71.0466,
+      "peak": 5.631
+     },
+     "to": null
+    }
+   ]
+  },
+  {
+   "a": 3,
+   "b": 5,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "253″ in 182 d = 0.14°/yr. No ephemeris match.",
+     "x": 196.8932,
+     "y": 99.7215,
+     "from": {
+      "x": 188.8902,
+      "y": 140.072,
+      "peak": 1.3315
+     },
+     "to": {
+      "x": 196.8932,
+      "y": 99.7215,
+      "peak": 1.1837
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×2.29 in peak, no motion",
+     "x": 96.0157,
+     "y": 92.0034,
+     "from": {
+      "x": 95.9972,
+      "y": 92.0088,
+      "peak": 4.1875
+     },
+     "to": {
+      "x": 96.0157,
+      "y": 92.0034,
+      "peak": 9.6025
+     }
+    },
+    {
+     "kind": "art",
+     "title": "Single-pixel spike in reference",
+     "detail": "Not PSF-shaped: cosmic ray or hot pixel",
+     "x": 260.8774,
+     "y": 71.0466,
+     "from": {
+      "x": 260.8774,
+      "y": 71.0466,
+      "peak": 5.631
+     },
+     "to": null
+    },
+    {
+     "kind": "left",
+     "title": "Main-belt asteroid (catalogued) — left the cutout",
+     "detail": "Ephemeris puts it outside this field now",
+     "x": 65.0274,
+     "y": 253.0086,
+     "from": {
+      "x": 65.0274,
+      "y": 253.0086,
+      "peak": 7.5243
+     },
+     "to": null
+    }
+   ]
+  },
+  {
+   "a": 3,
+   "b": 7,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "119″ in 365 d = 0.03°/yr. No ephemeris match.",
+     "x": 206.8976,
+     "y": 147.332,
+     "from": {
+      "x": 188.8902,
+      "y": 140.072,
+      "peak": 1.3315
+     },
+     "to": {
+      "x": 206.8976,
+      "y": 147.332,
+      "peak": 1.4675
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×2.28 in peak, no motion",
+     "x": 96.0141,
+     "y": 92.0158,
+     "from": {
+      "x": 95.9972,
+      "y": 92.0088,
+      "peak": 4.1875
+     },
+     "to": {
+      "x": 96.0141,
+      "y": 92.0158,
+      "peak": 9.5613
+     }
+    },
+    {
+     "kind": "art",
+     "title": "Single-pixel spike in reference",
+     "detail": "Not PSF-shaped: cosmic ray or hot pixel",
+     "x": 260.8774,
+     "y": 71.0466,
+     "from": {
+      "x": 260.8774,
+      "y": 71.0466,
+      "peak": 5.631
+     },
+     "to": null
+    },
+    {
+     "kind": "left",
+     "title": "Main-belt asteroid (catalogued) — left the cutout",
+     "detail": "Ephemeris puts it outside this field now",
+     "x": 65.0274,
+     "y": 253.0086,
+     "from": {
+      "x": 65.0274,
+      "y": 253.0086,
+      "peak": 7.5243
+     },
+     "to": null
+    }
+   ]
+  },
+  {
+   "a": 4,
+   "b": 0,
+   "results": [
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Moved 350″ in 2.0 d — matches ephemeris",
+     "x": 37.9591,
+     "y": 262.0343,
+     "from": {
+      "x": 91.9736,
+      "y": 244.0321,
+      "peak": 7.4611
+     },
+     "to": {
+      "x": 37.9591,
+      "y": 262.0343,
+      "peak": 7.8142
+     }
+    }
+   ]
+  },
+  {
+   "a": 4,
+   "b": 1,
+   "results": [
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Moved 350″ in 2.0 d — matches ephemeris",
+     "x": 38.0231,
+     "y": 261.9989,
+     "from": {
+      "x": 91.9736,
+      "y": 244.0321,
+      "peak": 7.4611
+     },
+     "to": {
+      "x": 38.0231,
+      "y": 261.9989,
+      "peak": 7.7665
+     }
+    }
+   ]
+  },
+  {
+   "a": 4,
+   "b": 3,
+   "results": [
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Moved 175″ in 1.0 d — matches ephemeris",
+     "x": 65.0274,
+     "y": 253.0086,
+     "from": {
+      "x": 91.9736,
+      "y": 244.0321,
+      "peak": 7.4611
+     },
+     "to": {
+      "x": 65.0274,
+      "y": 253.0086,
+      "peak": 7.5243
+     }
+    },
+    {
+     "kind": "art",
+     "title": "Single-pixel spike",
+     "detail": "Not PSF-shaped: cosmic ray or hot pixel",
+     "x": 260.8774,
+     "y": 71.0466,
+     "from": null,
+     "to": {
+      "x": 260.8774,
+      "y": 71.0466,
+      "peak": 5.631
+     }
+    }
+   ]
+  },
+  {
+   "a": 4,
+   "b": 5,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "252″ in 181 d = 0.14°/yr. No ephemeris match.",
+     "x": 196.8932,
+     "y": 99.7215,
+     "from": {
+      "x": 189.8983,
+      "y": 140.0959,
+      "peak": 1.3348
+     },
+     "to": {
+      "x": 196.8932,
+      "y": 99.7215,
+      "peak": 1.1837
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×2.31 in peak, no motion",
+     "x": 96.0157,
+     "y": 92.0034,
+     "from": {
+      "x": 95.9801,
+      "y": 91.9737,
+      "peak": 4.1597
+     },
+     "to": {
+      "x": 96.0157,
+      "y": 92.0034,
+      "peak": 9.6025
+     }
+    },
+    {
+     "kind": "left",
+     "title": "Main-belt asteroid (catalogued) — left the cutout",
+     "detail": "Ephemeris puts it outside this field now",
+     "x": 91.9736,
+     "y": 244.0321,
+     "from": {
+      "x": 91.9736,
+      "y": 244.0321,
+      "peak": 7.4611
+     },
+     "to": null
+    }
+   ]
+  },
+  {
+   "a": 4,
+   "b": 7,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "114″ in 364 d = 0.03°/yr. No ephemeris match.",
+     "x": 206.8976,
+     "y": 147.332,
+     "from": {
+      "x": 189.8983,
+      "y": 140.0959,
+      "peak": 1.3348
+     },
+     "to": {
+      "x": 206.8976,
+      "y": 147.332,
+      "peak": 1.4675
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×2.30 in peak, no motion",
+     "x": 96.0141,
+     "y": 92.0158,
+     "from": {
+      "x": 95.9801,
+      "y": 91.9737,
+      "peak": 4.1597
+     },
+     "to": {
+      "x": 96.0141,
+      "y": 92.0158,
+      "peak": 9.5613
+     }
+    },
+    {
+     "kind": "left",
+     "title": "Main-belt asteroid (catalogued) — left the cutout",
+     "detail": "Ephemeris puts it outside this field now",
+     "x": 91.9736,
+     "y": 244.0321,
+     "from": {
+      "x": 91.9736,
+      "y": 244.0321,
+      "peak": 7.4611
+     },
+     "to": null
+    }
+   ]
+  },
+  {
+   "a": 5,
+   "b": 0,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "254″ in 183 d = 0.14°/yr. No ephemeris match.",
+     "x": 188.0087,
+     "y": 140.0837,
+     "from": {
+      "x": 196.8932,
+      "y": 99.7215,
+      "peak": 1.1837
+     },
+     "to": {
+      "x": 188.0087,
+      "y": 140.0837,
+      "peak": 1.4004
+     }
+    },
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Matches ephemeris",
+     "x": 37.9591,
+     "y": 262.0343,
+     "from": null,
+     "to": {
+      "x": 37.9591,
+      "y": 262.0343,
+      "peak": 7.8142
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×0.43 in peak, no motion",
+     "x": 96.0214,
+     "y": 92.0673,
+     "from": {
+      "x": 96.0157,
+      "y": 92.0034,
+      "peak": 9.6025
+     },
+     "to": {
+      "x": 96.0214,
+      "y": 92.0673,
+      "peak": 4.1652
+     }
+    }
+   ]
+  },
+  {
+   "a": 5,
+   "b": 1,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "254″ in 183 d = 0.14°/yr. No ephemeris match.",
+     "x": 187.9032,
+     "y": 140.0048,
+     "from": {
+      "x": 196.8932,
+      "y": 99.7215,
+      "peak": 1.1837
+     },
+     "to": {
+      "x": 187.9032,
+      "y": 140.0048,
+      "peak": 1.2088
+     }
+    },
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Matches ephemeris",
+     "x": 38.0231,
+     "y": 261.9989,
+     "from": null,
+     "to": {
+      "x": 38.0231,
+      "y": 261.9989,
+      "peak": 7.7665
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×0.41 in peak, no motion",
+     "x": 96.0043,
+     "y": 92.0023,
+     "from": {
+      "x": 96.0157,
+      "y": 92.0034,
+      "peak": 9.6025
+     },
+     "to": {
+      "x": 96.0043,
+      "y": 92.0023,
+      "peak": 3.9666
+     }
+    }
+   ]
+  },
+  {
+   "a": 5,
+   "b": 3,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "253″ in 182 d = 0.14°/yr. No ephemeris match.",
+     "x": 188.8902,
+     "y": 140.072,
+     "from": {
+      "x": 196.8932,
+      "y": 99.7215,
+      "peak": 1.1837
+     },
+     "to": {
+      "x": 188.8902,
+      "y": 140.072,
+      "peak": 1.3315
+     }
+    },
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Matches ephemeris",
+     "x": 65.0274,
+     "y": 253.0086,
+     "from": null,
+     "to": {
+      "x": 65.0274,
+      "y": 253.0086,
+      "peak": 7.5243
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×0.44 in peak, no motion",
+     "x": 95.9972,
+     "y": 92.0088,
+     "from": {
+      "x": 96.0157,
+      "y": 92.0034,
+      "peak": 9.6025
+     },
+     "to": {
+      "x": 95.9972,
+      "y": 92.0088,
+      "peak": 4.1875
+     }
+    },
+    {
+     "kind": "art",
+     "title": "Single-pixel spike",
+     "detail": "Not PSF-shaped: cosmic ray or hot pixel",
+     "x": 260.8774,
+     "y": 71.0466,
+     "from": null,
+     "to": {
+      "x": 260.8774,
+      "y": 71.0466,
+      "peak": 5.631
+     }
+    }
+   ]
+  },
+  {
+   "a": 5,
+   "b": 4,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "252″ in 181 d = 0.14°/yr. No ephemeris match.",
+     "x": 189.8983,
+     "y": 140.0959,
+     "from": {
+      "x": 196.8932,
+      "y": 99.7215,
+      "peak": 1.1837
+     },
+     "to": {
+      "x": 189.8983,
+      "y": 140.0959,
+      "peak": 1.3348
+     }
+    },
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Matches ephemeris",
+     "x": 91.9736,
+     "y": 244.0321,
+     "from": null,
+     "to": {
+      "x": 91.9736,
+      "y": 244.0321,
+      "peak": 7.4611
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×0.43 in peak, no motion",
+     "x": 95.9801,
+     "y": 91.9737,
+     "from": {
+      "x": 96.0157,
+      "y": 92.0034,
+      "peak": 9.6025
+     },
+     "to": {
+      "x": 95.9801,
+      "y": 91.9737,
+      "peak": 4.1597
+     }
+    }
+   ]
+  },
+  {
+   "a": 5,
+   "b": 7,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "299″ in 183 d = 0.17°/yr. No ephemeris match.",
+     "x": 206.8976,
+     "y": 147.332,
+     "from": {
+      "x": 196.8932,
+      "y": 99.7215,
+      "peak": 1.1837
+     },
+     "to": {
+      "x": 206.8976,
+      "y": 147.332,
+      "peak": 1.4675
+     }
+    }
+   ]
+  },
+  {
+   "a": 7,
+   "b": 0,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "124″ in 366 d = 0.03°/yr. No ephemeris match.",
+     "x": 188.0087,
+     "y": 140.0837,
+     "from": {
+      "x": 206.8976,
+      "y": 147.332,
+      "peak": 1.4675
+     },
+     "to": {
+      "x": 188.0087,
+      "y": 140.0837,
+      "peak": 1.4004
+     }
+    },
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Matches ephemeris",
+     "x": 37.9591,
+     "y": 262.0343,
+     "from": null,
+     "to": {
+      "x": 37.9591,
+      "y": 262.0343,
+      "peak": 7.8142
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×0.44 in peak, no motion",
+     "x": 96.0214,
+     "y": 92.0673,
+     "from": {
+      "x": 96.0141,
+      "y": 92.0158,
+      "peak": 9.5613
+     },
+     "to": {
+      "x": 96.0214,
+      "y": 92.0673,
+      "peak": 4.1652
+     }
+    }
+   ]
+  },
+  {
+   "a": 7,
+   "b": 1,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "125″ in 366 d = 0.03°/yr. No ephemeris match.",
+     "x": 187.9032,
+     "y": 140.0048,
+     "from": {
+      "x": 206.8976,
+      "y": 147.332,
+      "peak": 1.4675
+     },
+     "to": {
+      "x": 187.9032,
+      "y": 140.0048,
+      "peak": 1.2088
+     }
+    },
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Matches ephemeris",
+     "x": 38.0231,
+     "y": 261.9989,
+     "from": null,
+     "to": {
+      "x": 38.0231,
+      "y": 261.9989,
+      "peak": 7.7665
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×0.41 in peak, no motion",
+     "x": 96.0043,
+     "y": 92.0023,
+     "from": {
+      "x": 96.0141,
+      "y": 92.0158,
+      "peak": 9.5613
+     },
+     "to": {
+      "x": 96.0043,
+      "y": 92.0023,
+      "peak": 3.9666
+     }
+    }
+   ]
+  },
+  {
+   "a": 7,
+   "b": 3,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "119″ in 365 d = 0.03°/yr. No ephemeris match.",
+     "x": 188.8902,
+     "y": 140.072,
+     "from": {
+      "x": 206.8976,
+      "y": 147.332,
+      "peak": 1.4675
+     },
+     "to": {
+      "x": 188.8902,
+      "y": 140.072,
+      "peak": 1.3315
+     }
+    },
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Matches ephemeris",
+     "x": 65.0274,
+     "y": 253.0086,
+     "from": null,
+     "to": {
+      "x": 65.0274,
+      "y": 253.0086,
+      "peak": 7.5243
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×0.44 in peak, no motion",
+     "x": 95.9972,
+     "y": 92.0088,
+     "from": {
+      "x": 96.0141,
+      "y": 92.0158,
+      "peak": 9.5613
+     },
+     "to": {
+      "x": 95.9972,
+      "y": 92.0088,
+      "peak": 4.1875
+     }
+    },
+    {
+     "kind": "art",
+     "title": "Single-pixel spike",
+     "detail": "Not PSF-shaped: cosmic ray or hot pixel",
+     "x": 260.8774,
+     "y": 71.0466,
+     "from": null,
+     "to": {
+      "x": 260.8774,
+      "y": 71.0466,
+      "peak": 5.631
+     }
+    }
+   ]
+  },
+  {
+   "a": 7,
+   "b": 4,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "114″ in 364 d = 0.03°/yr. No ephemeris match.",
+     "x": 189.8983,
+     "y": 140.0959,
+     "from": {
+      "x": 206.8976,
+      "y": 147.332,
+      "peak": 1.4675
+     },
+     "to": {
+      "x": 189.8983,
+      "y": 140.0959,
+      "peak": 1.3348
+     }
+    },
+    {
+     "kind": "known",
+     "title": "Main-belt asteroid (catalogued)",
+     "detail": "Matches ephemeris",
+     "x": 91.9736,
+     "y": 244.0321,
+     "from": null,
+     "to": {
+      "x": 91.9736,
+      "y": 244.0321,
+      "peak": 7.4611
+     }
+    },
+    {
+     "kind": "var",
+     "title": "Brightness change, fixed position",
+     "detail": "×0.44 in peak, no motion",
+     "x": 95.9801,
+     "y": 91.9737,
+     "from": {
+      "x": 96.0141,
+      "y": 92.0158,
+      "peak": 9.5613
+     },
+     "to": {
+      "x": 95.9801,
+      "y": 91.9737,
+      "peak": 4.1597
+     }
+    }
+   ]
+  },
+  {
+   "a": 7,
+   "b": 5,
+   "results": [
+    {
+     "kind": "cand",
+     "title": "Uncatalogued mover",
+     "detail": "299″ in 183 d = 0.17°/yr. No ephemeris match.",
+     "x": 196.8932,
+     "y": 99.7215,
+     "from": {
+      "x": 206.8976,
+      "y": 147.332,
+      "peak": 1.4675
+     },
+     "to": {
+      "x": 196.8932,
+      "y": 99.7215,
+      "peak": 1.1837
+     }
+    }
+   ]
+  }
+ ],
+ "fmt": [
+  [
+   0.00167,
+   "2.4 min",
+   "4.2″/h"
+  ],
+  [
+   0.42,
+   "10.1 h",
+   "4.2″/h"
+  ],
+  [
+   1,
+   "1.0 d",
+   "100.0″/day"
+  ],
+  [
+   2,
+   "2.0 d",
+   "100.0″/day"
+  ],
+  [
+   181,
+   "181 d",
+   "10.15°/yr"
+  ],
+  [
+   183,
+   "183 d",
+   "10.15°/yr"
+  ],
+  [
+   366,
+   "366 d",
+   "10.15°/yr"
+  ]
+ ]
+}

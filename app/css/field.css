@@ -1,0 +1,113 @@
+/* Field analysis view (agent field). Same language as the UI demo's Compare mode: full-screen, var(--bg),
+   hairline var(--edge) dividers, grey ink; only the imagery (field image, stamps, spectrum) has colour. */
+.fv { position: fixed; inset: 0; z-index: 3; background: var(--bg); color: var(--ink); display: grid; grid-template-rows: auto minmax(0, 1fr);
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); font-size: 13px; }
+.fv[hidden] { display: none !important; }
+.fv [hidden] { display: none !important; }
+.fv h2, .fv h3 { margin: 0; font-weight: 500; }
+.fv h2 { font-size: 13px; }
+.fv h2:focus { outline: none; } /* programmatic focus target on open; not interactive */
+.fv h3 { font-size: 12px; color: var(--ink-2); margin-bottom: 8px; }
+.fv-vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.fv-spacer { flex: 1; }
+
+/* header */
+.fv-top { display: flex; align-items: center; gap: 6px 14px; padding: 12px 16px; border-bottom: 1px solid var(--edge); flex-wrap: wrap; min-width: 0; }
+.fv-title { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex-wrap: wrap; }
+.fv-sub { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.fv-base { color: var(--ink-3); }
+.fv-pill { font-size: 11px; color: var(--ink-2); border: 1px solid var(--edge); border-radius: 999px; padding: 4px 9px; white-space: nowrap; }
+
+/* body */
+.fv-body { display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 0; }
+.fv-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; padding: 14px 20px 20px; gap: 12px; }
+.fv-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fv-stretch { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 12px; }
+.fv-stretch input { width: 110px; accent-color: var(--ink); }
+.fv-stagewrap { flex: 1; min-height: 0; display: grid; place-items: center; }
+.fv-stage { position: relative; width: min(100%, calc(100vh - 150px)); width: min(100%, calc(100dvh - 150px)); aspect-ratio: 1; border: 1px solid var(--edge); border-radius: 8px; overflow: hidden; background: #000; }
+.fv-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fv-img { image-rendering: pixelated; }
+.fv-ov { cursor: crosshair; touch-action: pan-y pinch-zoom; }
+.fv-corner { position: absolute; top: 10px; padding: 4px 8px; border-radius: 5px; background: rgba(0,0,0,.6); color: #fff; font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; max-width: calc(100% - 20px); }
+.fv-corner.l { left: 10px; }
+.fv-corner.r { right: 10px; display: flex; align-items: center; gap: 6px; }
+.fv-corner.r i { width: 46px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #2166ac, #92c5de, #28282c, #f4a582, #b2182b); }
+.fv-readout { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 3px 14px; padding: 6px 9px; border-radius: 5px; background: rgba(0,0,0,.6); color: #9a9a9a; font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; }
+.fv-readout b { color: #f2f2f2; font-weight: 500; }
+
+/* side */
+.fv-side { border-left: 1px solid var(--edge); padding: 16px; overflow: auto; display: flex; flex-direction: column; gap: 20px; min-height: 0; }
+.fv-side section { display: flex; flex-direction: column; }
+.fv-rowlab { font-size: 11px; color: var(--ink-3); margin: 0 0 6px; }
+.fv-epochs + .fv-rowlab { margin-top: 12px; }
+.fv-epochs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; border: 1px solid var(--edge); border-radius: 7px; padding: 2px; }
+.fv-epochs button { border: 0; border-radius: 5px; padding: 6px 2px 5px; line-height: 1.2; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fv-epochs button small { display: block; font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+.fv-epochs button[aria-pressed="true"] small { color: inherit; opacity: .7; }
+.fv-status:empty { display: none; }
+.fv-warn { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--ink-3); border-radius: 8px; display: grid; grid-template-columns: 18px 1fr; gap: 8px 8px; color: var(--ink); line-height: 1.45; }
+.fv-warn > :not(.fv-bang) { grid-column: 2; }
+.fv-warn button { justify-self: start; }
+.fv-bang { width: 18px; height: 18px; border-radius: 50%; background: var(--fill); color: var(--fill-ink); display: grid; place-items: center; font-weight: 600; font-size: 11px; margin-top: 1px; }
+
+.fv-dets { list-style: none; margin: 0 -6px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.fv-dets button { width: 100%; text-align: left; border: 0; border-radius: 6px; padding: 8px; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 10px; align-items: start; line-height: 1.35; color: var(--ink-2); }
+.fv-dets button:hover { background: var(--edge); }
+.fv-dets button[aria-pressed="true"] { background: var(--edge); color: var(--ink); }
+.fv-glyph { margin-top: 1px; color: var(--ink-2); }
+.fv-glyph.fill circle { fill: currentColor; fill-opacity: .25; }
+.fv-dets button[aria-pressed="true"] .fv-glyph { color: var(--ink); }
+.fv-dt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fv-dt .t { color: var(--ink); font-size: 12px; font-weight: 500; }
+.fv-dt .d { font-size: 11.5px; color: var(--ink-2); }
+.fv-kind { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.fv-empty { color: var(--ink-3); padding: 4px 6px; }
+
+.fv-stamps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fv-stamps figure { margin: 0; }
+.fv-stamps canvas { width: 100%; aspect-ratio: 1; image-rendering: pixelated; border-radius: 6px; border: 1px solid var(--edge); background: #000; display: block; }
+.fv-stamps figcaption { display: flex; justify-content: space-between; color: var(--ink-3); font-size: 11px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.fv-vet dl { margin: 12px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; }
+.fv-vet dt { color: var(--ink-3); }
+.fv-vet dd { margin: 0; font-variant-numeric: tabular-nums; line-height: 1.4; }
+.fv-spec { width: 100%; height: auto; aspect-ratio: 340 / 120; margin-top: 12px; display: block; }
+.fv-spec .l { fill: none; stroke-width: 1.8; }
+.fv-spec .ax { stroke: var(--edge); }
+.fv-spec text { fill: var(--ink-3); font-size: 11px; font-family: var(--font); }
+.fv-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.fv-actions .fv-done { color: var(--ink-2); border-style: dashed; }
+.fv-keys { margin: auto 0 0; color: var(--ink-3); font-size: 11px; line-height: 1.9; }
+.fv kbd { font: inherit; font-size: 10.5px; border: 1px solid var(--edge); border-radius: 4px; padding: 0 5px; color: var(--ink-2); }
+
+@media (pointer: coarse) {
+  .fv button { min-height: 44px; }
+  .fv .seg button { min-width: 44px; }
+  .fv-stretch input { height: 44px; }
+  .fv-keys { display: none; }
+}
+
+/* phones / narrow: stage on top, controls, list and vetting stacked below; the whole view scrolls */
+@media (max-width: 860px) {
+  .fv { display: block; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+  .fv-top { position: sticky; top: 0; z-index: 1; background: var(--bg); padding: 8px 16px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 10px; }
+  .fv-title { display: contents; }
+  .fv-top .fv-spacer { display: none; }
+  .fv-top .fv-sub { grid-column: 1 / -1; font-size: 11px; }
+  .fv-top h2 { grid-column: 2; grid-row: 1; }
+  .fv-pill { grid-column: 3; grid-row: 1; }
+  .fv-back { margin-left: -10px; }
+  .fv-stagewrap { order: -1; }
+  .fv-body { display: block; }
+  .fv-main { padding: 12px 16px 4px; }
+  .fv-stage { width: 100%; }
+  .fv-side { border-left: 0; border-top: 1px solid var(--edge); overflow: visible; padding: 16px; }
+  .fv-keys { display: none; }
+}
+@media (max-width: 640px), (pointer: coarse) {
+  .fv-stage { aspect-ratio: auto; overflow: visible; border: 0; background: transparent; }
+  .fv-stage .fv-img { position: relative; height: auto; aspect-ratio: 1; border: 1px solid var(--edge); border-radius: 8px 8px 0 0; background: #000; }
+  .fv-stage .fv-ov { bottom: auto; height: auto; aspect-ratio: 1; }
+  .fv-readout { position: static; border-radius: 0 0 8px 8px; padding: 8px 10px; background: #000; min-height: 44px; align-items: center; }
+}
+@media (orientation: landscape) and (max-height: 500px) { .fv-stage { max-width: min(100%, calc(100vh - 110px)); margin-inline: auto; } }

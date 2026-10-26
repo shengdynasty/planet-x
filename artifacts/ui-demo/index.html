@@ -114,10 +114,13 @@
   .scan i { width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--ink-3); display: block; background: var(--panel-solid); }
   .scan.has i { border-color: var(--ink); }
   .scan[aria-pressed="true"] i { background: var(--fill); border-color: var(--fill); }
-  .scan[aria-pressed="true"] { color: var(--ink); }
+  .scan[aria-pressed="true"] { color: var(--ink); background: none; }
   .scan.pending { opacity: .45; cursor: default; }
   .scan.pending i { border-style: dashed; }
   .scan small { font-size: 11px; }
+  /* end markers: keep the dot on the rail end but let the label grow inwards, so Scan 1 doesn't spill over Blink */
+  .scan:first-of-type { transform: translateX(-7.5px); align-items: flex-start; }
+  .scan:last-of-type { transform: translateX(calc(7.5px - 100%)); align-items: flex-end; }
   #ctl { display: flex; gap: 6px; align-items: center; border-radius: 10px; padding: 8px; }
 
   /* ---------- compare mode ---------- */
@@ -329,8 +332,8 @@
     const ra = raH / 12 * Math.PI, dec = decD * Math.PI / 180;
     return new THREE.Vector3(r * Math.cos(dec) * Math.cos(ra), r * Math.sin(dec), -r * Math.cos(dec) * Math.sin(ra));
   }
-  const fmtRA = h => { h = ((h % 24) + 24) % 24; const m = Math.round((h % 1) * 60); return `${Math.floor(h)}h ${String(m).padStart(2, '0')}m`; };
-  const fmtDec = d => `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°`;
+  const fmtRA = h => { const t = ((Math.round(h * 60) % 1440) + 1440) % 1440; return `${Math.floor(t / 60)}h ${String(t % 60).padStart(2, '0')}m`; };
+  const fmtDec = d => { d = Math.round(d * 10) / 10; return `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°`; };
   const pad2 = n => String(n).padStart(2, '0');
   let toastT; function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
 
@@ -482,20 +485,25 @@
     li.addEventListener('click', () => select(i, true));
     list.appendChild(li);
   });
+  // "Unmatched" = anything without a known-object match (Candidate and Likely), so Unmatched + Matched = All
+  const passFilter = m => filter === 'all' || (filter === 'Matched') === (m.status === 'Matched');
   function applyFilter() {
     let shown = 0;
-    [...list.children].forEach((li, i) => { const ok = filter === 'all' || movers[i].status === filter; li.hidden = !ok; if (ok) shown++; });
+    [...list.children].forEach((li, i) => { const ok = passFilter(movers[i]); li.hidden = !ok; if (ok) shown++; });
     emptyEl.style.display = shown ? 'none' : 'block';
-    movers.forEach((m, i) => { m.sprite.visible = filter === 'all' || m.status === filter; });
+    movers.forEach((m, i) => { m.sprite.visible = passFilter(m); });
   }
   document.querySelectorAll('#filters button').forEach(b => b.addEventListener('click', () => {
     filter = b.dataset.f; document.querySelectorAll('#filters button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); applyFilter();
   }));
+  const unwrapYaw = () => { while (tYaw - yaw > Math.PI) tYaw -= Math.PI * 2; while (yaw - tYaw > Math.PI) tYaw += Math.PI * 2; };
   function flyTo(raH, decD, fov) {
-    tYaw = -raH / 12 * Math.PI + Math.PI / 2; tPitch = decD * Math.PI / 180; if (fov) tFov = fov;
-    while (tYaw - yaw > Math.PI) tYaw -= Math.PI * 2; while (yaw - tYaw > Math.PI) tYaw += Math.PI * 2;
+    // the camera looks along (-sin yaw, ·, -cos yaw) and toVec puts RA at (cos ra, ·, -sin ra), so yaw = ra - 90°
+    tYaw = raH / 12 * Math.PI - Math.PI / 2; tPitch = Math.max(-1.5, Math.min(1.5, decD * Math.PI / 180)); if (fov) tFov = fov;
+    unwrapYaw();
   }
   function select(i, fly) {
+    if (list.children[i].hidden) document.querySelector('#filters [data-f="all"]').click(); // e.g. go-to a filtered-out candidate
     selected = i;
     [...list.children].forEach((li, k) => li.setAttribute('aria-selected', String(k === i)));
     movers.forEach((m, k) => { m.sprite.material.map = k === i ? m.texSel : m.tex; m.sprite.material.needsUpdate = true; });
@@ -559,10 +567,10 @@
     $('cmp-dl').innerHTML = `<dt>Shift</dt><dd>${m.shiftText}</dd><dt>Peak band</dt><dd>${m.band}</dd><dt>Status</dt><dd>${m.status}</dd>`;
   }
   buildSeg($('seg-a'), () => cmpA, v => cmpA = v); buildSeg($('seg-b'), () => cmpB, v => cmpB = v);
-  document.querySelectorAll('#seg-ov button').forEach(b => b.addEventListener('click', () => { overlay = b.dataset.ov; document.querySelectorAll('#seg-ov button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); drawCompare(); }));
+  document.querySelectorAll('#seg-ov button').forEach(b => b.addEventListener('click', () => { overlay = b.dataset.ov; if (cmpBlink) stopCmpBlink(); document.querySelectorAll('#seg-ov button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); drawCompare(); }));
   const wrap = $('cmp-wrap'); let wiping = false;
   const setWipe = e => { const r = wrap.getBoundingClientRect(); wipeX = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); if (overlay === 'wipe') { cb.style.clipPath = `inset(0 0 0 ${wipeX * 100}%)`; $('wipe').style.left = `${wipeX * 100}%`; } };
-  wrap.addEventListener('pointerdown', e => { wiping = true; wrap.setPointerCapture(e.pointerId); setWipe(e); });
+  wrap.addEventListener('pointerdown', e => { if (cmpBlink) stopCmpBlink(); wiping = true; wrap.setPointerCapture(e.pointerId); setWipe(e); });
   wrap.addEventListener('pointermove', e => wiping && setWipe(e));
   wrap.addEventListener('pointerup', () => wiping = false); wrap.addEventListener('pointercancel', () => wiping = false);
   const cmpBlinkBtn = $('cmp-blink');
@@ -593,9 +601,9 @@
     if (cand) { const i = +cand[1] - 1; if (movers[i]) { select(i, true); $('goto-in').value = ''; return; } }
     const parts = q.split(/[,\s]+/).filter(Boolean);
     const parseRA = s => { const m = s.match(/^(\d+(?:\.\d+)?)h(?:(\d+(?:\.\d+)?)m?)?$/i); if (m) return +m[1] + (+m[2] || 0) / 60; const d = parseFloat(s); return isNaN(d) ? null : (Math.abs(d) > 24 ? d / 15 : d); };
-    const parseDec = s => { const m = s.match(/^([+-−]?)(\d+(?:\.\d+)?)(?:d|°)?(?:(\d+(?:\.\d+)?)m?)?$/i); if (!m) return null; const v = +m[2] + (+m[3] || 0) / 60; return m[1] === '-' || m[1] === '−' ? -v : v; };
+    const parseDec = s => { const m = s.match(/^([-+−]?)(\d+(?:\.\d+)?)(?:d|°)?(?:(\d+(?:\.\d+)?)m?)?$/i); if (!m) return null; const v = +m[2] + (+m[3] || 0) / 60; return m[1] === '-' || m[1] === '−' ? -v : v; };
     const ra = parts[0] && parseRA(parts[0]), dec = parts[1] && parseDec(parts[1]);
-    if (ra !== null && ra !== undefined && dec !== null && dec !== undefined) { flyTo(ra, dec, 30); $('goto-in').value = ''; }
+    if (ra !== null && ra !== undefined && dec !== null && dec !== undefined && ra >= 0 && ra <= 24 && Math.abs(dec) <= 90) { flyTo(ra, dec, 30); $('goto-in').value = ''; }
     else toast('Try “16h06m, +41” or “candidate 3”');
   });
 
@@ -610,7 +618,7 @@
   gridBtn.addEventListener('click', toggleGrid); trBtn.addEventListener('click', toggleTracks);
   const zoom = f => { tFov = Math.min(100, Math.max(10, tFov * f)); };
   $('zin').addEventListener('click', () => zoom(0.75)); $('zout').addEventListener('click', () => zoom(1.33));
-  $('reset').addEventListener('click', () => { tYaw = 0.6; tPitch = 0.15; tFov = 60; });
+  $('reset').addEventListener('click', () => { tYaw = 0.6; tPitch = 0.15; tFov = 60; unwrapYaw(); });
   stage.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY > 0 ? 1.1 : 0.9); }, { passive: false });
   const mt = $('mobile-toggle'), panel = $('panel');
   mt.addEventListener('click', () => { panel.classList.toggle('open'); mt.setAttribute('aria-pressed', String(panel.classList.contains('open'))); });
@@ -620,14 +628,15 @@
   stage.addEventListener('pointermove', e => {
     if (!drag) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; moved += Math.abs(dx) + Math.abs(dy);
-    const k = camera.fov / 60 * 0.0035;
-    tYaw -= dx * k; tPitch = Math.max(-1.5, Math.min(1.5, tPitch + dy * k)); yaw = tYaw; pitch = tPitch;
+    const k = camera.fov * Math.PI / 180 / stage.clientHeight; // 1:1 grab, same sense on both axes
+    tYaw += dx * k; tPitch = Math.max(-1.5, Math.min(1.5, tPitch + dy * k)); yaw = tYaw; pitch = tPitch;
     drag = { x: e.clientX, y: e.clientY };
   });
   stage.addEventListener('pointerup', e => { stage.classList.remove('dragging'); if (drag && moved < 6) pick(e.clientX, e.clientY); drag = null; });
   stage.addEventListener('pointercancel', () => { drag = null; stage.classList.remove('dragging'); });
   window.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT') return;
+    if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (sheet.classList.contains('show') && e.key !== 'Escape' && e.key !== '?') return;
     if (e.key === 'Escape') { if (sheet.classList.contains('show')) sheet.classList.remove('show'); else if (view === 'compare') setView('sky'); return; }
     const s = 0.06 * camera.fov / 60;
     if (e.key === 'ArrowLeft') tYaw += s; else if (e.key === 'ArrowRight') tYaw -= s;
