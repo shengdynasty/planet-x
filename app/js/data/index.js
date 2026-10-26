@@ -198,7 +198,9 @@ export async function getField({ ra, dec, sizeArcsec = HOME.sizeArcsec, det, t, 
 }
 
 /** Cold field builds the server is working on (GET /api/progress), or null if the server doesn't report them. */
+let noProgress = false; // an older server without /api/progress: ask once, then stop
 export async function fieldProgress(signal) {
-  if (mode !== 'live') return null;
-  try { const r = await getJSON('/api/progress', 3000, signal); return Array.isArray(r.builds) ? r.builds : null; } catch { return null; }
+  if (mode !== 'live' || noProgress) return null;
+  try { const r = await getJSON('/api/progress', 3000, signal); return Array.isArray(r.builds) ? r.builds : null; }
+  catch (e) { if (/Not found|HTTP 404/i.test(e.message)) noProgress = true; return null; }
 }

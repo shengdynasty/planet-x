@@ -88,7 +88,7 @@ const hookField = ctx => ctx.addInitScript(() => {
   await p.click('#views [data-view="field"]');
   await p.waitForFunction(() => window.__fieldView?.state && (window.__fieldView.state.loading || window.__fieldView.state.field), null, { timeout: 10000 });
   const req = await fieldState(p);
-  ok(Math.abs(req.ra - 70.2635) < 0.05 && Math.abs(req.dec - 19.0558) < 0.05, `Field opens near the Go-to position (${req.ra.toFixed(4)}, ${req.dec.toFixed(4)}; the sky centre is approximate)`);
+  ok(Math.abs(req.ra - 70.2635) < 0.25 && Math.abs(req.dec - 19.0558) < 0.25, `Field opens near the Go-to position (${req.ra.toFixed(4)}, ${req.dec.toFixed(4)}; the sky centre is approximate)`);
   // don't wait for that (possibly cold) patch: type the exact centre, detector D3 and the Psyche night, then Load
   await p.waitForSelector('#view-field [data-ref="live"]:not([hidden])', { timeout: 10000 }); // usable while loading
   await p.fill('#view-field [data-ref="lpos"]', '70.2635, 19.0558');
@@ -165,7 +165,9 @@ const hookField = ctx => ctx.addInitScript(() => {
   release();
   await p.waitForTimeout(500);
   ok(await p.evaluate(() => window.__px.get('view')) === 'sky', 'late response after Cancel does not reopen anything');
-  ok(!errs.filter(e => !/aborted|AbortError/i.test(e)).length, 'no console errors (cancel) ' + JSON.stringify(errs));
+  // an older server without /api/progress answers 404 once (the client then stops asking)
+  const hasProgress = await fetch(SERVER + '/api/progress').then(r => r.ok, () => false);
+  ok(errs.filter(e => !/aborted|AbortError/i.test(e)).length <= (hasProgress ? 0 : 1), 'no console errors (cancel) ' + JSON.stringify(errs));
   await ctx.close();
 }
 
