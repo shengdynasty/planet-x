@@ -510,8 +510,9 @@ export function mountField(el, store) {
   store.on('source', () => { if (field) renderLive(); });
   show(store.get('view'));
 
-  return { // handle for tests / the dev page
+  const handle = el.__fv = { // handle for tests / the dev page
     get state() { return { A, B, mode, selected, results, field, loading, knownState }; },
     setPair(a, b) { A = a; B = b; update(); },
   };
+  return handle;
 }
