@@ -71,13 +71,27 @@ const noHScroll = p => p.evaluate(() => { const v = document.querySelector('.fv'
   await p.locator('[data-ref="add"]').click();
   const cands = await p.evaluate(() => window.__px.get('candidates'));
   const c = cands.at(-1);
-  ok(cands.length === before + 1 && c.status === 'Candidate' && c.simulated === true && c.id === 'c01', 'Add to review list appends a Candidate to store.candidates');
+  ok(cands.length === before + 1 && c.status === 'Candidate' && c.pipelineStatus === 'Candidate' && c.simulated === true && /^f-\d+\.\d{4}[+-]\d+\.\d{4}$/.test(c.id), 'Add to review list appends a Candidate (status + pipelineStatus, f-<ra><dec> id): ' + c.id);
   ok(Array.isArray(c.pos) && c.pos.length === 2 && Math.abs(c.pos[0][0] - 70.42 / 15) < 0.05 && Math.abs(c.pos[0][1] - 19.18) < 0.5, 'candidate pos is [raHours, decDeg] from radec');
   ok(await p.evaluate(() => window.__px.get('selectedId')) === c.id, 'new candidate becomes selectedId');
   ok(/On review list/.test(await p.locator('[data-ref="add"]').innerText()), 'button reflects it is on the list');
   await p.locator('[data-ref="add"]').click({ force: true });
   ok((await p.evaluate(() => window.__px.get('candidates').length)) === before + 1, 'no duplicate on second click');
   await p.screenshot({ path: OUT + '/desktop-light-selected.png' });
+  // the merged candidate panel (app/js/candidates) renders the new entry
+  if (fs.existsSync(path.join(ROOT, 'app/js/candidates/index.js'))) {
+    const q = await ctx.newPage(); const qerr = []; q.on('pageerror', e => qerr.push(e.message));
+    await q.goto(BASE + '?panel=1'); await q.waitForFunction(() => window.__field?.state.results.length > 0);
+    await q.locator('.fv-dets button').nth(0).click(); await q.locator('[data-ref="add"]').click();
+    const id = await q.evaluate(() => window.__px.get('candidates').at(-1).id);
+    await q.evaluate(() => window.__px.set('view', 'sky'));
+    const row = q.locator(`#panel [data-id="${id}"]`);
+    ok(await row.count() === 1 && await row.isVisible(), 'candidate panel lists the added candidate');
+    ok(/Simulated/.test(await row.innerText()), 'panel marks it Simulated');
+    await q.screenshot({ path: OUT + '/panel-after-add.png' });
+    ok(qerr.length === 0, 'no page errors with the candidate panel: ' + qerr.join(' | '));
+    await q.close();
+  }
 
   // mismatch warning + "compare with X instead"
   await ep(p, 'epB', 2).click();
@@ -113,7 +127,7 @@ const noHScroll = p => p.evaluate(() => { const v = document.querySelector('.fv'
   // show on sky
   await p.click('[data-act="sky"]');
   const fly = await p.evaluate(() => window.__flyto.at(-1));
-  ok(fly && Math.abs(fly.ra - 70.42 / 15) < 0.05 && await p.evaluate(() => window.__px.get('view')) === 'sky', 'Show on sky emits flyto and sets view=sky');
+  ok(fly && Math.abs(fly.ra - 70.42) < 0.5 && Math.abs(fly.dec - 19.18) < 0.5 && await p.evaluate(() => window.__px.get('view')) === 'sky', 'Show on sky emits flyto (degrees) and sets view=sky');
   ok(await p.locator('.fv').evaluate(e => e.hidden), 'view hides when view != field');
   await p.evaluate(() => window.__px.set('view', 'field'));
   ok(!(await p.locator('.fv').evaluate(e => e.hidden)), 'view shows again');
@@ -121,9 +135,9 @@ const noHScroll = p => p.evaluate(() => { const v = document.querySelector('.fv'
   ok(await p.evaluate(() => window.__px.get('view')) === 'sky', 'Esc with nothing selected goes back to sky');
 
   // re-centring via store.field
-  await p.evaluate(() => { window.__px.set('view', 'field'); window.__px.set('field', { ra: 16.1, dec: 41, sizeArcsec: 1968 }); });
+  await p.evaluate(() => { window.__px.set('view', 'field'); window.__px.set('field', { ra: 241.5, dec: 41, sizeArcsec: 1968 }); });
   await p.waitForFunction(() => /^RA 16h 06m/.test(document.querySelector('[data-ref="pos"]').textContent));
-  ok(true, 'store.field re-centres the field (RA in hours)');
+  ok(true, 'store.field re-centres the field (RA in degrees)');
 
   // dark theme
   await p.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));

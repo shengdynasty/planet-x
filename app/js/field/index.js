@@ -109,8 +109,8 @@ export function mountField(el, store) {
       if (data && typeof data.getField === 'function') f = await data.getField(req || {});
     } catch (e) { f = null; }
     if (!f || typeof f.frame !== 'function') {
-      // fallback: the Moving Sky simulation, re-centred on the request (store.field.ra is in hours, like Candidate.pos)
-      f = simulateField(req && Number.isFinite(req.ra) ? { ra0: req.ra * 15, dec0: req.dec } : {});
+      // fallback: the Moving Sky simulation, re-centred on the request (store.field ra/dec in degrees)
+      f = simulateField(req && Number.isFinite(req.ra) && Number.isFinite(req.dec) ? { ra0: req.ra, dec0: req.dec } : {});
     }
     if (seq !== loadSeq) return;
     setField(f);
@@ -227,7 +227,7 @@ export function mountField(el, store) {
     svg.setAttribute('aria-label', `Spectrum of the selected ${r.title}: ${none ? 'not extracted' : label + ', model'}`);
     const add = $('add'); add.hidden = r.kind !== 'cand';
     const existing = r.kind === 'cand' && onList(r);
-    add.textContent = existing ? `On review list · ${existing.name}` : 'Add to review list';
+    add.textContent = existing ? 'On review list' : 'Add to review list'; add.title = existing ? existing.name : '';
     add.setAttribute('aria-disabled', String(!!existing)); add.classList.toggle('fv-done', !!existing);
   }
   function addToReview() {
@@ -235,11 +235,13 @@ export function mountField(el, store) {
     const existing = onList(r);
     if (existing) { store.set('selectedId', existing.id); announce(`${existing.name} is already on the review list`); return; }
     const list = store.get('candidates') || [], E = field.epochs;
-    const n = 1 + list.reduce((m, c) => Math.max(m, parseInt(String(c.id).replace(/\D/g, ''), 10) || 0), 0), num = String(n).padStart(2, '0');
+    // id from the rounded position (degrees) so it can't collide with data-source ids; suffix only on a true clash
+    const [ra, dec] = radec(field, r.x, r.y), base = `f-${ra.toFixed(4)}${dec < 0 ? '-' : '+'}${Math.abs(dec).toFixed(4)}`;
+    let id = base; for (let k = 2; list.some(c => c.id === id); k++) id = `${base}-${k}`;
     const cand = {
-      id: 'c' + num, name: 'Candidate ' + num,
+      id, name: `Field candidate ${fmtRA(ra).replace(/\.\ds$/, 's')}, ${fmtDec(dec)}`,
       tag: r.from ? 'Unmatched · slow mover' : 'Unmatched · new source',
-      status: 'Candidate', band: `${E[B].band} µm`, pos: candFor(r),
+      status: 'Candidate', pipelineStatus: 'Candidate', band: `${E[B].band} µm`, pos: candFor(r),
       note: `${r.title}: ${r.detail} Flagged in field analysis (reference ${E[A].label}, compare ${E[B].label}). Candidate signal, not a detection.`,
       simulated: !!field.simulated, source: 'field',
     };
@@ -252,7 +254,7 @@ export function mountField(el, store) {
   function showOnSky() {
     const r = selected; let ra, dec;
     if (r) [ra, dec] = radec(field, r.x, r.y); else [ra, dec] = radec(field, field.N / 2, field.N / 2);
-    store.emit('flyto', { ra: ra / 15, dec, fov: 4 });
+    store.emit('flyto', { ra, dec, raHours: ra / 15, fov: 4 }); // degrees (store.js contract)
     store.set('view', 'sky');
   }
 

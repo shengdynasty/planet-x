@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../css/base.css">
 <link rel="stylesheet" href="../css/field.css">
+<link rel="stylesheet" href="../css/candidates.css">
 <style>
   /* dev-only stand-in for the shell's sky view */
   #devsky { position: fixed; inset: 0; display: grid; place-items: center; color: #9a9a9a; background: #000; }
@@ -16,8 +17,9 @@
 </style>
 </head>
 <body>
-<!-- Dev page: mounts only the field view with the shared store. ?theme=dark|light, ?view=sky -->
+<!-- Dev page: mounts the field view with the shared store. ?theme=dark|light, ?view=sky, ?panel=1 also mounts the candidate panel -->
 <div id="devsky"><div>Sky view stand-in (the shell owns the real one)<br><span id="devfly"></span><br><button id="devback" style="color:#f2f2f2">Open field view</button></div></div>
+<aside id="panel" class="hud glass" hidden></aside>
 <section id="view-field" hidden></section>
 <div id="announce" class="vh" role="status" aria-live="polite"></div>
 <script type="module">
@@ -26,10 +28,11 @@
   const q = new URLSearchParams(location.search);
   if (q.get('theme')) document.documentElement.setAttribute('data-theme', q.get('theme'));
   window.__flyto = [];
-  store.listen('flyto', p => { window.__flyto.push(p); document.getElementById('devfly').textContent = `flyto RA ${p.ra.toFixed(4)} h, Dec ${p.dec.toFixed(4)}°`; });
+  store.listen('flyto', p => { window.__flyto.push(p); document.getElementById('devfly').textContent = `flyto RA ${p.ra.toFixed(4)}°, Dec ${p.dec.toFixed(4)}°`; });
   window.__toasts = []; store.listen('toast', m => window.__toasts.push(m));
   document.getElementById('devback').addEventListener('click', () => store.set('view', 'field'));
   window.__field = mountField(document.getElementById('view-field'), store);
+  if (q.get('panel')) { const { mountCandidates } = await import('../js/candidates/index.js'); const el = document.getElementById('panel'); el.hidden = false; mountCandidates(el, store); }
   store.set('view', q.get('view') || 'field');
 </script>
 </body>
