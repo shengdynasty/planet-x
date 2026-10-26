@@ -59,8 +59,7 @@ export function mountHud(store) {
     viewBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
     document.body.dataset.view = v;
     if (v !== 'sky') { stopBlink(); closePanel(); }
-    const hideSky = v !== 'sky';
-    ['stage', 'panel', 'bottom'].forEach(id => { const el = $(id); if (el) el.inert = hideSky; });
+    syncInert();
     if (prev && prev !== v) announce(`${VIEW_NAMES[v] || v} view`);
     setTopH();
   });
@@ -186,13 +185,13 @@ export function mountHud(store) {
     if (!sheet.hidden) return;
     sheetReturn = document.activeElement;
     sheet.hidden = false; sheet.classList.add('show');
-    ['stage', 'top', 'panel', 'bottom', 'view-compare', 'view-field'].forEach(id => { const el = $(id); if (el) el.setAttribute('aria-hidden', 'true'); });
+    syncInert();
     $('sheet-close').focus();
   }
   function closeSheet() {
     if (sheet.hidden) return;
     sheet.hidden = true; sheet.classList.remove('show');
-    ['stage', 'top', 'panel', 'bottom', 'view-compare', 'view-field'].forEach(id => { const el = $(id); if (el) el.removeAttribute('aria-hidden'); });
+    syncInert();
     if (sheetReturn && document.contains(sheetReturn)) sheetReturn.focus(); else helpBtn.focus();
   }
   helpBtn.addEventListener('click', openSheet);
@@ -211,8 +210,22 @@ export function mountHud(store) {
 
   // --- mobile bottom sheet for the panel ---
   const mt = $('mobile-toggle'), panel = $('panel');
-  function openPanel() { panel.classList.add('open'); mt.setAttribute('aria-expanded', 'true'); mt.setAttribute('aria-pressed', 'true'); }
-  function closePanel() { panel.classList.remove('open'); mt.setAttribute('aria-expanded', 'false'); mt.setAttribute('aria-pressed', 'false'); }
+  function openPanel() { panel.classList.add('open'); mt.setAttribute('aria-expanded', 'true'); mt.setAttribute('aria-pressed', 'true'); syncInert(); }
+  function closePanel() { panel.classList.remove('open'); mt.setAttribute('aria-expanded', 'false'); mt.setAttribute('aria-pressed', 'false'); syncInert(); }
+
+  // What can take focus / is in the accessibility tree: everything behind the help sheet is inert; the sky HUD is
+  // inert while another view covers it; on phones the closed bottom sheet is inert, not just moved off-screen.
+  function syncInert() {
+    document.body.classList.toggle('panel-open', panel.classList.contains('open'));
+    const sheetOpen = !sheet.hidden, offSky = store.get('view') !== 'sky';
+    const set = (id, v) => { const el = $(id); if (el) el.inert = v; };
+    set('top', sheetOpen); set('toast', sheetOpen);
+    set('view-compare', sheetOpen); set('view-field', sheetOpen);
+    set('stage', sheetOpen || offSky); set('bottom', sheetOpen || offSky);
+    set('panel', sheetOpen || offSky || (narrow() && !panel.classList.contains('open')));
+  }
+  window.matchMedia('(max-width: 860px)').addEventListener('change', syncInert);
+  syncInert();
   mt.addEventListener('click', () => (panel.classList.contains('open') ? closePanel() : (openPanel(), store.get('view') !== 'sky' && store.set('view', 'sky'))));
 
   // --- global shortcuts ---
