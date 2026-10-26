@@ -2,11 +2,14 @@
 // timeline + blink, zoom controls, help sheet, toast, live-region announcements and global shortcuts.
 import { parseGoto, fmtRA, fmtDec, pad2 } from './coords.js';
 import { VIEW } from './config.js';
+import { hasPos, nearestPos } from '../candidates/format.js';
 
 const $ = id => document.getElementById(id);
 const narrow = () => window.matchMedia('(max-width: 860px)').matches;
 const isTyping = t => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
 const FIELD_SIZE_ARCSEC = 1968; // 320 px × 6.15″, same default as the review panel
+/** A modal dialog is open (the help sheet, the panel's Export dialog, …): global shortcuts stand down. */
+const openDialog = () => document.querySelector('dialog[open], [role="dialog"]:not(dialog):not([hidden])');
 
 export function mountHud(store) {
   let sky = null;                                 // attached after mountSky
@@ -38,17 +41,32 @@ export function mountHud(store) {
   window.addEventListener('resize', setTopH); setTopH();
 
   // --- views ---
-  const candLabel = c => c ? c.name : '';
-  function setView(v) {
-    if (v === 'compare' && !store.selected()) { toast('Pick a mover first'); return false; }
-    if (v === 'field' && !store.get('field')) {
-      const c = store.selected();
-      let raH, decD;
-      if (c && c.pos && c.pos.length) { const p = c.pos[Math.min(store.get('scan') || 1, c.pos.length) - 1]; [raH, decD] = p; }
-      else if (sky) ({ raH, decD } = sky.centre());
-      else ({ raH, decD } = VIEW.home);
-      store.set('field', { ra: raH * 15, dec: decD, sizeArcsec: FIELD_SIZE_ARCSEC });
+  // Where the current `field` came from, so the Field tab / F key analyse what is selected now rather than the first
+  // patch forever: {key:'candidate:<id>'} or {key:'center:<ra>,<dec>'} when set here, {external:true, id} when someone
+  // else (the panel's "Analyse field", the Field view) set it while <id> was selected.
+  let fieldOrigin = null, settingField = false;
+  store.on('field', f => { if (!settingField) fieldOrigin = f ? { external: true, id: store.get('selectedId') } : null; });
+  function refreshField() {
+    const c = store.selected(), p = c && nearestPos(c, store.get('scan') || 1);
+    let raH, decD, key;
+    if (p) { [raH, decD] = p; key = 'candidate:' + c.id; }
+    else {
+      ({ raH, decD } = sky ? sky.centre() : VIEW.home);
+      key = `center:${raH.toFixed(3)},${decD.toFixed(2)}`;
     }
+    const cur = store.get('field');
+    if (cur && fieldOrigin && (fieldOrigin.key === key || (fieldOrigin.external && c && fieldOrigin.id === c.id))) return;
+    settingField = true;
+    try { store.set('field', { ra: raH * 15, dec: decD, sizeArcsec: FIELD_SIZE_ARCSEC }); } finally { settingField = false; }
+    fieldOrigin = { key };
+  }
+  function setView(v) {
+    if (v === 'compare') {
+      const c = store.selected();
+      if (!c) { toast('Pick a mover first'); return false; }
+      if (!hasPos(c)) { toast(`${c.name || c.id} has no positions to compare`); return false; }
+    }
+    if (v === 'field' && store.get('view') !== 'field') refreshField();
     store.set('view', v);
     return true;
   }
@@ -108,7 +126,9 @@ export function mountHud(store) {
       if (i === 0) b.style.left = '0';
       else if (i === n - 1) b.style.right = '0';
       else b.style.left = `calc(7.5px + ${i / (n - 1)} * (100% - 15px))`;
-      b.innerHTML = `<i aria-hidden="true"></i><small>${s.label} · ${s.date}</small>`;
+      const tick = document.createElement('i'); tick.setAttribute('aria-hidden', 'true');
+      const lab = document.createElement('small'); lab.textContent = `${s.label} · ${s.date}`; // scan labels may come from a server
+      b.replaceChildren(tick, lab);
       b.setAttribute('aria-label', `${s.label}, ${s.date}${s.has ? '' : ', scheduled, no data yet'}`);
       b.setAttribute('aria-pressed', String(s.id === store.get('scan')));
       if (s.has) b.addEventListener('click', () => { stopBlink(); store.set('scan', s.id); });
@@ -138,7 +158,7 @@ export function mountHud(store) {
 
   // --- flying: 'flyto' carries degrees (core/store.js contract) ---
   const flyToCand = c => {
-    const p = c.pos[Math.min(store.get('scan') || 1, c.pos.length) - 1];
+    const p = nearestPos(c, store.get('scan') || 1); if (!p) return; // this scan's position, else the nearest observed
     store.emit('flyto', { ra: p[0] * 15, dec: p[1], fov: VIEW.flyFov, raHours: p[0] });
   };
   // a marker picked on the sky (the panel itself flies on list clicks; sky picks don't move the camera)
@@ -152,7 +172,7 @@ export function mountHud(store) {
   const gotoForm = $('goto'), gotoIn = $('goto-in');
   const candByNumber = n => {
     const list = store.get('candidates') || [];
-    return list.find(c => { const m = /(\d+)\s*$/.exec(c.name || c.id || ''); return m && +m[1] === n; }) || list[n - 1] || null;
+    return list.find(c => { const m = /^c(\d+)$/.exec(String(c.id)); return m && +m[1] === n; }) || null; // pipeline ids only
   };
   gotoForm.addEventListener('submit', e => {
     e.preventDefault();
@@ -234,7 +254,14 @@ export function mountHud(store) {
   window.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
     if (!sheet.hidden) return; // the sheet handles (and stops) its own keys
+    // a modal dialog (e.g. the panel's Export dialog) owns the keyboard: only Esc, to close it
+    const dlg = openDialog() || (e.target && e.target.closest && e.target.closest('dialog'));
+    if (dlg) {
+      if (e.key === 'Escape' && dlg.tagName === 'DIALOG' && dlg.open) { dlg.close(); e.preventDefault(); }
+      return;
+    }
     const k = e.key, view = store.get('view');
+    if (k === '?' && !isTyping(e.target)) { openSheet(); e.preventDefault(); return; } // help works in every view
     if (view === 'field') return;
     if (k === 'Escape') {
       if (isTyping(e.target)) { e.target.blur(); return; }
@@ -253,7 +280,6 @@ export function mountHud(store) {
     else if (view === 'compare' && (k === 's' || k === 'S')) setView('sky');
     else if (view === 'sky' && (k === 'g' || k === 'G')) toggleLayer('grid');
     else if (view === 'sky' && (k === 't' || k === 'T')) toggleLayer('tracks');
-    else if (k === '?') openSheet();
     else if (view === 'sky' && k === '/') { if (getComputedStyle(gotoForm).display !== 'none') gotoIn.focus(); else return; }
     else return;
     e.preventDefault();

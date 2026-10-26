@@ -57,7 +57,7 @@ const TEMPLATE = html`
     <div class="cx-cutgrid">
       <figure class="cx-fig">
         <canvas class="cx-cut" width="256" height="256" role="img"></canvas>
-        <figcaption class="cx-cutlabel"><span class="cx-cutscan"></span><span>60″ cutout</span></figcaption>
+        <figcaption class="cx-cutlabel"><span class="cx-cutscan"></span><span>Illustrative cutout (simulated pixels)</span></figcaption>
       </figure>
       <dl>
         <dt>Position</dt><dd class="cx-pos"></dd>
@@ -80,7 +80,7 @@ const TEMPLATE = html`
       <div class="cx-saved" aria-live="polite"></div>
     </div>
   </section>
-  <dialog class="cx-dialog" aria-labelledby="cx-dlg-title">
+  <dialog class="cx-dialog" role="dialog" aria-modal="true" aria-labelledby="cx-dlg-title">
     <form method="dialog" class="cx-dlg-box">
       <h3 id="cx-dlg-title"></h3>
       <p class="cx-dlg-msg"></p>
@@ -115,7 +115,7 @@ export function mountCandidates(el, store) {
     const s = (store.get('scans') || []).find(x => x.id === k + 1);
     return s ? `${s.label} · ${s.date}` : `Scan ${k + 1}`;
   };
-  const posAt = c => { const k = F.posIndex(c, store.get('scan')); return k < 0 ? null : c.pos[k]; };
+  const posAt = c => F.nearestPos(c, store.get('scan')); // this scan's position, else the nearest observed one
 
   // ---------- persistence: restore saved review for every candidate the first time it appears ----------
   const seen = new Set();
@@ -286,18 +286,23 @@ export function mountCandidates(el, store) {
       if (noteEl.value !== (c.reviewNote || '')) noteEl.value = c.reviewNote || '';
     }
     if (isNew) savedEl.textContent = persist.available() ? '' : storageMsg;
-    [$('.cx-compare'), $('.cx-field'), $('.cx-fly')].forEach(b => { b.disabled = !c.pos || !c.pos.length; });
+    [$('.cx-compare'), $('.cx-field'), $('.cx-fly')].forEach(b => { b.disabled = !F.hasPos(c); });
   }
   function drawCut(c) {
     const W = cut.width;
-    const [x, y, , k] = renderCutout(cg, W, c, store.get('scan') || 1, seedIndex(c.id));
-    cg.strokeStyle = 'rgba(255,255,255,.6)'; cg.lineWidth = 1; cg.beginPath(); cg.arc(x, y, 16, 0, Math.PI * 2); cg.stroke();
-    const p = posAt(c);
+    const scan = store.get('scan') || 1;
+    const [x, y, p, k] = renderCutout(cg, W, c, scan, seedIndex(c.id));
+    if (p) { cg.strokeStyle = 'rgba(255,255,255,.6)'; cg.lineWidth = 1; cg.beginPath(); cg.arc(x, y, 16, 0, Math.PI * 2); cg.stroke(); }
     $('.cx-cutscan').textContent = scanLabel(k);
-    $('.cx-pos').textContent = p ? `${F.fmtRA(p[0])}, ${F.fmtDec(p[1])}` : '—';
-    cut.setAttribute('aria-label', `${c.simulated ? 'Simulated cutout' : 'Cutout'} of ${c.name || c.id}, ${scanLabel(k)}. Opens Compare.`);
+    $('.cx-pos').textContent = F.fmtPos(c, scan);
+    // the pixels are always synthetic until real stamps exist, whatever the candidate's source
+    cut.setAttribute('aria-label', `Illustrative cutout (simulated pixels) of ${c.name || c.id}, ${scanLabel(k)}${p ? '' : ', not observed in this scan'}. Opens Compare.`);
   }
-  cut.addEventListener('click', () => { if (shownId) store.set('view', 'compare'); });
+  cut.addEventListener('click', () => {
+    const c = shownId && byId(shownId); if (!c) return;
+    if (!F.hasPos(c)) { toast(`${c.name || c.id} has no positions to compare`); return; }
+    store.set('view', 'compare');
+  });
 
   function flyTo() {
     const c = byId(store.get('selectedId')); const p = c && posAt(c); if (!p) return;

@@ -65,7 +65,7 @@
 .cx-tag { color: var(--ink-2); margin-top: 2px; }
 .cx-fig { margin: 12px 0 0; }
 .cx-cut { width: 100%; height: auto; aspect-ratio: 1; border-radius: 6px; background: #000; border: 1px solid var(--edge); display: block; cursor: zoom-in; }
-.cx-cutlabel { display: flex; justify-content: space-between; gap: 6px; margin-top: 6px; color: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+.cx-cutlabel { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 6px; margin-top: 6px; color: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
 .cx-detail dl { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; align-content: start; }
 .cx-detail dt { color: var(--ink-3); }
 .cx-detail dd { margin: 0; font-variant-numeric: tabular-nums; }
