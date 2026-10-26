@@ -106,7 +106,7 @@ export function toField(j) {
   const known = (j.known || []).map(k => {
     const s = [...k.samples].sort((a, b) => a.t - b.t);
     return {
-      name: k.name, vmag: k.vmag,
+      name: k.name, vmag: k.vmag, source: k.source || 'JPL',
       // Exact at frame times; linear between samples less than 3 days apart; otherwise outside the field.
       pos: t => {
         for (const p of s) if (Math.abs(p.t - t) < 1e-6) return [p.x, p.y];
