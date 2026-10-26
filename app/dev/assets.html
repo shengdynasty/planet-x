@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sky orientation check</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; font: 13px system-ui, sans-serif; overflow: hidden; }
+  #hud { position: fixed; left: 8px; top: 8px; background: rgba(0,0,0,.6); padding: 6px 8px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div id="hud"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Dev check for app/assets/sky_*.jpg orientation.
+// Query params: ra (hours), dec (deg), fov (deg), mode (fixed | legacy), img (sky_4k | sky_2k).
+//   mode=fixed  -> transform documented in app/assets/README.md
+//   mode=legacy -> the ui-demo's original transform (rotation.y = PI only), for comparison
+(function () {
+  const q = new URLSearchParams(location.search);
+  const ra0 = parseFloat(q.get('ra') ?? '5.6'), dec0 = parseFloat(q.get('dec') ?? '0');
+  const fov = parseFloat(q.get('fov') ?? '40'), mode = q.get('mode') || 'fixed', img = q.get('img') || 'sky_4k';
+
+  // Same as the app's toVec()
+  function toVec(raH, decD, r) {
+    const ra = raH / 12 * Math.PI, dec = decD * Math.PI / 180;
+    return new THREE.Vector3(r * Math.cos(dec) * Math.cos(ra), r * Math.sin(dec), -r * Math.cos(dec) * Math.sin(ra));
+  }
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  document.body.appendChild(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(fov, innerWidth / innerHeight, 0.1, 2000);
+  camera.position.set(0, 0, 0);
+  camera.lookAt(toVec(ra0, dec0, 1));
+
+  // --- backdrop, exactly as the sky module should build it ---
+  function applySkyTransform(mesh) {
+    if (mode === 'legacy') { mesh.rotation.y = Math.PI; return; }
+    mesh.rotation.y = Math.PI;
+    mesh.scale.x = -1;
+  }
+
+  // --- markers ---
+  const stars = [
+    ['Betelgeuse', 5 + 55 / 60, 7.4], ['Rigel', 5 + 14 / 60, -8.2], ['Sirius', 6 + 45 / 60, -16.7],
+    ['Vega', 18 + 37 / 60, 38.8], ['Polaris', 2 + 32 / 60, 89.3],
+    ['Alnitak', 5 + 40.8 / 60, -1.94], ['Alnilam', 5 + 36.2 / 60, -1.20], ['Mintaka', 5 + 32.0 / 60, -0.30],
+    ['Pleiades', 3 + 47 / 60, 24.1], ['LMC', 5 + 24 / 60, -69.8],
+    ['Aldebaran', 4 + 35.9 / 60, 16.5], ['Procyon', 7 + 39.3 / 60, 5.2],
+    ['Deneb', 20 + 41.4 / 60, 45.3], ['Altair', 19 + 50.8 / 60, 8.9], ['Capella', 5 + 16.7 / 60, 46.0],
+    ['Regulus', 10 + 8.4 / 60, 11.97], ['Denebola', 11 + 49.1 / 60, 14.57], ['Spica', 13 + 25.2 / 60, -11.16],
+    ['SMC', 0 + 52.7 / 60, -72.8], ['Achernar', 1 + 37.7 / 60, -57.2], ['Kochab', 14 + 50.7 / 60, 74.16],
+  ];
+  function ringTex() {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    g.strokeStyle = '#00ff66'; g.lineWidth = 6; g.beginPath(); g.arc(64, 64, 52, 0, Math.PI * 2); g.stroke();
+    return new THREE.CanvasTexture(c);
+  }
+  function labelTex(text) {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 64; const g = c.getContext('2d');
+    g.font = 'bold 40px system-ui, sans-serif'; g.fillStyle = '#00ff66'; g.fillText(text, 4, 46);
+    return new THREE.CanvasTexture(c);
+  }
+  const ring = ringTex(), R = 700, ringSize = R * Math.tan(fov / 40 * Math.PI / 180) * 2; // ~fov/20 deg wide
+  for (const [name, ra, dec] of stars) {
+    const p = toVec(ra, dec, R);
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: ring, depthTest: false, transparent: true }));
+    s.position.copy(p); s.scale.set(ringSize, ringSize, 1); s.renderOrder = 2; scene.add(s);
+    const l = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex(name), depthTest: false, transparent: true }));
+    l.center.set(-0.08, 0.5); l.position.copy(p); l.scale.set(ringSize * 4, ringSize / 2, 1); l.renderOrder = 2; scene.add(l);
+  }
+
+  const hud = document.getElementById('hud');
+  hud.textContent = `mode=${mode} img=${img} centre RA ${ra0}h Dec ${dec0}° fov ${fov}° (loading...)`;
+  new THREE.TextureLoader().load(`../assets/${img}.jpg`, tex => {
+    tex.encoding = THREE.sRGBEncoding; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const sky = new THREE.Mesh(new THREE.SphereGeometry(800, 64, 48), new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide }));
+    applySkyTransform(sky); scene.add(sky);
+    renderer.render(scene, camera);
+    hud.textContent = `mode=${mode} img=${img} centre RA ${ra0}h Dec ${dec0}° fov ${fov}°`;
+    document.body.dataset.ready = '1';
+  }, undefined, () => { hud.textContent = 'failed to load ../assets/' + img + '.jpg'; document.body.dataset.ready = 'err'; });
+})();
+</script>
+</body>
+</html>

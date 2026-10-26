@@ -1,0 +1,124 @@
+/* Candidate review panel (workflow). Fills the shell's #panel; everything scoped under .cx. Grey ink only. */
+.cx { display: flex; flex-direction: column; flex: 1 1 auto; height: 100%; min-height: 0; color: var(--ink); font-size: 12px; }
+.cx [hidden] { display: none !important; }
+.cx button { -webkit-tap-highlight-color: transparent; }
+
+/* header: title, export, filters, search, sort (grid areas change on phones) */
+.cx-head {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; flex: none;
+  grid-template-areas: "title export" "filt filt" "search sort";
+  padding: 10px 10px 8px 14px; border-bottom: 1px solid var(--edge);
+}
+.cx-title { grid-area: title; margin: 0; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.cx-count { color: var(--ink-3); font-weight: 400; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.cx-head > .cx-menuwrap { grid-area: export; justify-self: end; }
+.cx-export { padding: 5px 8px; font-size: 11px; }
+.cx-filters { grid-area: filt; display: flex; margin-left: -4px; }
+.cx-filters > button, .cx-more { padding: 5px 8px; font-size: 11px; flex: 1 1 auto; white-space: nowrap; }
+.cx-filters > .cx-menuwrap { flex: 1 1 auto; display: flex; }
+.cx-more { width: 100%; border: 0; border-radius: 5px; }
+.cx-more span[aria-hidden] { font-size: 9px; color: inherit; opacity: .7; }
+.cx-fsel { grid-area: fsel; display: none; }
+.cx-q { grid-area: search; min-width: 0; margin-left: -4px; }
+.cx-sort { grid-area: sort; }
+.cx select {
+  font: inherit; font-size: 12px; color: var(--ink); background: transparent; border: 1px solid var(--edge); border-radius: 6px;
+  padding: 5px 22px 5px 8px; appearance: none; -webkit-appearance: none; cursor: pointer; min-width: 0;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%), linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+  background-position: calc(100% - 11px) 52%, calc(100% - 7px) 52%; background-size: 4px 4px; background-repeat: no-repeat;
+}
+.cx select:hover { border-color: var(--ink-3); }
+.cx select:focus-visible, .cx textarea:focus-visible, .cx-list li:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.cx option { background: var(--panel-solid); color: var(--ink); }
+
+/* menus */
+.cx-menuwrap { position: relative; }
+.cx-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 10; min-width: 150px; padding: 4px; border-radius: 8px;
+  display: flex; flex-direction: column; gap: 1px; background: var(--panel-solid); box-shadow: 0 6px 24px rgba(0,0,0,.18);
+}
+.cx-menu button { border: 0; text-align: left; padding: 8px 10px; border-radius: 5px; font-size: 12px; width: 100%; }
+.cx-menu button:hover, .cx-menu button:focus-visible { background: var(--edge); outline: none; }
+.cx-menu button[aria-checked="true"] { background: var(--fill); color: var(--fill-ink); }
+
+/* list */
+.cx-list { list-style: none; margin: 0; padding: 6px; overflow: auto; flex: 0 1 auto; min-height: 0; overscroll-behavior: contain; }
+.cx.has-detail .cx-list { max-height: 40%; min-height: 96px; flex-shrink: 0; }
+.cx-list li { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 6px; cursor: pointer; color: var(--ink-2); outline-offset: -2px; }
+.cx-list li:hover { background: var(--edge); }
+.cx-list li[aria-selected="true"] { color: var(--ink); background: var(--edge); }
+.cx-list li:focus-visible { outline-offset: -2px; }
+.cx-list .n { font-variant-numeric: tabular-nums; color: var(--ink-3); }
+.cx-mid { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cx-lab { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; }
+.cx-sub { font-size: 11px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; }
+.cx-list .s { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.cx-list li[aria-selected="true"] .n, .cx-list li[aria-selected="true"] .s, .cx-list li[aria-selected="true"] .cx-sub { color: var(--ink-2); }
+.cx-sim { font-size: 10px; line-height: 1; padding: 2px 5px; border: 1px solid var(--edge); border-radius: 4px; color: var(--ink-2); letter-spacing: .01em; white-space: nowrap; }
+.cx-empty { padding: 18px 14px; color: var(--ink-3); line-height: 1.5; }
+.cx-empty button { margin-top: 8px; padding: 6px 8px; font-size: 11px; }
+
+/* detail */
+.cx-detail { border-top: 1px solid var(--edge); padding: 12px 14px 14px; overflow: auto; flex: 1 1 auto; min-height: 120px; overscroll-behavior: contain; }
+.cx-dhead { display: flex; align-items: center; gap: 8px; }
+.cx-dhead h3 { margin: 0; font-size: 13px; font-weight: 500; }
+.cx-tag { color: var(--ink-2); margin-top: 2px; }
+.cx-fig { margin: 12px 0 0; }
+.cx-cut { width: 100%; height: auto; aspect-ratio: 1; border-radius: 6px; background: #000; border: 1px solid var(--edge); display: block; cursor: zoom-in; }
+.cx-cutlabel { display: flex; justify-content: space-between; gap: 6px; margin-top: 6px; color: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+.cx-detail dl { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; align-content: start; }
+.cx-detail dt { color: var(--ink-3); }
+.cx-detail dd { margin: 0; font-variant-numeric: tabular-nums; }
+.cx-note { margin: 10px 0 0; color: var(--ink-2); line-height: 1.45; }
+.cx-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.cx-review { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--edge); display: flex; flex-direction: column; gap: 6px; }
+.cx-rlabel { color: var(--ink-3); font-size: 11px; }
+.cx-rlabel + .cx-rlabel, .cx-rstatus + .cx-rlabel { margin-top: 4px; }
+.cx-rstatus { align-self: flex-start; flex-wrap: wrap; }
+.cx-rstatus button { padding: 6px 9px; font-size: 11px; }
+.cx-rnote {
+  font: inherit; font-size: 12px; color: var(--ink); background: transparent; border: 1px solid var(--edge); border-radius: 6px;
+  padding: 7px 9px; width: 100%; resize: vertical; min-height: 56px; line-height: 1.4;
+}
+.cx-rnote::placeholder { color: var(--ink-3); }
+.cx-saved { color: var(--ink-3); font-size: 11px; min-height: 14px; }
+
+/* export fallback dialog */
+.cx-dialog { border: 1px solid var(--edge); border-radius: 12px; padding: 0; background: var(--panel-solid); color: var(--ink); width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 64px); }
+.cx-dialog::backdrop { background: rgba(0,0,0,.4); }
+.cx-dlg-box { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.cx-dlg-box h3 { margin: 0; font-size: 14px; font-weight: 500; }
+.cx-dlg-msg { margin: 0; color: var(--ink-2); line-height: 1.45; font-size: 12px; }
+.cx-dlg-text { font: 11px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--ink); background: transparent; border: 1px solid var(--edge); border-radius: 6px; padding: 8px; width: 100%; height: 40vh; resize: vertical; white-space: pre; overflow: auto; }
+.cx-dlg-row { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+.cx-dlg-status { flex: 1; color: var(--ink-3); font-size: 11px; }
+
+/* phones: bottom sheet contents. Compact selects, side-by-side cutout, ≥ 40px tap targets. */
+@media (max-width: 860px) {
+  .cx-head { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto; grid-template-areas: "title search search export" "fsel fsel sort sort"; padding: 8px 8px 8px 14px; }
+  .cx-title { margin-right: 4px; }
+  .cx-filters { display: none; }
+  .cx-fsel { display: block; }
+  .cx-q { margin-left: 0; }
+  .cx-head > .cx-menuwrap .cx-export { padding: 6px 10px; }
+  .cx button, .cx select, .cx-q { min-height: 40px; }
+  .cx-export { font-size: 12px; }
+  .cx-q { font-size: 16px; } /* avoids iOS zoom-on-focus */
+  .cx select { font-size: 13px; }
+  .cx-list li { min-height: 44px; }
+  .cx.has-detail .cx-list { max-height: 34%; min-height: 92px; }
+  .cx-detail { min-height: 0; }
+  .cx-cutgrid { display: grid; grid-template-columns: minmax(96px, 128px) 1fr; gap: 12px; align-items: start; margin-top: 10px; }
+  .cx-fig { margin: 0; }
+  .cx-cutlabel { flex-direction: column; gap: 0; }
+  .cx-detail dl { margin: 0; }
+  .cx-actions button { flex: 1 1 auto; font-size: 12px; }
+  .cx-rstatus { align-self: stretch; }
+  .cx-rstatus button { flex: 1; font-size: 12px; }
+  .cx-rnote { font-size: 16px; }
+  .cx-menu button { min-height: 44px; }
+}
+@media (pointer: coarse) {
+  .cx button, .cx select { min-height: 40px; }
+  .cx-list li { min-height: 44px; }
+}

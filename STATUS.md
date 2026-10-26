@@ -3,18 +3,20 @@
 _Last updated: 2026-10-25_
 
 ## Done
+- Candidate review panel merged (5f75917): filter/sort/search, keyboard listbox, Follow-up/Rejected review with notes (localStorage), CSV/JSON export with copy fallback for the sandbox. 88/88 tests pass on main. Contracts updated: flyto ra/dec in degrees; Candidate.pipelineStatus.
+- Real sky merged (6ba33d3): NASA SVS Deep Star Maps 2020 (Gaia DR2), app/assets/sky_4k.jpg + sky_2k.jpg. Orientation verified on Orion, Vega, Polaris, Pleiades, LMC and the 12h seam; the old setup was mirrored E–W (fix: backdrop.scale.x = -1). Credit: NASA/GSFC SVS; Gaia DR2: ESA/Gaia/DPAC.
+- Moving Sky mobile/a11y/perf merged (98c9f2a): 4×2 epoch grid, touch readout, live-region announcements, AA contrast, slider jank 833 ms → ~1 ms at 4× throttle. Both Moving Sky suites pass on main.
 - Moving Sky correctness + interactions merged (6df1285): slow mover's drift corrected to a real ~500 AU rate (0.03°/yr), the "nearest matching pass" crash fixed, Track honours the selected window, selection survives epoch changes, reduced-motion flip button, spectrum label overflow, theme redraw. `node qa/moving-sky.test.mjs`: ALL PASS on main.
 - Write-up merged (docs/WRITEUP.md, docs/PITCH-OUTLINE.md). Placeholders: [Team member names], [UI demo link], [Moving Sky demo link], [Video link].
 - Pitch deck v1 published (9 slides, private): https://claude.ai/artifact/UAqhztF4edsXdn2mTzs6fw — source in docs/deck/. Demo slides have screenshot placeholders, filled after QA.
 - Repo initialised; baseline snapshots of both published artifacts committed (`artifacts/`, commit d7a194f). Checksums match the published versions.
 
-## In progress
-- Plan approved 2026-10-25. Deck = claude.ai Slides artifact; write-up = Markdown in repo.
-- Agent (a) `fix/flyto`: fly-to sign bug + interaction QA (incl. Scan 1 marker overlapping Blink)
-- Agent (b) `qa/mobile-a11y-perf`: phone layout, keyboard/focus/contrast, load-time perf
-- **Focus changed (user): demos first.** Moving Sky now has its own agents:
-- Agent (f) `qa/moving-sky-mobile-a11y`: phone layout, accessibility, perf
-- Headless test harness: Chrome + playwright-core (in scratch, not a repo dependency) verified working
+## In progress — full app build (started 2026-10-25, est. 1–1.5 h wall-clock)
+Goal: one app in `app/` that merges both demos in the UI demo's look. Contracts: `app/ARCHITECTURE.md`. Preview: http://localhost:8000/app/
+- `build/shell` — page, top bar (Sky · Compare · Field, data-source badge), 3D sky, Compare; folds in fly-to + known UI-demo bugs
+- `build/field` — pure detection pipeline (must match Moving Sky exactly) + Field analysis view
+- `build/data` — simulated source + live source via local Node server (IRSA SPHEREx cutouts, JPL small-body ID)
+- Still finishing on the old single-file UI demo: `fix/flyto`, `qa/mobile-a11y-perf` (findings get forwarded to shell)
 
 ## Next
 - (a) Fix the fly-to bug + interaction QA (UI demo)
