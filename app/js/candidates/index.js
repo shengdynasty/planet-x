@@ -30,9 +30,6 @@ const TEMPLATE = html`
         <button role="menuitem" data-x="copy" data-fmt="json">Copy JSON</button>
       </div>
     </div>
-  </header>
-  <div class="cx-tools">
-    <div class="cx-filterrow">
       <div class="seg cx-filters" role="group" aria-label="Filter by status">
         <button data-f="all" aria-pressed="true">All</button>
         <button data-f="Candidate" aria-pressed="false">Unmatched</button>
@@ -47,14 +44,11 @@ const TEMPLATE = html`
       <select class="cx-fsel" aria-label="Filter by status">
         ${F.FILTERS.map(f => html`<option value="${f.id}">${f.label}</option>`).join('')}
       </select>
-    </div>
-    <div class="cx-searchrow">
       <input type="text" class="cx-q" placeholder="Search movers" aria-label="Search movers" autocomplete="off" spellcheck="false" enterkeyhint="search">
       <select class="cx-sort" aria-label="Sort by">
         ${F.SORTS.map(s => html`<option value="${s.id}">Sort: ${s.label}</option>`).join('')}
       </select>
-    </div>
-  </div>
+  </header>
   <ul class="cx-list" role="listbox" aria-labelledby="cx-title"></ul>
   <div class="cx-empty" hidden><span class="cx-empty-msg"></span> <button class="cx-clear ghost" hidden>Clear filters</button></div>
   <section class="cx-detail" aria-labelledby="cx-d-name" hidden>

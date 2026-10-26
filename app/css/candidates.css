@@ -3,23 +3,24 @@
 .cx [hidden] { display: none !important; }
 .cx button { -webkit-tap-highlight-color: transparent; }
 
-/* header */
-.cx-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 10px 6px 14px; flex: none; }
-.cx-title { margin: 0; font-size: 13px; font-weight: 500; }
+/* header: title, export, filters, search, sort (grid areas change on phones) */
+.cx-head {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; flex: none;
+  grid-template-areas: "title export" "filt filt" "search sort";
+  padding: 10px 10px 8px 14px; border-bottom: 1px solid var(--edge);
+}
+.cx-title { grid-area: title; margin: 0; font-size: 13px; font-weight: 500; white-space: nowrap; }
 .cx-count { color: var(--ink-3); font-weight: 400; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.cx-head > .cx-menuwrap { grid-area: export; justify-self: end; }
 .cx-export { padding: 5px 8px; font-size: 11px; }
-
-/* tools */
-.cx-tools { display: flex; flex-direction: column; gap: 6px; padding: 0 10px 8px; border-bottom: 1px solid var(--edge); flex: none; }
-.cx-filterrow { display: flex; }
-.cx-filters { width: 100%; }
+.cx-filters { grid-area: filt; display: flex; margin-left: -4px; }
 .cx-filters > button, .cx-more { padding: 5px 8px; font-size: 11px; flex: 1 1 auto; white-space: nowrap; }
 .cx-filters > .cx-menuwrap { flex: 1 1 auto; display: flex; }
 .cx-more { width: 100%; border: 0; border-radius: 5px; }
 .cx-more span[aria-hidden] { font-size: 9px; color: inherit; opacity: .7; }
-.cx-fsel { display: none; }
-.cx-searchrow { display: flex; gap: 6px; }
-.cx-q { flex: 1 1 auto; min-width: 0; }
+.cx-fsel { grid-area: fsel; display: none; }
+.cx-q { grid-area: search; min-width: 0; margin-left: -4px; }
+.cx-sort { grid-area: sort; }
 .cx select {
   font: inherit; font-size: 12px; color: var(--ink); background: transparent; border: 1px solid var(--edge); border-radius: 6px;
   padding: 5px 22px 5px 8px; appearance: none; -webkit-appearance: none; cursor: pointer; min-width: 0;
@@ -29,7 +30,6 @@
 .cx select:hover { border-color: var(--ink-3); }
 .cx select:focus-visible, .cx textarea:focus-visible, .cx-list li:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .cx option { background: var(--panel-solid); color: var(--ink); }
-.cx-sort { flex: none; }
 
 /* menus */
 .cx-menuwrap { position: relative; }
@@ -95,16 +95,14 @@
 
 /* phones: bottom sheet contents. Compact selects, side-by-side cutout, ≥ 40px tap targets. */
 @media (max-width: 860px) {
-  .cx-head { padding: 6px 6px 4px 14px; }
+  .cx-head { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto; grid-template-areas: "title search search export" "fsel fsel sort sort"; padding: 8px 8px 8px 14px; }
+  .cx-title { margin-right: 4px; }
   .cx-filters { display: none; }
-  .cx-filterrow { display: contents; }
-  .cx-tools { flex-direction: row; flex-wrap: wrap; }
-  .cx-fsel { display: block; order: 2; flex: 1 1 40%; }
-  .cx-searchrow { display: contents; }
-  .cx-q { order: 1; flex: 1 1 100%; }
-  .cx-sort { order: 3; flex: 1 1 40%; }
+  .cx-fsel { display: block; }
+  .cx-q { margin-left: 0; }
+  .cx-head > .cx-menuwrap .cx-export { padding: 6px 10px; }
   .cx button, .cx select, .cx-q { min-height: 40px; }
-  .cx-export { min-width: 64px; font-size: 12px; }
+  .cx-export { font-size: 12px; }
   .cx-q { font-size: 16px; } /* avoids iOS zoom-on-focus */
   .cx select { font-size: 13px; }
   .cx-list li { min-height: 44px; }
