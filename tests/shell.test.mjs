@@ -51,6 +51,23 @@ const sepDeg = (r1, d1, r2, d2) => { // hours, degrees
 };
 
 // =====================================================================
+console.log('pure helpers (app/js/sky/coords.js)');
+{
+  const C = await import(path.join(ROOT, 'app/js/sky/coords.js'));
+  ok(C.fmtRA(19.9999) === '20h 00m' && C.fmtRA(23.999) === '0h 00m', `fmtRA carries rounding (${C.fmtRA(19.9999)})`);
+  ok(C.fmtDec(-0.04) === '+0.0°' && C.fmtDec(-12.34) === '−12.3°', `fmtDec never shows −0.0° (${C.fmtDec(-0.04)})`);
+  const g = q => JSON.stringify(C.parseGoto(q));
+  ok(g('16h06m, −41') === JSON.stringify({ kind: 'pos', raH: 16.1, decD: -41 }), 'go-to accepts Unicode minus');
+  ok(g('16h06m, -41') === g('16h06m −41') && g('16h06m +41') === JSON.stringify({ kind: 'pos', raH: 16.1, decD: 41 }), 'go-to signs and separators');
+  ok(C.parseGoto('25h, +10') === null && C.parseGoto('10h, +95') === null && C.parseGoto('400, 10') === null, 'go-to rejects RA > 24h and |Dec| > 90');
+  ok(g('candidate 3') === g('c03') && C.parseGoto('candidate 3').n === 3, 'go-to "candidate 3"');
+  for (const [r, d] of [[0, 0], [6, 30], [12, -60], [18.5, 85], [23.9, -1]]) {
+    const { yaw, pitch } = C.yawPitchFor(r, d), back = C.raDecOf(C.dirFor(yaw, pitch));
+    ok(Math.abs(back.raH - r) < 1e-9 && Math.abs(back.decD - d) < 1e-9, `yaw = ra − π/2 round-trips RA ${r}h Dec ${d}°`);
+  }
+}
+
+// =====================================================================
 console.log('desktop 1440×900, dark');
 {
   const { ctx, page, errors, notFound } = await open({ width: 1440, height: 900 });
@@ -65,6 +82,8 @@ console.log('desktop 1440×900, dark');
   const cands = await page.evaluate(() => window.__px.get('candidates'));
   ok(cands.length >= 1, `candidates loaded (${cands.length})`);
   await page.screenshot({ path: path.join(SHOTS, 'desktop-dark-boot.png') });
+  { const f0 = await page.evaluate(() => window.__sky.frames()); await page.waitForTimeout(600); const f1 = await page.evaluate(() => window.__sky.frames());
+    ok(f1 === f0, `idle sky renders no frames (${f1 - f0} in 600 ms)`); }
 
   // --- timeline: the Scan 1 marker must not overlap the Blink button ---
   const blinkR = await page.locator('#blink').boundingBox(), s1 = await page.locator('.scan').first().boundingBox();
@@ -142,7 +161,7 @@ console.log('desktop 1440×900, dark');
   for (let i = 0; i < 6; i++) await page.keyboard.press('Tab');
   ok(await page.evaluate(() => document.getElementById('sheet').contains(document.activeElement)), 'focus is trapped in the sheet');
   const sheetText = await page.textContent('#sheet');
-  ok(!/\bdetection\b/i.test(sheetText.replace(/never a detection/gi, '')), 'help copy never calls anything a detection');
+  ok(!/detect/i.test(sheetText), 'help copy never calls anything a detection');
   ok(/NASA\/Goddard Space Flight Center Scientific Visualization Studio/.test(sheetText), 'help sheet carries the sky credit');
   await page.screenshot({ path: path.join(SHOTS, 'desktop-dark-help.png') });
   await page.keyboard.press('Escape');

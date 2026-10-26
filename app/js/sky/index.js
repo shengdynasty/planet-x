@@ -267,7 +267,7 @@ export function mountSky(el, store, opts = {}) {
     const { raH, decD } = raDecOf([dir.x, dir.y, dir.z]);
     onView({ raH, decD, fov: camera.fov });
     const sc = camera.fov / 60;
-    markerGroup.children.forEach(s => s.scale.set(40 * sc, 20 * sc, 1));
+    markerGroup.children.forEach(s => s.scale.set(52 * sc, 26 * sc, 1)); // a touch larger than the demo: the real map is busier
     renderer.render(scene, camera); frames++;
     settled = !moving;
     dirty = false;
