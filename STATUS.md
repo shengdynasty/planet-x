@@ -39,6 +39,9 @@ Nothing published. main has every test suite green as of the last commit.
 ## Blockers / open questions
 - `CLAUDE.md` (the project brief) is **not in this folder**. The plan below was inferred from the request and the artifacts.
 
+## Repo
+- GitHub (private): https://github.com/shengdynasty/planet-x — `main` pushed 2026-10-26. Push again after each merge.
+
 ## Artifact URLs
 - UI demo (republish target): https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW
 - Pitch deck (new, private): https://claude.ai/artifact/UAqhztF4edsXdn2mTzs6fw
