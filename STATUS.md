@@ -6,7 +6,12 @@ _Last updated: 2026-10-25_
 - Repo initialised; baseline snapshots of both published artifacts committed (`artifacts/`, commit d7a194f). Checksums match the published versions.
 
 ## In progress
-- Plan for the two priorities is waiting for approval. No agents spawned yet.
+- Plan approved 2026-10-25. Deck = claude.ai Slides artifact; write-up = Markdown in repo.
+- Agent (a) `fix/flyto`: fly-to sign bug + interaction QA (incl. Scan 1 marker overlapping Blink)
+- Agent (b) `qa/mobile-a11y-perf`: phone layout, keyboard/focus/contrast, load-time perf
+- Agent (c) `docs/writeup`: docs/WRITEUP.md + docs/PITCH-OUTLINE.md
+- (d) Pitch deck: built by main agent directly as a Slides artifact (no separate agent needed)
+- Headless test harness: Chrome + playwright-core (in scratch, not a repo dependency) verified working
 
 ## Next
 - (a) Fix the fly-to bug + interaction QA (UI demo)
@@ -20,4 +25,5 @@ _Last updated: 2026-10-25_
 
 ## Artifact URLs
 - UI demo (republish target): https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW
+- Pitch deck (new, private): https://claude.ai/artifact/UAqhztF4edsXdn2mTzs6fw
 - SPHEREx Moving Sky demo (reference, read-only): https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b
