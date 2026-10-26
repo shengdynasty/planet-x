@@ -42,18 +42,48 @@ const simCopy = () => ({ scans: SIM_SCANS.map(s => ({ ...s })), candidates: SIM_
 let storeRef = null;
 let mode = 'sim';
 
-async function getJSON(path, timeoutMs) {
-  const r = await fetch(SERVER + path, { signal: AbortSignal.timeout(timeoutMs), cache: 'no-store' });
+async function getJSON(path, timeoutMs, signal) {
+  const t = AbortSignal.timeout(timeoutMs);
+  const r = await fetch(SERVER + path, { signal: signal ? (AbortSignal.any ? AbortSignal.any([t, signal]) : signal) : t, cache: 'no-store' });
   let body = null; try { body = await r.json(); } catch { /* non-JSON */ }
   if (!r.ok) throw new Error((body && body.error) || `HTTP ${r.status}`);
   return body;
+}
+
+// ---------- field-added candidates: persisted so a reviewer's work survives a reload ----------
+export const FIELD_CANDS_KEY = 'planetx.fieldcands.v1';
+const isFieldCand = c => c && c.source === 'field';
+function loadFieldCands() {
+  try { const v = JSON.parse(globalThis.localStorage?.getItem(FIELD_CANDS_KEY) || '[]'); return Array.isArray(v) ? v.filter(c => c && typeof c.id === 'string') : []; } catch { return []; }
+}
+function saveFieldCands(list) {
+  try {
+    const live = mode === 'live';
+    const other = loadFieldCands().filter(c => !!c.simulated === live); // keep the other mode's entries untouched
+    globalThis.localStorage?.setItem(FIELD_CANDS_KEY, JSON.stringify([...other, ...list.filter(isFieldCand)]));
+  } catch { /* storage blocked: nothing to do */ }
+}
+/** This mode's saved field candidates (sim-field ones only in sim mode, live ones only in live mode). */
+const restoredFieldCands = () => loadFieldCands().filter(c => !!c.simulated === (mode !== 'live')).map(c => ({ ...c, source: 'field' }));
+let persistWired = false;
+function wirePersistence(store) {
+  if (persistWired || !store.on) return; persistWired = true;
+  let last = '';
+  store.on('candidates', list => { const j = JSON.stringify((list || []).filter(isFieldCand)); if (j !== last) { last = j; saveFieldCands(list || []); } });
+}
+
+/** Merge a fresh data-source list into the current one: data-source entries replaced by id, field-added kept. */
+export function mergeCandidates(current, fresh) {
+  const ids = new Set(fresh.map(c => c.id));
+  return [...fresh, ...(current || []).filter(c => isFieldCand(c) && !ids.has(c.id))];
 }
 
 function useSim(store, why) {
   mode = 'sim';
   const { scans, candidates } = simCopy();
   store.set('scans', scans);
-  store.set('candidates', candidates);
+  store.set('candidates', candidates.concat(restoredFieldCands().filter(c => !candidates.some(d => d.id === c.id))));
+  wirePersistence(store);
   store.set('source', { mode: 'sim', live: false, note: why ? `Simulated data · ${why}` : 'Simulated data' });
 }
 
@@ -70,8 +100,9 @@ export async function initData(store) {
     const scans = sc.epochs.map(e => ({ id: e.id, label: e.label, date: e.date, has: true, start: e.start, end: e.end, nExposures: e.nExposures }));
     mode = 'live';
     store.set('scans', scans);
-    store.set('candidates', []);
-    store.set('source', { mode: 'live', live: true, note: 'Live · SPHEREx via IRSA' });
+    store.set('candidates', restoredFieldCands());
+    wirePersistence(store);
+    store.set('source', { mode: 'live', live: true, note: 'Live · SPHEREx via IRSA', home: { ra: home.ra, dec: home.dec, sizeArcsec: home.size || HOME.sizeArcsec } });
     loadLiveCandidates(store, home); // background: JPL lookups can take a minute the first time
   } catch (e) {
     useSim(store, `live server error (${e.message})`);
@@ -86,7 +117,11 @@ async function loadLiveCandidates(store, home, attempt = 0) {
     const r = await getJSON(`/api/candidates?ra=${home.ra}&dec=${home.dec}`, 15000);
     if (mode !== 'live') return;
     if (r.pending) { if (attempt < 40) later(() => loadLiveCandidates(store, home, attempt + 1)); return; }
-    store.set('candidates', (r.candidates || []).map(c => ({ ...c, pipelineStatus: c.pipelineStatus || c.status, simulated: false })));
+    const fresh = (r.candidates || []).map(c => ({ ...c, pipelineStatus: c.pipelineStatus || c.status, simulated: false }));
+    const merged = mergeCandidates(store.get ? store.get('candidates') : [], fresh);
+    store.set('candidates', merged);
+    // the poll can drop a known object; don't leave the selection pointing at nothing
+    if (store.get && store.get('selectedId') && !merged.some(c => c.id === store.get('selectedId'))) store.set('selectedId', null);
   } catch (e) {
     if (attempt < 3) later(() => loadLiveCandidates(store, home, attempt + 1));
     else store.emit && store.emit('toast', `Could not load known objects: ${e.message}`);
@@ -106,7 +141,7 @@ export function toField(j) {
   const known = (j.known || []).map(k => {
     const s = [...k.samples].sort((a, b) => a.t - b.t);
     return {
-      name: k.name, vmag: k.vmag,
+      name: k.name, vmag: k.vmag, source: k.source || 'JPL',
       // Exact at frame times; linear between samples less than 3 days apart; otherwise outside the field.
       pos: t => {
         for (const p of s) if (Math.abs(p.t - t) < 1e-6) return [p.x, p.y];
@@ -132,21 +167,40 @@ async function simField(ra, dec) {
   return f;
 }
 
+export const LIVE_MAX_ARCSEC = 600, LIVE_DEFAULT_ARCSEC = 300;
+/** The size actually requested from the server: 20–600″; larger requests (the sim's 1968″ default) get 300″. */
+export const liveSize = s => !Number.isFinite(s) ? HOME.sizeArcsec : s > LIVE_MAX_ARCSEC ? LIVE_DEFAULT_ARCSEC : Math.max(20, Math.round(s));
+export const isLive = () => mode === 'live';
+
 /**
- * @param {{ra:number, dec:number, sizeArcsec?:number, det?:number, known?:boolean}} q  ra/dec in degrees
+ * @param {{ra:number, dec:number, sizeArcsec?:number, det?:number, t?:number, known?:boolean, signal?:AbortSignal, fallback?:boolean}} q
+ *   ra/dec in degrees; det = SPHEREx detector 1–6; t = MJD to anchor the frame choice on (e.g. the night an asteroid
+ *   passed); known=false skips JPL (much faster cold); fallback=false throws instead of returning a simulated field.
  * @returns {Promise<import('../core/types.js').Field>}
  */
-export async function getField({ ra, dec, sizeArcsec = HOME.sizeArcsec, det, known = true } = {}) {
+export async function getField({ ra, dec, sizeArcsec = HOME.sizeArcsec, det, t, known = true, signal, fallback = true } = {}) {
   if (mode !== 'live') return simField(ra, dec);
-  const qs = new URLSearchParams({ ra: String(ra), dec: String(dec), size: String(Math.round(sizeArcsec)) });
+  const qs = new URLSearchParams({ ra: String(ra), dec: String(dec), size: String(liveSize(sizeArcsec)) });
   if (det) qs.set('det', String(det));
+  if (Number.isFinite(t) && t > 60000) qs.set('t', String(t));
   if (!known) qs.set('known', '0');
   try {
-    return toField(await getJSON('/api/field?' + qs, 600000));
+    const f = toField(await getJSON('/api/field?' + qs, 600000, signal));
+    f.request = { ra, dec, sizeArcsec: liveSize(sizeArcsec), det: det || f.detector, t: Number.isFinite(t) ? t : null, known };
+    return f;
   } catch (e) {
+    if (!fallback || (signal && signal.aborted)) throw e;
     const f = await simField(ra, dec);
     f.fallbackReason = `Live field failed (${e.message}); showing simulated data`;
     if (storeRef && storeRef.emit) storeRef.emit('toast', f.fallbackReason);
     return f;
   }
+}
+
+/** Cold field builds the server is working on (GET /api/progress), or null if the server doesn't report them. */
+let noProgress = false; // an older server without /api/progress: ask once, then stop
+export async function fieldProgress(signal) {
+  if (mode !== 'live' || noProgress) return null;
+  try { const r = await getJSON('/api/progress', 3000, signal); return Array.isArray(r.builds) ? r.builds : null; }
+  catch (e) { if (/Not found|HTTP 404/i.test(e.message)) noProgress = true; return null; }
 }

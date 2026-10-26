@@ -65,7 +65,7 @@ function simFrame(i) {
  */
 export function simulateField(opts = {}) {
   return {
-    N, scale: SIM_SCALE,
+    N, scale: SIM_SCALE, psfSigmaPx: SIG,
     ra0: opts.ra0 ?? SIM_RA0, dec0: opts.dec0 ?? SIM_DEC0,
     epochs: SIM_EPOCHS.map(e => ({ ...e })),
     frame: simFrame,

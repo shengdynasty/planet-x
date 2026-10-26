@@ -69,5 +69,55 @@ for (const k of ['asteroid', 'ice', 'star']) { const s = P.spectrum(k); ok(s.len
   ok(res.length === 1 && res[0].kind === 'cand' && res[0].title === 'Uncatalogued mover' && Math.abs(res[0].x - 40) < 0.5, 'generic N=64 field finds the mover: ' + JSON.stringify(res.map(r => r.title)));
 }
 
+// 8. PSF sampling: the spike limit scales with the PSF; the simulation keeps Moving Sky's 3.2 exactly
+ok(P.spikeLimit(P.SIM_PSF_SIGMA) === 3.2 && P.psfModel(field).sigma === 1.15 && P.psfModel(field).spikeMax === 3.2, 'sim PSF: σ 1.15 px, spike limit exactly 3.2');
+ok(Math.abs(P.sigmaOfSpike(P.spikeOf(0.68)) - 0.68) < 1e-6 && P.spikeLimit(0.68) > 7, 'spikeOf / sigmaOfSpike invert; undersampled limit > 7');
+
+// 9. undersampled synthetic field (σ = 0.55 px, like SPHEREx's 6.6″ FWHM at 6.15″/px): stars in every epoch,
+//    a catalogued asteroid and an uncatalogued transient in epoch 1 only, a cosmic-ray streak and a hot pixel.
+{
+  const N = 48, S = 0.55, r = P.rng(42), stars = [];
+  for (let i = 0; i < 14; i++) stars.push({ x: 6 + r() * 36, y: 6 + r() * 36, a: 3 + 30 * r() });
+  const psf = (g, x, y, a) => { for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const X = Math.round(x) + dx, Y = Math.round(y) + dy; if (X < 0 || Y < 0 || X >= N || Y >= N) continue;
+    g[Y * N + X] += a * Math.exp(-((X - x) ** 2 + (Y - y) ** 2) / (2 * S * S)); } };
+  const mk = i => { const q = P.rng(100 + i), g = new Float32Array(N * N); for (let p = 0; p < N * N; p++) g[p] = 0.5 + 0.02 * P.gauss(q);
+    for (const s of stars) psf(g, s.x, s.y, s.a);
+    if (i === 1) { psf(g, 40.3, 33.6, 20); psf(g, 19.4, 40.7, 6);                       // asteroid (known), transient (not)
+      g[10 * N + 41] += 60; g[9 * N + 41] += 21; g[11 * N + 41] += 21;                 // vertical cosmic-ray streak
+      g[40 * N + 8] += 9; }                                                             // hot pixel
+    return g; };
+  const frames = [mk(0), mk(1), mk(2)];
+  const asteroid = { name: '(99999) Testoid', source: 'JPL Horizons (geocentric)', pos: t => t === 180 ? [40.35, 33.55] : [-999, -999] };
+  const f = { N, scale: 6.15, ra0: 10, dec0: 5, epochs: [0, 180, 360].map(t => ({ t, band: 1.86, label: t + ' d', sub: '' })), frame: i => frames[i], known: [asteroid], simulated: false };
+  const pm = P.psfModel(f);
+  ok(pm.from === 'stars' && Math.abs(pm.sigma - S) < 0.2, `PSF measured from the stars: σ ${pm.sigma.toFixed(2)} px from ${pm.nStars} stars`);
+  const ast = P.detect(frames[1], 5).find(s => Math.hypot(s.x - 40.3, s.y - 33.6) < 1);
+  ok(ast && ast.spike > 3.2, `asteroid is sharper than the old fixed limit (spike ${ast && ast.spike.toFixed(1)} > 3.2)`);
+  const res = P.analyse(f, 0, 1), at = (x, y) => res.find(q => Math.hypot(q.x - x, q.y - y) < 1.5);
+  ok(at(40.3, 33.6)?.kind === 'known' && /″ from JPL Horizons/.test(at(40.3, 33.6).detail), 'catalogued asteroid → known object, with offset from the ephemeris');
+  ok(at(19.4, 40.7)?.kind === 'cand', 'PSF-shaped transient → candidate');
+  ok(at(41, 10)?.kind === 'art', 'cosmic-ray streak → artifact');
+  ok(at(8, 40)?.kind === 'art', 'hot pixel → artifact');
+  ok(res.filter(q => q.kind !== 'art').length === 2, 'no stars flagged: ' + JSON.stringify(res.map(q => q.kind + ':' + q.title)));
+  // ephemeris wins: put the ephemeris on the hot pixel
+  const f2 = { ...f, known: [{ ...asteroid, name: 'Hot-pixel twin', pos: t => t === 180 ? [8, 40] : [-999, -999] }] };
+  ok(P.analyse(f2, 0, 1).find(q => Math.hypot(q.x - 8, q.y - 40) < 1.5)?.kind === 'known', 'an ephemeris match wins over the artifact test');
+}
+
+// 10. real SPHEREx field (tests/fixtures/spherex-psyche-field.json, from /api/field?ra=70.2635&dec=19.0558&size=300&det=3&t=61087.1294):
+//     16 Psyche is in the 15 Feb 2026 frame only; that frame also has cosmic-ray streaks and bad pixels.
+{
+  const { toField } = await import('../app/js/data/index.js');
+  const f = toField(JSON.parse(fs.readFileSync(path.join(here, 'fixtures/spherex-psyche-field.json'), 'utf8')));
+  const pm = P.psfModel(f);
+  ok(pm.from === 'stars' && pm.sigma > 0.5 && pm.sigma < 0.9, `real PSF σ ${pm.sigma.toFixed(2)} px from ${pm.nStars} stars`);
+  const res = P.analyse(f, 0, 1), psy = res.find(q => /Psyche/.test(q.title));
+  ok(psy && psy.kind === 'known' && Math.hypot(psy.x - 21.49, psy.y - 23.58) < 0.33, '16 Psyche → known object, within 2″ of Horizons');
+  ok(!res.some(q => q.kind !== 'known' && Math.hypot(q.x - 21.5, q.y - 23.5) < 2), 'nothing else flagged at Psyche');
+  for (const [x, y] of [[16.6, 5.9], [22.1, 6.4], [20.6, 10.3]]) ok(res.find(q => Math.hypot(q.x - x, q.y - y) < 1)?.kind === 'art', `cosmic ray / bad pixel at (${x}, ${y}) → artifact`);
+  ok(res.filter(q => q.kind === 'cand').length <= 1, 'at most one candidate left: ' + JSON.stringify(res.filter(q => q.kind === 'cand').map(q => q.title)));
+  ok(P.analyse(f, 0, 2).every(q => q.kind !== 'cand'), 'Sep 2025 vs Sep 2026: no candidates');
+}
+
 console.log(`${passes} passed, ${fails} failed`);
 process.exit(fails ? 1 : 0);

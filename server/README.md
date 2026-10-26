@@ -12,6 +12,53 @@ With the server running, the app (`http://localhost:8000/app/`) detects it via `
 switches to **Live · SPHEREx via IRSA**. Without it (or on claude.ai, where outside requests are blocked) the
 app silently uses simulated data. `app/dev/data.html` shows what the data module produces.
 
+## Running with live data
+
+```sh
+node server/index.mjs                         # terminal 1: data server on http://localhost:8787
+python3 -m http.server 8000 --bind 127.0.0.1  # terminal 2, from the repo root
+open http://localhost:8000/app/               # badge top right: "Live · SPHEREx"
+```
+
+What to expect:
+
+- **Badge** reads *Live · SPHEREx* within ~1.5 s of loading. If the server isn't running (or the page is hosted
+  on claude.ai) it reads *Simulated data* and everything is the Moving Sky simulation, labelled as such.
+- **Review panel** lists only the known objects JPL predicts in the home patch (RA 70.42°, Dec 19.18°, 2′).
+  Often there are none; the panel then says so and offers **Open Field on the home patch**. The server does not
+  run detection. The app does, in the browser, on the real frames.
+- **Field view** (top bar *Field*, a candidate's *Field*, or the empty-panel button) asks the server for that
+  patch. Live fields are small: 120″ = 20×20 px, 300″ = 49×49 px, 600″ = 98×98 px (6.15″/px). A request larger
+  than 600″ (e.g. the 1968″ simulation default) becomes 300″. The *Live request* box on the right sets the size,
+  the detector (D1–D6, i.e. the wavelength range) and an optional anchor date (MJD or `2026-02-15`): frames are
+  then chosen around the exposure nearest that time. *Example: asteroid 16 Psyche* loads the test case below.
+- **Loading** shows the stages (from `GET /api/progress`) and the elapsed time, with *Cancel* (or Esc) to go back.
+  The frames are requested twice in parallel, without and with JPL (`known=0` / default). The image appears as
+  soon as the frames arrive, with a *Checking JPL for known objects…* note. When JPL answers, catalogued
+  asteroids switch from *Candidate* to *Known object*. Cancelling doesn't stop the server; it keeps filling the
+  cache, so a retry is faster.
+- **Flags** come from `app/js/pipeline` with a PSF-aware artifact test: the PSF width is measured from the
+  frames' own stars (σ ≈ 0.7 px after resampling, versus 1.15 px in the simulation). Cosmic-ray streaks and
+  bad pixels are *Artifact*; an ephemeris match always wins (*Known object*, with the offset from Horizons).
+  Anything added to the review list from a live field is stored as live (`simulated: false`), and it is
+  kept in `localStorage` (`planetx.fieldcands.v1`).
+
+Time costs (home connection, Oct 2026; everything after the first time comes from the cache):
+
+| Request | Cold | Warm |
+|---|---|---|
+| Health + scans for the home patch (app boot) | ~2 s (SIA search) | < 50 ms |
+| Field frames, 120–300″ (`known=0`) | ~10 s (SIA 1 s, ~70 header range reads 6 s, 3 cutouts × 5 MB 3 s) | ~2 ms |
+| Field with known objects | + 1–2.5 min (JPL sb_ident 18–70 s per frame, one at a time; Horizons a few s) | ~2 ms |
+| Review-panel known objects (`/api/candidates`) | same as a field with known objects, in the background | ~2 ms |
+
+Cache: `server/.cache/` (or `PLANETX_CACHE`): `sia/` searches (7 days), `hdr/` header range reads, `cutout/`
+cutouts, `jpl/` sb_ident answers, `horizons/` Horizons answers, `field/` finished fields, `cands/` panel lists. Roughly 5 MB per
+cutout, so a few hundred MB after a dozen fields. Delete the folder to start fresh.
+
+Run `node tests/live.test.mjs` with the server up for the browser end-to-end check (home field, 16 Psyche,
+loading + Cancel). `PLANETX_SERVER=http://localhost:8788` points it, and the app, at another port.
+
 CORS: only `http://localhost:*` and `http://127.0.0.1:*` origins get an `Access-Control-Allow-Origin` header.
 Cache: everything fetched upstream is kept in `server/.cache/` (gitignored; `PLANETX_CACHE=dir` to move it).
 Delete it to force fresh downloads. SIA search results expire after 7 days; everything else is kept.
@@ -23,6 +70,7 @@ Delete it to force fresh downloads. SIA search results expire after 7 days; ever
 | `GET /api/health` | `{ok, version, upstream, home, recentUpstream[]}` (last upstream requests with timings) |
 | `GET /api/scans?ra&dec[&det=1..6]` | SPHEREx survey epochs covering the position: `{id, label, date, start, end, nExposures, detectors[{detector, emMin, emMax, count}]}`. With `det`, each epoch also lists that detector's exposures with the **wavelength at the target** (`atTarget[]`). |
 | `GET /api/field?ra&dec[&size=120][&det=1][&lam=µm][&per=2][&t=MJD][&known=0]` | A `Field` as JSON: metadata, `epochs[]`, `frames[]` (base64 Float32, little-endian, N×N row-major), `known[]` (JPL objects with pixel `samples` per frame). `size` 20–600″. `t` anchors the selection on the exposure nearest that time (e.g. the night an asteroid passed). |
+| `GET /api/progress` | Cold field builds in progress: `{builds:[{ra, dec, size, N, known, stage (sia, headers, cutouts, horizons), label, done, total, jpl:{done,total}, elapsedMs}]}`. Warm requests never show up. |
 | `GET /api/known?ra&dec&t[&r=120]` | Known small bodies within ±`r`″ at time `t` (MJD or ISO date): JPL sb_ident first pass, geocentric observer (raw, not Horizons-refined). |
 | `GET /api/candidates[?ra&dec&size]` | Live "candidates" for the app's panel: the known objects JPL predicts in the field (status `Matched`). Built in the background; answers `{pending:true}` until ready. |
 

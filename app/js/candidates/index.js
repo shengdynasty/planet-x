@@ -50,7 +50,7 @@ const TEMPLATE = html`
       </select>
   </header>
   <ul class="cx-list" role="listbox" aria-labelledby="cx-title"></ul>
-  <div class="cx-empty" hidden><span class="cx-empty-msg"></span> <button class="cx-clear ghost" hidden>Clear filters</button></div>
+  <div class="cx-empty" hidden><span class="cx-empty-msg"></span> <button class="cx-clear ghost" hidden>Clear filters</button> <button class="cx-openfield" hidden>Open Field on the home patch</button></div>
   <section class="cx-detail" aria-labelledby="cx-d-name" hidden>
     <div class="cx-dhead"><h3 id="cx-d-name"></h3><span class="cx-sim" hidden>Simulated</span></div>
     <div class="cx-tag"></div>
@@ -163,8 +163,11 @@ export function mountCandidates(el, store) {
     list.hidden = !vis.length;
     empty.hidden = !!vis.length;
     const filtered = f.status !== 'all' || String(f.query || '').trim();
-    $('.cx-empty-msg').textContent = !all.length ? 'No movers yet. They appear here as scans are compared.'
+    const src = store.get('source') || {}, liveEmpty = !all.length && src.mode === 'live' && src.live !== false;
+    $('.cx-empty-msg').textContent = liveEmpty ? 'No movers loaded yet. The live server only lists known objects JPL predicts in the home patch; open Field on a patch to analyse real SPHEREx data yourself.'
+      : !all.length ? 'No movers yet. They appear here as scans are compared.'
       : 'Nothing matches this filter.';
+    $('.cx-openfield').hidden = !liveEmpty;
     $('.cx-clear').hidden = !(all.length && filtered);
     if (hadFocus) { const li = focusId && list.querySelector(`[data-id="${CSS.escape(focusId)}"]`); if (li) li.focus({ preventScroll: true }); }
     const sl = sel && list.querySelector(`[data-id="${CSS.escape(sel)}"]`);
@@ -220,6 +223,13 @@ export function mountCandidates(el, store) {
     else if (e.key === 'ArrowDown' || e.key === 'Enter') { const li = list.querySelector('[tabindex="0"]'); if (li) { e.preventDefault(); li.focus(); } }
   });
   $('.cx-clear').addEventListener('click', () => { store.patch('filter', { status: 'all', query: '' }); q.focus(); });
+  // live empty state: open the Field view on the server's home patch (Taurus, near the ecliptic)
+  $('.cx-openfield').addEventListener('click', () => {
+    const h = (store.get('source') || {}).home || { ra: 70.42, dec: 19.18, sizeArcsec: 120 };
+    store.set('field', { ra: h.ra, dec: h.dec, sizeArcsec: h.sizeArcsec || 120 });
+    store.set('view', 'field');
+  });
+  store.on('source', () => renderList());
 
   // ---------- menus (filter overflow, export) ----------
   let openMenu = null;
