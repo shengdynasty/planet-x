@@ -34,16 +34,44 @@ export function pipelineStatus(c) {
   return USER_STATUSES.includes(c.status) ? 'Candidate' : c.status;
 }
 
-/** Index of the position to show for a (1-based) scan id: clamps to the last available epoch. */
+/** Index of the position to show for a (1-based) scan id: clamps to the last available entry (older data had fewer
+ * entries than scans). The entry at that index may be null: the server emits one `pos` entry per scan, null where the
+ * mover was not observed. */
 export function posIndex(c, scan) {
   const n = (c.pos || []).length;
   if (!n) return -1;
   return Math.max(0, Math.min(scan || 1, n) - 1);
 }
+/** Position [raH, decD] in a (1-based) scan, or null when the mover was not observed in it. */
+export function posAt(c, scan) {
+  const k = posIndex(c, scan);
+  return k < 0 ? null : (c.pos[k] || null);
+}
+/** The observed positions only, in scan order. */
+export const observed = c => (c.pos || []).filter(Boolean);
+/** True when the candidate has at least one observed position. */
+export const hasPos = c => !!(c && c.pos && c.pos.some(Boolean));
+/** Position in that scan, else the nearest observed one (earlier scans win ties); null when never observed. */
+export function nearestPos(c, scan) {
+  const p = posAt(c, scan); if (p) return p;
+  const pos = c.pos || [], k = posIndex(c, scan);
+  if (k < 0) return null;
+  for (let d = 1; d < pos.length; d++) {
+    if (pos[k - d]) return pos[k - d];
+    if (pos[k + d]) return pos[k + d];
+  }
+  return null;
+}
+/** Position text for the panel: RA, Dec in that scan, or why there is none. */
+export function fmtPos(c, scan) {
+  if (!hasPos(c)) return '—';
+  const p = posAt(c, scan);
+  return p ? `${fmtRA(p[0])}, ${fmtDec(p[1])}` : `not observed in Scan ${scan || 1}`;
+}
 
-/** Angular shift first→last epoch, in degrees. */
+/** Angular shift first→last observed position, in degrees. */
 export function shiftDeg(c) {
-  const p = c.pos || [];
+  const p = observed(c);
   if (p.length < 2) return 0;
   const a = p[0], b = p[p.length - 1];
   let dra = b[0] - a[0];
@@ -51,7 +79,8 @@ export function shiftDeg(c) {
   return Math.hypot(dra * 15 * Math.cos(a[1] * Math.PI / 180), b[1] - a[1]);
 }
 export function fmtShift(c) {
-  const sh = shiftDeg(c), n = (c.pos || []).length;
+  const sh = shiftDeg(c), n = observed(c).length;
+  if (!n) return '—';
   const v = sh < 1 ? `${(sh * 60).toFixed(1)}′` : `${sh.toFixed(2)}°`;
   return `${v} over ${n} scan${n === 1 ? '' : 's'}`;
 }
@@ -94,7 +123,7 @@ export const CSV_COLUMNS = ['id', 'name', 'status', 'pipeline_status', 'tag', 'm
   'ra_hours_first', 'dec_deg_first', 'ra_hours_last', 'dec_deg_last', 'note', 'review_note', 'simulated'];
 
 export function exportRow(c) {
-  const p = c.pos || [], a = p[0] || [], b = p[p.length - 1] || [];
+  const p = observed(c), a = p[0] || [], b = p[p.length - 1] || [];
   return {
     id: c.id, name: c.name, status: c.status, pipeline_status: pipelineStatus(c), tag: c.tag, match: c.match || '',
     peak_band: c.band, shift_arcmin: +(shiftDeg(c) * 60).toFixed(3), n_scans: p.length,
