@@ -17,8 +17,8 @@ _Last updated: 2026-10-25_
 - Pitch deck v1 published (9 slides, private): https://claude.ai/artifact/UAqhztF4edsXdn2mTzs6fw — source in docs/deck/. Demo slides have screenshot placeholders, filled after QA.
 - Repo initialised; baseline snapshots of both published artifacts committed (`artifacts/`, commit d7a194f). Checksums match the published versions.
 
-## PAUSED again (2026-10-26, by user request) — resume from here
-No agents running. Nothing published to artifacts. GitHub `main` is up to date (all suites green).
+## RESUMED 2026-10-26 — `build/live` agent running again (paused twice by user)
+Nothing published to artifacts. GitHub `main` is up to date (all suites green).
 - Only open work: `build/live` (worktree agent-a5a2790d3e10c14c2), NOT merged, unverified:
   9d91008 pipeline: PSF-aware artifact test; ephemeris match wins over artifact test
   d4ff84f data/server: live size mapping (fixes "live Field always falls back to sim"), /api/progress, one pos per scan, merged candidate poll, persisted field-added candidates
