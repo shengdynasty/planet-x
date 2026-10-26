@@ -141,3 +141,19 @@ test('server: /api/health, CORS, and a real /api/field with ≥ 2 epochs', { ski
     assert.equal(lf.simulated, false); assert.ok(lf.frame(0) instanceof Float32Array);
   } finally { srv.close(); }
 });
+
+test('server: known asteroid 16 Psyche is where JPL Horizons says (slow: JPL)', { skip: (OFFLINE || process.env.PLANETX_TEST_KNOWN !== '1') && 'set PLANETX_TEST_KNOWN=1', timeout: 900000 }, async () => {
+  const { createServer } = await import('../server/index.mjs');
+  const srv = createServer(); const url = await listen(srv);
+  try {
+    const t0 = performance.now();
+    const j = await (await fetch(url + '/api/field?ra=70.2635&dec=19.0558&size=300&det=3&t=61087.1294')).json();
+    console.log(`  Psyche field cold: ${((performance.now() - t0) / 1000).toFixed(1)} s, known: ${j.known.map(k => k.name).join(', ')}`);
+    const ps = j.known.find(k => /Psyche/.test(k.name)); assert.ok(ps, 'Psyche listed');
+    const s = ps.samples[0], { toField } = await dataModule(url), f = toField(j), fr = f.frame(s.i);
+    let best = [0, 0, -Infinity];
+    for (let y = Math.floor(s.y) - 3; y <= Math.ceil(s.y) + 3; y++) for (let x = Math.floor(s.x) - 3; x <= Math.ceil(s.x) + 3; x++) if (fr[y * f.N + x] > best[2]) best = [x, y, fr[y * f.N + x]];
+    console.log(`  Psyche predicted (${s.x}, ${s.y}), brightest pixel nearby (${best[0]}, ${best[1]})`);
+    assert.ok(Math.hypot(best[0] - s.x, best[1] - s.y) < 1.5);
+  } finally { srv.close(); }
+});
