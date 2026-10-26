@@ -3,6 +3,8 @@
 _Last updated: 2026-10-25_
 
 ## Done
+- **App assembled on main** — http://localhost:8000/app/ — shell merged (76/76): top bar Sky · Compare · Field + data badge, real NASA sky with correct orientation, render-on-change, Compare, help sheet with credits; review panel and Field view mounted. Field default size unified at 1968″. Only the data module is still the built-in stand-in.
+- Old UI demo mobile/a11y/perf merged: first frame 10.4 s → 0.7 s (desktop), 13.7 s → 0.5 s (phone, 4× throttle); keyboard list, focus traps, pinch zoom, 40px targets.
 - Field view + pipeline merged (8296257): detection output identical to Moving Sky on all 30 same-wavelength pairs (57/57); Field view in the UI demo look, "Flagged sources" wording, add-to-review-list and show-on-sky wired to the store (ra/dec in degrees).
 - Old UI demo fly-to fixed (82cd7c7): yaw sign was mirrored about RA 6h/18h (up to 180° off); now 0.00° on all 18 checks. Also go-to Dec regex, Scan 1 label stealing Blink clicks, drag direction/speed, readout rounding, compare-blink state, modifier-key shortcuts. Findings forwarded to the shell agent for the new app.
 - Candidate review panel merged (5f75917): filter/sort/search, keyboard listbox, Follow-up/Rejected review with notes (localStorage), CSV/JSON export with copy fallback for the sandbox. 88/88 tests pass on main. Contracts updated: flyto ra/dec in degrees; Candidate.pipelineStatus.
@@ -15,9 +17,7 @@ _Last updated: 2026-10-25_
 
 ## In progress — full app build (started 2026-10-25, est. 1–1.5 h wall-clock)
 Goal: one app in `app/` that merges both demos in the UI demo's look. Contracts: `app/ARCHITECTURE.md`. Preview: http://localhost:8000/app/
-- `build/shell` — page, top bar (Sky · Compare · Field, data-source badge), 3D sky, Compare; folds in fly-to + known UI-demo bugs
 - `build/data` — simulated source + live source via local Node server (IRSA SPHEREx cutouts, JPL small-body ID)
-- Still finishing on the old single-file UI demo: `qa/mobile-a11y-perf` (findings get forwarded to shell)
 
 ## Next
 - (a) Fix the fly-to bug + interaction QA (UI demo)
