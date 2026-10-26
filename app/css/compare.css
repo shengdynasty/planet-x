@@ -1,0 +1,39 @@
+/* Compare view (app/js/compare). Mounted into #view-compare, which shell.css positions under the top bar. */
+#view-compare { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+#view-compare .cmp-top { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--edge); min-width: 0; }
+#view-compare .cmp-top h2 { margin: 0; font-size: 13px; font-weight: 500; white-space: nowrap; }
+#view-compare .cmp-top .sub { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+#view-compare .cmp-flex { flex: 1; }
+#view-compare .cmp-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; min-height: 0; }
+#view-compare .cmp-view { display: grid; place-items: center; padding: 24px; min-height: 0; min-width: 0; }
+#view-compare .cmp-wrap {
+  position: relative; aspect-ratio: 1; border: 1px solid var(--edge); border-radius: 8px; overflow: hidden; background: #000; touch-action: none; cursor: ew-resize;
+  width: min(100%, calc(100vh - var(--top-h) - 110px));
+  width: min(100%, calc(100dvh - var(--top-h) - 110px));
+}
+#view-compare .cmp-wrap:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+#view-compare .cmp-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#view-compare .cmp-b { clip-path: inset(0 0 0 50%); }
+#view-compare .cmp-wipe { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: #fff; pointer-events: none; }
+#view-compare .cmp-wipe::after { content: ""; position: absolute; top: 50%; left: 50%; width: 22px; height: 22px; border-radius: 50%; border: 1px solid #fff; background: rgba(0,0,0,.6); transform: translate(-50%,-50%); }
+#view-compare .corner { position: absolute; top: 10px; padding: 4px 8px; border-radius: 5px; background: rgba(0,0,0,.6); color: #fff; font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; }
+#view-compare .corner.l { left: 10px; } #view-compare .corner.r { right: 10px; }
+#view-compare .cmp-empty { display: grid; gap: 12px; justify-items: center; text-align: center; color: var(--ink-2); }
+#view-compare .cmp-empty p { margin: 0; }
+#view-compare .cmp-side { border-left: 1px solid var(--edge); padding: 16px; overflow: auto; display: flex; flex-direction: column; gap: 16px; }
+#view-compare .cmp-side h3 { margin: 0 0 8px; font-size: 12px; font-weight: 500; color: var(--ink-2); }
+#view-compare .fieldset { display: flex; flex-direction: column; }
+#view-compare .fieldset .seg { align-self: flex-start; flex-wrap: wrap; }
+#view-compare .cmp-side p { margin: 0; color: var(--ink-2); line-height: 1.45; }
+#view-compare .cmp-side .cmp-honest { color: var(--ink-3); font-size: 12px; }
+#view-compare .cmp-side dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; }
+#view-compare .cmp-side dt { color: var(--ink-3); }
+#view-compare .cmp-side dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 860px) {
+  #view-compare .cmp-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow: auto; }
+  #view-compare .cmp-view { padding: 14px 16px; }
+  #view-compare .cmp-wrap { width: min(100%, calc(100vh - var(--top-h) - 300px)); width: min(100%, calc(100dvh - var(--top-h) - 300px), 520px); min-width: min(100%, 240px); }
+  #view-compare .cmp-side { border-left: 0; border-top: 1px solid var(--edge); overflow: visible; }
+  #view-compare .cmp-top .sub { display: none; }
+}

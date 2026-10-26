@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planet X</title>
+<meta name="description" content="Look for a distant Planet X as a slow mover in SPHEREx's six-monthly all-sky survey.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/shell.css">
+<link rel="stylesheet" href="css/sky.css">
+<link rel="stylesheet" href="css/compare.css">
+<link rel="stylesheet" href="css/field.css">
+<link rel="stylesheet" href="css/candidates.css">
+</head>
+<body data-view="sky">
+<a class="skip" href="#panel">Skip to movers</a>
+
+<div id="stage"></div>
+
+<!-- top bar -->
+<header class="hud" id="top">
+  <h1 id="title">Planet X</h1>
+  <div class="seg glass" id="views" role="group" aria-label="View">
+    <button type="button" data-view="sky" aria-pressed="true">Sky</button>
+    <button type="button" data-view="compare" aria-pressed="false">Compare</button>
+    <button type="button" data-view="field" aria-pressed="false">Field</button>
+  </div>
+  <form id="goto" role="search" autocomplete="off">
+    <input type="text" id="goto-in" enterkeyhint="go" placeholder="Go to RA, Dec (e.g. 16h06m, +41) or a candidate" aria-label="Go to RA and Dec, or a candidate number">
+  </form>
+  <div id="spacer"></div>
+  <div id="source-badge" class="glass" data-mode="sim" title="Simulated data"><i aria-hidden="true"></i><span id="source-text">Simulated data</span></div>
+  <div id="readout" class="glass">
+    <span class="pos" aria-live="off">Looking at <b id="ra">RA 0h 00m</b> <b id="dec">Dec +00.0°</b></span>
+    <button type="button" id="grid" aria-pressed="true">Grid</button>
+    <button type="button" id="tracks" aria-pressed="false">Tracks</button>
+  </div>
+  <button type="button" class="icon glass ghost" id="help" aria-label="About and shortcuts" aria-haspopup="dialog">?</button>
+  <button type="button" id="mobile-toggle" class="icon glass" aria-label="Movers panel" aria-controls="panel" aria-expanded="false">☰</button>
+</header>
+
+<!-- candidate panel: filled by app/js/candidates (workflow) -->
+<aside class="hud glass" id="panel" aria-label="Movers" tabindex="-1"></aside>
+
+<!-- bottom bar -->
+<div class="hud" id="bottom">
+  <div class="glass" id="timeline">
+    <button type="button" id="blink" aria-pressed="false">Blink</button>
+    <div id="scans" role="group" aria-label="Scans"><div class="rail"></div></div>
+  </div>
+  <div class="glass" id="ctl">
+    <button type="button" class="icon ghost" id="zin" aria-label="Zoom in">+</button>
+    <button type="button" class="icon ghost" id="zout" aria-label="Zoom out">−</button>
+    <button type="button" class="icon ghost" id="reset" aria-label="Reset view"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.7-4"/><path d="M2.5 2.5v3.2h3.2"/></svg></button>
+  </div>
+</div>
+
+<!-- full-screen views -->
+<section id="view-compare" hidden></section>
+<section id="view-field" hidden></section>
+
+<!-- about / shortcuts -->
+<div id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+  <div class="box" tabindex="-1">
+    <button type="button" class="ghost close icon" id="sheet-close" aria-label="Close">✕</button>
+    <h2 id="sheet-title">Planet X</h2>
+    <p>A tool for the Space Apps challenge “Planet X and SPHEREx”: look for a distant planet as a very slow mover between SPHEREx’s six‑monthly all‑sky scans. Anything that moves and doesn’t match a known object is a <em>candidate</em> for a human to review, not a confirmed object.</p>
+    <h3>Views</h3>
+    <ul>
+      <li><b>Sky</b>: the whole sky with every flagged mover. Pick a marker, step through scans on the timeline, or Blink between them.</li>
+      <li><b>Compare</b>: two scans of the selected mover with a wipe, a difference image, or blink.</li>
+      <li><b>Field</b>: analyse one patch of sky: align the epochs, subtract, find what moved, and cross‑match it.</li>
+      <li><b>Movers panel</b>: review candidates. Filter, sort, mark them follow‑up or rejected, and add notes.</li>
+    </ul>
+    <h3>Simulated or live</h3>
+    <p>The badge in the top bar says where the data comes from. <b>Simulated data</b> means placeholder scans and movers made up for the demo; <b>Live · SPHEREx</b> means real SPHEREx images fetched from IRSA through the local server, cross‑matched against JPL’s small‑body catalogue.</p>
+    <h3>Shortcuts</h3>
+    <div class="keys">
+      <kbd>drag</kbd><span>look around (pinch to zoom on touch)</span>
+      <kbd>scroll</kbd><span>zoom</span>
+      <kbd>← → ↑ ↓</kbd><span>pan</span>
+      <kbd>1 – 9</kbd><span>jump to scan</span>
+      <kbd>B</kbd><span>blink</span>
+      <kbd>S</kbd><span>sky</span>
+      <kbd>C</kbd><span>compare selected mover</span>
+      <kbd>F</kbd><span>field analysis</span>
+      <kbd>G</kbd><span>grid</span>
+      <kbd>T</kbd><span>tracks</span>
+      <kbd>/</kbd><span>go to</span>
+      <kbd>?</kbd><span>this sheet</span>
+      <kbd>Esc</kbd><span>back / close</span>
+    </div>
+    <h3>Imagery</h3>
+    <p class="credit">Sky: NASA/Goddard Space Flight Center Scientific Visualization Studio (Deep Star Maps 2020). Gaia DR2: ESA/Gaia/DPAC. Not endorsed by NASA.</p>
+  </div>
+</div>
+
+<div id="toast" class="glass" aria-hidden="true"></div>
+<div id="announce" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
