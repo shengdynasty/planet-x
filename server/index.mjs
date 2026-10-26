@@ -78,6 +78,7 @@ const routes = {
       ra, dec, size: num(sp, 'size', { required: false, min: 20, max: 600 }) ?? 120,
       det: num(sp, 'det', { required: false, min: 1, max: 6 }), lam: num(sp, 'lam', { required: false, min: 0.7, max: 5.1 }),
       perEpoch: num(sp, 'per', { required: false, min: 1, max: 4 }), known: sp.get('known') !== '0',
+      mjd: num(sp, 't', { required: false, min: 60000, max: 70000 }),
     });
   },
   '/api/known': async sp => {

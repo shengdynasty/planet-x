@@ -8,7 +8,7 @@ export const CACHE_DIR = process.env.PLANETX_CACHE || join(dirname(fileURLToPath
 const UA = 'planet-x-spaceapps/0.1 (NASA Space Apps 2026 demo; low-rate, cached)';
 
 // Per-host semaphores: IRSA 3 at a time, JPL 1 at a time (sb_ident is slow and shared).
-const LIMITS = { 'irsa.ipac.caltech.edu': 3, 'ssd-api.jpl.nasa.gov': 1 };
+const LIMITS = { 'irsa.ipac.caltech.edu': 3, 'ssd-api.jpl.nasa.gov': 1, 'ssd.jpl.nasa.gov': 2 };
 const queues = new Map();
 function sem(host) {
   if (!queues.has(host)) queues.set(host, { n: 0, max: LIMITS[host] || 2, wait: [] });

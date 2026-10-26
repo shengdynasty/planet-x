@@ -39,11 +39,45 @@ export async function smallBodies(q) {
   const col = name => fields.findIndex(f => f.startsWith(name));
   const iN = col('Object name'), iRA = col('Astrometric RA'), iDec = col('Astrometric Dec'), idRA = col('Dist. from center RA'),
     idDec = col('Dist. from center Dec'), iV = col('Visual magnitude'), ieRA = col('Est. error RA'), ieDec = col('Est. error Dec');
-  const lim = q.halfWidthArcsec * 1.05;
+  // The first pass lists anything whose (often huge) error box overlaps the field. Keep objects whose nominal
+  // position is inside the field grown by their error (capped at 2′); Horizons then gives precise positions.
   const objects = rows.map(r => ({
     name: r[iN], dRA: +r[idRA], dDec: +r[idDec], vmag: r[iV] === '' ? null : +r[iV],
     errRA: ieRA >= 0 ? +r[ieRA] : null, errDec: ieDec >= 0 ? +r[ieDec] : null,
     ra: parseSexa(r[iRA], true), dec: parseSexa(r[iDec], false),
-  })).filter(o => Math.abs(o.dRA) <= lim && Math.abs(o.dDec) <= lim); // first pass lists anything whose error box overlaps; keep nominal positions inside
+  })).filter(o => { const lim = q.halfWidthArcsec * 1.05 + Math.min(Math.max(o.errRA || 0, o.errDec || 0), 120); return Math.abs(o.dRA) <= lim && Math.abs(o.dDec) <= lim; });
   return { objects, n: rows.length, url, observer };
+}
+
+// ---------- JPL Horizons: precise positions for the objects sb_ident found ----------
+export const HORIZONS = 'https://ssd.jpl.nasa.gov/api/horizons.api';
+
+/** sb_ident object name → Horizons COMMAND, e.g. '16 Psyche (A852 FA)' → '16;', '(1927 LA)' → 'DES=1927 LA;'. */
+export function horizonsCommand(name) {
+  const s = String(name).trim();
+  let m = s.match(/^(\d*[PCDXI]\/\d{4} [A-Z]{1,2}\d*)/) || s.match(/^(\d+[PCDI])(?:[-/\s]|$)/);
+  if (m) return `DES=${m[1]};CAP;NOFRAG;`;
+  if ((m = s.match(/^(\d+)\b/))) return `${m[1]};`;
+  if ((m = s.match(/^\(([^)]+)\)/))) return `DES=${m[1]};`;
+  return null;
+}
+
+/**
+ * Astrometric ICRF RA/Dec (deg) of one small body at several UT times (MJD), geocentric observer, one request.
+ * @returns {Promise<Array<[number, number]>|null>} null if Horizons cannot resolve the name
+ */
+export async function horizonsRaDec(name, mjds) {
+  const cmd = horizonsCommand(name); if (!cmd) return null;
+  const p = new URLSearchParams({
+    format: 'json', COMMAND: `'${cmd}'`, OBJ_DATA: 'NO', MAKE_EPHEM: 'YES', EPHEM_TYPE: 'OBSERVER', CENTER: "'500@399'",
+    TLIST_TYPE: 'JD', TIME_TYPE: 'UT', TLIST: mjds.map(m => `'${(m + 2400000.5).toFixed(6)}'`).join(','),
+    QUANTITIES: "'1'", ANG_FORMAT: 'DEG', EXTRA_PREC: 'YES', CSV_FORMAT: 'YES',
+  });
+  const buf = await fetchBuf(`${HORIZONS}?${p}`, { ns: 'horizons', timeoutMs: 60000 });
+  const r = JSON.parse(buf.toString('utf8')).result || '';
+  const a = r.indexOf('$$SOE'), b = r.indexOf('$$EOE');
+  if (a < 0 || b < 0) return null;
+  const rows = r.slice(a + 5, b).trim().split('\n').map(l => l.split(',').map(x => x.trim()));
+  const out = rows.map(c => { const nums = c.slice(1).filter(x => x !== '').map(Number); return [nums[0], nums[1]]; });
+  return out.length === mjds.length && out.every(([x, y]) => Number.isFinite(x) && Number.isFinite(y)) ? out : null;
 }

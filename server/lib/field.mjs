@@ -1,8 +1,8 @@
 // Build a multi-epoch Field (app/js/core/types.js) from real SPHEREx exposures.
 import { searchExposures, groupEpochs, exposureAtTarget, cutout } from './irsa.mjs';
-import { smallBodies } from './jpl.mjs';
+import { smallBodies, horizonsRaDec } from './jpl.mjs';
 import { findImageHDU, readImage, readTableRow } from './fits.mjs';
-import { celestialWCS, spectralWCS, gridSky } from './wcs.mjs';
+import { celestialWCS, spectralWCS, gridSky, gridPixel } from './wcs.mjs';
 import { mapLimit, memoJSON } from './net.mjs';
 
 export const SCALE = 6.15; // arcsec/px, SPHEREx native pixel
@@ -33,12 +33,16 @@ export async function scansAt(ra, dec, { det } = {}) {
  * Choose, per survey epoch, the exposures on one detector whose wavelength at the target best matches a common
  * reference wavelength (frames can only be compared at matching wavelength — SPHEREx's filters are linear-variable).
  */
-function chooseFrames(epochs, { lam, perEpoch, marginPx }) {
+function chooseFrames(epochs, { lam, perEpoch, marginPx, mjd }) {
   const usable = epochs.map(ep => ep.cands.filter(c => c.inside && !c.error
     && c.pixel[0] > marginPx && c.pixel[1] > marginPx && c.pixel[0] < 2040 - marginPx && c.pixel[1] < 2040 - marginPx));
   const withData = usable.filter(u => u.length);
   if (!withData.length) return null;
-  let ref = lam;
+  let ref = lam, anchor = null;
+  if (mjd) { // anchor on the exposure closest in time to `mjd`, and match the other epochs to its wavelength
+    for (const c of withData.flat()) if (!anchor || Math.abs(c.mjdAvg - mjd) < Math.abs(anchor.mjdAvg - mjd)) anchor = c;
+    ref = anchor.wave;
+  }
   if (!ref) { // pick the reference wavelength that minimises the worst per-epoch mismatch
     let best = Infinity;
     for (const c of withData.flat()) {
@@ -47,7 +51,8 @@ function chooseFrames(epochs, { lam, perEpoch, marginPx }) {
     }
   }
   return {
-    ref, picks: usable.map(u => u.map(c => ({ ...c, dLam: c.wave - ref })).sort((a, b) => Math.abs(a.dLam) - Math.abs(b.dLam))
+    ref, anchor: anchor && anchor.obsId,
+    picks: usable.map(u => u.map(c => ({ ...c, dLam: c.wave - ref })).sort((a, b) => (!!anchor && b.obsId === anchor.obsId) - (!!anchor && a.obsId === anchor.obsId) || Math.abs(a.dLam) - Math.abs(b.dLam))
       .filter((c, i) => i === 0 || Math.abs(c.dLam) <= ref / R[c.detector] / 2).slice(0, perEpoch)),
   };
 }
@@ -83,13 +88,14 @@ function resample(cut, ra0, dec0, N) {
 }
 
 /**
- * @param {{ra:number, dec:number, size?:number, det?:number, lam?:number, perEpoch?:number, known?:boolean}} q
+ * @param {{ra:number, dec:number, size?:number, det?:number, lam?:number, perEpoch?:number, known?:boolean, mjd?:number}} q
+ *   mjd: anchor on the exposure nearest this time (e.g. to look at a known asteroid on a given night).
  */
 export async function buildField(q) {
   const size = Math.min(Math.max(q.size || 120, 40), 600);
   const N = Math.max(8, Math.round(size / SCALE));
   const det = q.lam ? null : (q.det || 1), perEpoch = Math.min(Math.max(q.perEpoch || 2, 1), 4);
-  const id = JSON.stringify(['field-v1', +q.ra.toFixed(5), +q.dec.toFixed(5), N, det, q.lam || null, perEpoch, q.known !== false]);
+  const id = JSON.stringify(['field-v2', +q.ra.toFixed(5), +q.dec.toFixed(5), N, det, q.lam || null, perEpoch, q.known !== false, q.mjd || null]);
   return memoJSON('field', id, async () => {
     const T = { start: Date.now() };
     const exps = await searchExposures(q.ra, q.dec);
@@ -104,7 +110,7 @@ export async function buildField(q) {
     }
     T.headers = Date.now() - T.start;
     const marginPx = size / SCALE; // keep the cutout well inside the detector
-    const sel = chooseFrames(epochs, { lam: q.lam, perEpoch, marginPx });
+    const sel = chooseFrames(epochs, { lam: q.lam, perEpoch, marginPx, mjd: q.mjd });
     if (!sel) { const e = new Error('Exposures found, but none places this position safely inside the detector'); e.status = 404; throw e; }
     const frames = [];
     epochs.forEach((ep, k) => sel.picks[k].forEach(c => frames.push({ ...c, scan: ep.id, scanLabel: ep.label, scanDate: ep.date })));
@@ -135,13 +141,26 @@ export async function buildField(q) {
 
     const known = new Map();
     if (sbs) sbs.forEach((s, i) => (s.objects || []).forEach(o => {
-      if (!known.has(o.name)) known.set(o.name, { name: o.name, vmag: o.vmag, samples: [] });
+      if (!known.has(o.name)) known.set(o.name, { name: o.name, vmag: o.vmag, source: 'sb_ident first pass', samples: [] });
       known.get(o.name).samples.push({ i, t: epochsOut[i].t, x: +(N / 2 - o.dRA / SCALE).toFixed(2), y: +(N / 2 - o.dDec / SCALE).toFixed(2), errArcsec: o.errRA != null ? Math.max(o.errRA, o.errDec) : null });
     }));
+    // Refine with Horizons (precise ephemeris, one request per object for all frame times). sb_ident's first pass
+    // is a quick two-body propagation with errors of tens of arcsec; Horizons agrees with SPHEREx to ~1″.
+    const objs = [...known.values()].slice(0, 25);
+    await mapLimit(objs, 2, async k => {
+      try {
+        const rd = await horizonsRaDec(k.name, frames.map(f => f.mjdAvg));
+        if (!rd) return;
+        k.source = 'JPL Horizons (geocentric)';
+        k.samples = rd.map(([ra, dec], i) => { const [x, y] = gridPixel(q.ra, q.dec, SCALE, N, ra, dec); return { i, t: epochsOut[i].t, x: +x.toFixed(2), y: +y.toFixed(2), ra, dec }; })
+          .filter(s => s.x > -5 && s.y > -5 && s.x < N + 5 && s.y < N + 5);
+      } catch (e) { k.horizonsError = e.message; }
+    });
+    for (const [name, k] of known) if (!k.samples.length) known.delete(name);
 
     return {
       N, scale: SCALE, ra0: q.ra, dec0: q.dec, sizeArcsec: N * SCALE, simulated: false,
-      detector, refLambda: +sel.ref.toFixed(4), band: ref, bunit: res[0].bunit,
+      detector, refLambda: +sel.ref.toFixed(4), anchorObsId: sel.anchor || null, band: ref, bunit: res[0].bunit,
       epochs: epochsOut,
       frameEncoding: 'base64 Float32 little-endian, row-major N×N, y down (north up), x right (east left)',
       frames: res.map(r => Buffer.from(r.frame.buffer, r.frame.byteOffset, r.frame.byteLength).toString('base64')),
@@ -154,7 +173,7 @@ export async function buildField(q) {
         'Pixels: SPHEREx L2 IMAGE minus the pipeline ZODI model, bilinearly resampled (TAN-SIP WCS) onto a common north-up grid at 6.15″/px.',
         'Masked or off-detector pixels are replaced by the frame median; FLAGS are not applied.',
         `Frames chosen on detector D${detector} so the wavelength at the target is within half a resolution element of ${sel.ref.toFixed(3)} µm where possible; see epochs[].matched.`,
-        'Known objects: JPL sb_ident first-pass positions (≈1″ precision) at each frame time, observer = SPHEREx spacecraft position.',
+        'Known objects: found with JPL sb_ident (first pass, observer = SPHEREx spacecraft position) at each frame time, then positioned with JPL Horizons (geocentric) at every frame time.',
       ],
       timingsMs: { sia: T.sia, headers: T.headers, total: Date.now() - T.start },
       builtAt: new Date().toISOString(),
