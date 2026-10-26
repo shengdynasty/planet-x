@@ -200,14 +200,15 @@ export function mountHud(store) {
   // --- links to the other pages: relative when served from the repo; a published artifact has no homepage, and
   // Moving Sky has its own artifact link ---
   const MOVING_SKY_URL = 'https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b';
-  const exists = url => fetch(url, { method: 'HEAD', cache: 'no-store' }).then(r => r.ok, () => false);
-  exists('../artifacts/moving-sky/').then(ok => {
+  // check the page itself, not just the status: some hosts answer any path with a page of their own
+  const exists = (url, mark) => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(t => t.includes(mark), () => false);
+  exists('../artifacts/moving-sky/', '<title>SPHEREx Moving Sky').then(ok => {
     if (ok) return;
     for (const a of [$('moving-sky-link'), $('moving-sky-sheet-link')]) { a.href = MOVING_SKY_URL; a.target = '_blank'; a.rel = 'noopener'; }
   });
   // served from a site root (as on an artifact) '../' is the app itself, so the title links nowhere
   const parent = new URL('../', location.href).href;
-  (parent === new URL('./', location.href).href ? Promise.resolve(false) : exists(parent))
+  (parent === new URL('./', location.href).href ? Promise.resolve(false) : exists(parent, 'Find the planet that barely moves'))
     .then(ok => { if (!ok) { const a = $('home-link'); a.removeAttribute('href'); a.removeAttribute('title'); } });
 
   // --- help sheet: focus moves in, is trapped, and returns on close ---
