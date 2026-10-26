@@ -52,3 +52,5 @@ _Last updated: 2026-10-25_
 - Planet X app (was the UI demo; now the full app): https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW
 - Pitch deck (new, private): https://claude.ai/artifact/UAqhztF4edsXdn2mTzs6fw
 - SPHEREx Moving Sky demo (reference, read-only): https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b
+
+- 2026-10-26: App artifact republished with the Sky view polish (version 1793039454-6cef): https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW
