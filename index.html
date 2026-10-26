@@ -14,272 +14,45 @@
    The homepage commits to the dark look, since it sits on the sky. */
 :root {
   color-scheme: dark;
-  --bg: #000; --panel: rgba(0,0,0,.64); --panel-solid: #0c0c0c; --edge: rgba(255,255,255,.14);
+  --bg: #000; --panel: rgba(0,0,0,.64); --edge: rgba(255,255,255,.14);
   --ink: #f2f2f2; --ink-2: #a0a0a0; --ink-3: #6a6a6a; --fill: #f2f2f2; --fill-ink: #000;
   --font: "Inter", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
   --gutter: clamp(16px, 4vw, 48px);
-  --max: 1120px;
 }
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
-a { color: inherit; }
-a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
-img { max-width: 100%; display: block; }
+a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 8px; }
 .glass { background: var(--panel); border: 1px solid var(--edge); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
-.wrap { max-width: var(--max); margin: 0 auto; padding-inline: var(--gutter); }
 
-/* top bar */
-.top { position: fixed; inset: 0 0 auto 0; z-index: 5; padding-top: env(safe-area-inset-top, 0px); transition: background .2s, border-color .2s; border-bottom: 1px solid transparent; }
-.top.scrolled { background: rgba(0,0,0,.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom-color: var(--edge); }
-.top .wrap { display: flex; align-items: center; gap: 20px; height: 56px; }
-.brand { font-weight: 600; font-size: 14px; text-decoration: none; letter-spacing: -.01em; }
-.top nav { margin-left: auto; display: flex; gap: 4px; align-items: center; }
-.top nav a { font-size: 13px; color: var(--ink-2); text-decoration: none; padding: 6px 10px; border-radius: 6px; }
-.top nav a:hover { color: var(--ink); }
-.top nav a.btn { color: var(--fill-ink); }
-@media (max-width: 640px) { .top nav a:not(.btn) { display: none; } }
-
-/* buttons */
-.btn { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; text-decoration: none; line-height: 1;
-  padding: 11px 16px; border-radius: 8px; border: 1px solid var(--edge); color: var(--ink); background: transparent; }
-.btn:hover { border-color: var(--ink-3); }
-.btn.primary { background: var(--fill); color: var(--fill-ink); border-color: transparent; }
-.btn.primary:hover { background: #fff; }
-.top .btn { padding: 8px 12px; }
-
-/* hero */
 .hero { position: relative; min-height: 100svh; display: grid; align-items: end; overflow: hidden; isolation: isolate; }
 .hero .sky { position: absolute; inset: -4%; z-index: -2; background: #000 url("app/assets/sky_2k.jpg") 38% 50% / cover no-repeat; transform: scale(1.04); }
 .hero::after { content: ""; position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.1) 35%, rgba(0,0,0,.55) 70%, #000 100%); }
-.hero .wrap { width: 100%; padding-block: calc(96px + env(safe-area-inset-top, 0px)) clamp(48px, 10vh, 112px); }
+  background: linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.1) 35%, rgba(0,0,0,.5) 75%, rgba(0,0,0,.85) 100%); }
+.wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding-inline: var(--gutter);
+  padding-block: calc(64px + env(safe-area-inset-top, 0px)) calc(clamp(56px, 12vh, 128px) + env(safe-area-inset-bottom, 0px)); }
 .eyebrow { font-size: 12px; color: var(--ink-2); letter-spacing: .02em; display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; }
 .eyebrow i { width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--ink-2); }
-h1 { font-size: clamp(40px, 7.4vw, 88px); line-height: 1.02; letter-spacing: -.035em; font-weight: 600; margin: 20px 0 20px; max-width: 13ch; }
-.lede { font-size: clamp(16px, 1.6vw, 19px); color: #cfcfcf; max-width: 46ch; margin: 0 0 32px; }
+h1 { font-size: clamp(40px, 7.4vw, 88px); line-height: 1.02; letter-spacing: -.035em; font-weight: 600; margin: 20px 0 36px; max-width: 13ch; }
 .ctas { display: flex; flex-wrap: wrap; gap: 10px; }
-.note { margin: 28px 0 0; font-size: 12px; color: var(--ink-2); max-width: 60ch; }
-
-/* sections */
-section.band { padding-block: clamp(64px, 11vw, 128px); border-top: 1px solid var(--edge); }
-.kicker { font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .08em; margin: 0 0 12px; }
-h2 { font-size: clamp(28px, 3.6vw, 40px); line-height: 1.12; letter-spacing: -.025em; font-weight: 600; margin: 0 0 16px; max-width: 22ch; }
-.intro { color: var(--ink-2); max-width: 60ch; margin: 0 0 48px; }
-h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; letter-spacing: -.005em; }
-p { margin: 0; }
-
-/* the problem: drift figure */
-.split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 80px); align-items: center; }
-@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
-.split p + p { margin-top: 14px; }
-.split .muted { color: var(--ink-2); }
-.drift { border-radius: 12px; overflow: hidden; background: #000; border: 1px solid var(--edge); }
-.drift svg { display: block; width: 100%; height: auto; }
-.drift figcaption { font-size: 12px; color: var(--ink-2); padding: 12px 16px; border-top: 1px solid var(--edge); }
-
-/* steps */
-.steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--edge); border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; counter-reset: s; }
-@media (max-width: 960px) { .steps { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 520px) { .steps { grid-template-columns: 1fr; } }
-.steps li { background: var(--bg); padding: 24px 22px 28px; counter-increment: s; }
-.steps li::before { content: counter(s, decimal-leading-zero); display: block; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; margin-bottom: 28px; }
-.steps p { color: var(--ink-2); font-size: 14px; }
-
-/* views */
-.views { display: grid; gap: clamp(48px, 7vw, 88px); }
-.view { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 56px); align-items: center; }
-.view:nth-child(even) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); }
-.view:nth-child(even) .shot { order: 2; }
-@media (max-width: 860px) { .view, .view:nth-child(even) { grid-template-columns: 1fr; } .view:nth-child(even) .shot { order: 0; } }
-.shot { border-radius: 12px; overflow: hidden; border: 1px solid var(--edge); background: #000; aspect-ratio: 1440 / 900; }
-.shot img { width: 100%; height: 100%; object-fit: cover; }
-.view .label { font-size: 12px; color: var(--ink-3); margin-bottom: 8px; }
-.view h3 { font-size: 22px; letter-spacing: -.02em; margin-bottom: 10px; }
-.view p { color: var(--ink-2); }
-.view ul { margin: 14px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; }
-.view li + li { margin-top: 4px; }
-
-/* data */
-.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-@media (max-width: 860px) { .cards { grid-template-columns: 1fr; } }
-.card { border: 1px solid var(--edge); border-radius: 12px; padding: 22px; }
-.card p { color: var(--ink-2); font-size: 14px; }
-.card .src { margin-top: 14px; font-size: 12px; color: var(--ink-3); }
-.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
-@media (max-width: 860px) { .modes { grid-template-columns: 1fr; } }
-.mode { border: 1px solid var(--edge); border-radius: 12px; padding: 22px; }
-.badge { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; padding: 5px 10px; border-radius: 7px; border: 1px solid var(--edge); margin-bottom: 14px; }
-.badge i { width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--ink-2); }
-.badge.live i { background: var(--ink); border-color: var(--ink); }
-.mode p { color: var(--ink-2); font-size: 14px; }
-code { font: 12.5px ui-monospace, "SF Mono", Menlo, monospace; background: rgba(255,255,255,.06); border: 1px solid var(--edge); padding: 1px 6px; border-radius: 5px; color: var(--ink); white-space: nowrap; }
-
-/* closing */
-.closing { text-align: center; }
-.closing h2 { margin-inline: auto; }
-.closing .intro { margin-inline: auto; margin-bottom: 32px; }
-.closing .ctas { justify-content: center; }
-
-footer { border-top: 1px solid var(--edge); padding-block: 32px calc(32px + env(safe-area-inset-bottom, 0px)); font-size: 12px; color: var(--ink-3); }
-footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
-footer p { max-width: 70ch; }
+.btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; text-decoration: none; line-height: 1;
+  padding: 13px 18px; border-radius: 8px; border: 1px solid var(--edge); color: var(--ink); }
+.btn:hover { border-color: var(--ink-3); }
+.btn.primary { background: var(--fill); color: var(--fill-ink); border-color: transparent; }
+.btn.primary:hover { background: #fff; }
 </style>
 </head>
 <body>
-
-<header class="top" id="top">
+<main class="hero">
+  <div class="sky" aria-hidden="true"></div>
   <div class="wrap">
-    <a class="brand" href="#">Planet X</a>
-    <nav aria-label="Sections">
-      <a href="#why">Why</a>
-      <a href="#how">How it works</a>
-      <a href="#app">The app</a>
-      <a href="#data">Data</a>
-      <a class="btn primary" href="app/">Open the sky</a>
-    </nav>
+    <span class="eyebrow glass"><i aria-hidden="true"></i>NASA Space Apps 2026 · Planet X and SPHEREx</span>
+    <h1>Find the planet that barely moves.</h1>
+    <div class="ctas">
+      <a class="btn primary" href="app/">Open the sky <span aria-hidden="true">→</span></a>
+      <a class="btn glass" href="artifacts/moving-sky/">Moving Sky demo</a>
+    </div>
   </div>
-</header>
-
-<main>
-  <section class="hero" aria-labelledby="hero-title">
-    <div class="sky" aria-hidden="true"></div>
-    <div class="wrap">
-      <span class="eyebrow glass"><i aria-hidden="true"></i>NASA Space Apps 2026 · Planet X and SPHEREx</span>
-      <h1 id="hero-title">Find the planet that barely moves.</h1>
-      <p class="lede">SPHEREx maps the whole sky every six months. A distant Planet X would drift only slightly between those passes. Planet X compares the passes, flags what moved, and rules out the asteroids and comets we already know.</p>
-      <div class="ctas">
-        <a class="btn primary" href="app/">Open the sky <span aria-hidden="true">→</span></a>
-        <a class="btn glass" href="#how">How it works</a>
-      </div>
-      <p class="note">Prototype. Anything it finds is a candidate for a person to review, never a detection. Without the local data server, everything shown is simulated and labelled as such.</p>
-    </div>
-  </section>
-
-  <section class="band" id="why" aria-labelledby="why-title">
-    <div class="wrap split">
-      <div>
-        <p class="kicker">The problem</p>
-        <h2 id="why-title">One image can't tell a far planet from a star. Two can.</h2>
-        <p class="muted">An undiscovered planet hundreds of AU from the Sun would be faint and nearly still. In any single exposure it looks exactly like a background star.</p>
-        <p class="muted">Repeat the same patch of sky months apart and it gives itself away: the stars stay put, the planet shifts. The hard part is everything else that also changes, including asteroids, comets, nearby brown dwarfs, variable stars and detector glitches, and leaving an honest short list of what is still unexplained.</p>
-      </div>
-      <figure class="drift" style="margin:0">
-        <svg viewBox="0 0 480 300" role="img" aria-labelledby="drift-t">
-          <title id="drift-t">The same patch of sky in three scans six months apart: stars stay fixed while one faint object shifts a little each time.</title>
-          <rect width="480" height="300" fill="#000"/>
-          <g fill="#f2f2f2">
-            <circle cx="52" cy="48" r="2.2"/><circle cx="118" cy="214" r="1.6"/><circle cx="196" cy="70" r="2.8"/><circle cx="410" cy="62" r="1.8"/>
-            <circle cx="438" cy="236" r="2.4"/><circle cx="334" cy="168" r="1.4"/><circle cx="70" cy="140" r="1.2"/><circle cx="262" cy="258" r="1.8"/>
-            <circle cx="366" cy="110" r="1.1"/><circle cx="150" cy="120" r="1.2"/><circle cx="300" cy="40" r="1.3"/><circle cx="30" cy="268" r="1.5"/>
-            <circle cx="456" cy="150" r="1.1"/><circle cx="214" cy="190" r="1.2"/>
-          </g>
-          <g stroke="#a0a0a0" stroke-width="1" fill="none">
-            <path d="M206 156 L240 146 L274 136" stroke-dasharray="2 4"/>
-          </g>
-          <g>
-            <circle cx="206" cy="156" r="2" fill="#6a6a6a"/><circle cx="240" cy="146" r="2" fill="#a0a0a0"/><circle cx="274" cy="136" r="2.4" fill="#f2f2f2"/>
-            <circle cx="274" cy="136" r="10" fill="none" stroke="#f2f2f2" stroke-width="1.2"/>
-          </g>
-          <g font-family="Inter, -apple-system, Helvetica, Arial, sans-serif" font-size="11" fill="#a0a0a0">
-            <text x="196" y="176" text-anchor="middle">Scan 1</text>
-            <text x="240" y="166" text-anchor="middle">Scan 2</text>
-            <text x="292" y="128" fill="#f2f2f2">Scan 3</text>
-          </g>
-        </svg>
-        <figcaption>Three scans of one patch, six months apart. Stars stay fixed; the mover shifts a little each time. Drift exaggerated for clarity.</figcaption>
-      </figure>
-    </div>
-  </section>
-
-  <section class="band" id="how" aria-labelledby="how-title">
-    <div class="wrap">
-      <p class="kicker">How it works</p>
-      <h2 id="how-title">From raw exposures to a short list worth a second look.</h2>
-      <p class="intro">The same pipeline runs on simulated fields in the browser and on real SPHEREx images through the local server.</p>
-      <ol class="steps">
-        <li><h3>Collect</h3><p>Pull every SPHEREx exposure covering a patch of sky from NASA/IPAC IRSA and cut out the same field from each epoch.</p></li>
-        <li><h3>Align and match</h3><p>Pair epochs at the same wavelength. SPHEREx's filters vary across the detector, so mismatched pairs would show colour, not motion.</p></li>
-        <li><h3>Subtract and detect</h3><p>Subtract the epochs, keep sources above 5σ, reject single-pixel spikes that aren't star-shaped, and pair what vanished with what appeared.</p></li>
-        <li><h3>Cross-match and review</h3><p>Check each mover against JPL's known asteroids and comets. What's left goes to a person to mark for follow-up or reject.</p></li>
-      </ol>
-    </div>
-  </section>
-
-  <section class="band" id="app" aria-labelledby="app-title">
-    <div class="wrap">
-      <p class="kicker">The app</p>
-      <h2 id="app-title">Three views, one review queue.</h2>
-      <p class="intro">Everything runs in the browser with no install. Pick a mover anywhere and follow it from the whole sky down to the pixels.</p>
-      <div class="views">
-        <article class="view">
-          <div class="shot"><img src="home/sky.jpg" width="1440" height="900" alt="The Sky view: the star map with candidate 03 selected, the Movers list on the right, and the scan timeline along the bottom." loading="lazy"></div>
-          <div>
-            <p class="label">Sky</p>
-            <h3>The whole sky, every mover on it.</h3>
-            <p>Drag around NASA's Deep Star Maps, jump to coordinates or a candidate number, and step through the scans or blink between them.</p>
-            <ul><li>Tracks join each mover's positions across scans</li><li>Filter, sort and export the Movers list</li></ul>
-          </div>
-        </article>
-        <article class="view">
-          <div class="shot"><img src="home/compare.jpg" width="1440" height="900" alt="The Compare view: two scans of candidate 03 side by side with a wipe line between them." loading="lazy"></div>
-          <div>
-            <p class="label">Compare</p>
-            <h3>Two scans, side by side.</h3>
-            <p>Drag a wipe across two epochs of the selected mover, switch to a difference image where anything that moved shows up twice, or blink them.</p>
-          </div>
-        </article>
-        <article class="view">
-          <div class="shot"><img src="home/field.jpg" width="1440" height="900" alt="The Field view: a patch of sky with a candidate mover, a variable star and an object that left the field flagged, and the list of observations alongside." loading="lazy"></div>
-          <div>
-            <p class="label">Field</p>
-            <h3>Run the search on one patch of sky.</h3>
-            <p>Choose a reference pass and a comparison, then see the detection pipeline's flags: uncatalogued movers, variables, known objects and artifacts.</p>
-            <ul><li>Blink, difference and track (max-stack) modes</li><li>Add any flag to the review queue</li></ul>
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="data" aria-labelledby="data-title">
-    <div class="wrap">
-      <p class="kicker">Data</p>
-      <h2 id="data-title">Real sources, clearly labelled.</h2>
-      <p class="intro">The badge in the app's top bar always says where the pixels came from.</p>
-      <div class="cards">
-        <div class="card"><h3>SPHEREx images</h3><p>Calibrated exposures and cutouts from the SPHEREx Quick Release, fetched through IRSA's image search and cutout services.</p><p class="src">NASA/IPAC IRSA</p></div>
-        <div class="card"><h3>Known objects</h3><p>Every mover is checked against the asteroids and comets JPL predicts in that field at that moment, so known bodies drop off the list.</p><p class="src">JPL Small-Body Identification · Horizons</p></div>
-        <div class="card"><h3>The sky</h3><p>The backdrop is NASA's Deep Star Maps 2020, a real all-sky star map built from Gaia and other surveys.</p><p class="src">NASA Goddard SVS · ESA/Gaia/DPAC</p></div>
-      </div>
-      <div class="modes">
-        <div class="mode"><span class="badge"><i aria-hidden="true"></i>Simulated data</span><p>The default. Placeholder scans and movers made up for the demo, so the app works anywhere, including when shared as a link.</p></div>
-        <div class="mode"><span class="badge live"><i aria-hidden="true"></i>Live · SPHEREx</span><p>Run <code>node server/index.mjs</code> next to the app and it switches to real SPHEREx data, cross-matched with JPL. First loads of a field take seconds to a minute; then they're cached.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band closing" aria-labelledby="go-title">
-    <div class="wrap">
-      <h2 id="go-title">Start looking.</h2>
-      <p class="intro">Open the sky, pick an unmatched mover, and decide whether it deserves a third look.</p>
-      <div class="ctas"><a class="btn primary" href="app/">Open the sky <span aria-hidden="true">→</span></a></div>
-    </div>
-  </section>
 </main>
-
-<footer>
-  <div class="wrap">
-    <p>Planet X · NASA Space Apps Challenge 2026 entry for "Planet X and SPHEREx". A hackathon prototype; not endorsed by NASA.</p>
-    <p>Sky: NASA/Goddard Space Flight Center Scientific Visualization Studio. Gaia DR2: ESA/Gaia/DPAC.</p>
-  </div>
-</footer>
-
-<script>
-  const bar = document.getElementById('top');
-  const onScroll = () => bar.classList.toggle('scrolled', scrollY > 24);
-  addEventListener('scroll', onScroll, { passive: true }); onScroll();
-</script>
 </body>
 </html>
