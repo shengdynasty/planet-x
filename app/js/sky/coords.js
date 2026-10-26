@@ -53,7 +53,10 @@ export function fmtRA(h) {
   return `${H}h ${pad2(m)}m`;
 }
 
-export const fmtDec = d => `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}°`;
+export const fmtDec = d => {
+  const r = Math.round(d * 10) / 10; // round first, so -0.04 reads "+0.0°", never "−0.0°"
+  return `${r < 0 ? '−' : '+'}${Math.abs(r).toFixed(1)}°`;
+};
 
 /** Total shift of a track [[raH, decD], ...] as display text, e.g. "18.4′ over 3 scans". */
 export function shiftText(pos) {

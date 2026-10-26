@@ -44,7 +44,7 @@ export function mountCompare(el, store) {
   const q = s => el.querySelector(s);
   const ca = q('.cmp-a'), cb = q('.cmp-b'), cga = ca.getContext('2d'), cgb = cb.getContext('2d', { willReadFrequently: true });
   const wrap = q('.cmp-wrap'), wipe = q('.cmp-wipe'), blinkBtn = q('.cmp-blink'), empty = q('.cmp-empty');
-  let cmpA = 1, cmpB = 2, overlay = 'wipe', blinkTimer = null, wipeX = 0.5, lastSel = null;
+  let cmpA = 1, cmpB = 2, overlay = 'wipe', blinkTimer = null, wipeX = 0.5, lastSel = null, diffCache = null;
 
   const scans = () => (store.get('scans') || []).filter(s => s.has);
   const scanLabel = id => { const s = (store.get('scans') || []).find(x => x.id === id); return s ? `${s.label} · ${s.date}` : `Scan ${id}`; };
@@ -78,12 +78,16 @@ export function mountCompare(el, store) {
     if (!c) { q('.cmp-name').textContent = 'Compare'; q('.cmp-tag').textContent = ''; return; }
     const W = ca.width;
     renderCutout(cga, W, c, cmpA);
-    renderCutout(cgb, W, c, cmpB);
     if (overlay === 'diff') {
-      const A = cga.getImageData(0, 0, W, W), B = cgb.getImageData(0, 0, W, W);
-      for (let i = 0; i < A.data.length; i += 4) { const d = B.data[i] - A.data[i]; const v = 128 + d * 0.9; B.data[i] = B.data[i + 1] = B.data[i + 2] = Math.max(0, Math.min(255, v)); }
-      cgb.putImageData(B, 0, 0);
-    }
+      const key = `${c.id}|${cmpA}|${cmpB}|${c.status}|${JSON.stringify(c.pos)}`;
+      if (!diffCache || diffCache.key !== key) {
+        renderCutout(cgb, W, c, cmpB);
+        const A = cga.getImageData(0, 0, W, W), B = cgb.getImageData(0, 0, W, W);
+        for (let i = 0; i < A.data.length; i += 4) { const d = B.data[i] - A.data[i]; const v = 128 + d * 0.9; B.data[i] = B.data[i + 1] = B.data[i + 2] = Math.max(0, Math.min(255, v)); }
+        diffCache = { key, img: B };
+      }
+      cgb.putImageData(diffCache.img, 0, 0);
+    } else renderCutout(cgb, W, c, cmpB);
     applyWipe();
     q('.cmp-la').textContent = scanLabel(cmpA);
     q('.cmp-lb').textContent = overlay === 'diff' ? 'Difference' : scanLabel(cmpB);
@@ -97,18 +101,18 @@ export function mountCompare(el, store) {
   }
 
   el.querySelectorAll('.cmp-seg-ov button').forEach(b => b.addEventListener('click', () => {
-    overlay = b.dataset.ov; el.querySelectorAll('.cmp-seg-ov button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); draw();
+    stopBlink(); overlay = b.dataset.ov; el.querySelectorAll('.cmp-seg-ov button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); draw();
   }));
   let wiping = false;
   const setWipe = e => { const r = wrap.getBoundingClientRect(); wipeX = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); applyWipe(); };
-  wrap.addEventListener('pointerdown', e => { wiping = true; try { wrap.setPointerCapture(e.pointerId); } catch (_) {} setWipe(e); });
+  wrap.addEventListener('pointerdown', e => { stopBlink(); wiping = true; try { wrap.setPointerCapture(e.pointerId); } catch (_) {} setWipe(e); });
   wrap.addEventListener('pointermove', e => wiping && setWipe(e));
   wrap.addEventListener('pointerup', () => { wiping = false; }); wrap.addEventListener('pointercancel', () => { wiping = false; });
   wrap.addEventListener('keydown', e => {
     const step = e.shiftKey ? 0.1 : 0.02;
     if (e.key === 'ArrowLeft') wipeX = Math.max(0, wipeX - step); else if (e.key === 'ArrowRight') wipeX = Math.min(1, wipeX + step);
     else if (e.key === 'Home') wipeX = 0; else if (e.key === 'End') wipeX = 1; else return;
-    e.preventDefault(); e.stopPropagation(); applyWipe();
+    e.preventDefault(); e.stopPropagation(); stopBlink(); applyWipe();
   });
 
   function stopBlink() { if (!blinkTimer) return; clearInterval(blinkTimer); blinkTimer = null; blinkBtn.setAttribute('aria-pressed', 'false'); applyWipe(); }

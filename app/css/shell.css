@@ -113,7 +113,7 @@ body:not([data-view="sky"]) #top::before { content: ""; position: fixed; left: 0
 @media (max-width: 860px) {
   #readout .pos, #goto { display: none; }
   #readout { padding: 2px; }
-  #panel { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bottom-h) + 26px); max-height: min(56vh, calc(100dvh - var(--top-h) - var(--bottom-h) - 40px)); transform: translateY(calc(100% + 140px)); transition: transform .25s, visibility 0s .25s; visibility: hidden; }
+  #panel { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bottom-h) + 26px); height: min(56vh, calc(100dvh - var(--top-h) - var(--bottom-h) - 40px)); transform: translateY(calc(100% + 140px)); transition: transform .25s, visibility 0s .25s; visibility: hidden; }
   #panel.open { transform: none; visibility: visible; transition: transform .25s, visibility 0s; }
   #mobile-toggle { display: inline-grid; }
   .scan small { display: none; }

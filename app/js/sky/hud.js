@@ -137,19 +137,15 @@ export function mountHud(store) {
   $('zout').addEventListener('click', () => sky && sky.zoom(1.33));
   $('reset').addEventListener('click', () => sky && sky.reset());
 
-  // --- selection → fly (picks on the sky don't move the camera) ---
-  let fromPick = false;
-  store.on('selectedId', id => {
+  // --- flying: 'flyto' carries degrees (core/store.js contract) ---
+  const flyToCand = c => {
+    const p = c.pos[Math.min(store.get('scan') || 1, c.pos.length) - 1];
+    store.emit('flyto', { ra: p[0] * 15, dec: p[1], fov: VIEW.flyFov, raHours: p[0] });
+  };
+  // a marker picked on the sky (the panel itself flies on list clicks; sky picks don't move the camera)
+  function picked(id) {
     const c = store.selected();
-    if (c) announce(`${c.name} selected. ${c.tag || ''}`);
-    if (fromPick) { fromPick = false; return; }
-    if (c && c.pos && c.pos.length && store.get('view') === 'sky') {
-      const p = c.pos[Math.min(store.get('scan') || 1, c.pos.length) - 1];
-      store.emit('flyto', { ra: p[0], dec: p[1], fov: VIEW.flyFov });
-    }
-  });
-  function picked() {
-    fromPick = false; // store.set already ran its listeners synchronously before onPick
+    if (c && c.id === id) announce(`${c.name} selected. ${c.tag || ''}`);
     if (narrow()) openPanel();
   }
 
@@ -166,15 +162,16 @@ export function mountHud(store) {
       const c = candByNumber(r.n);
       if (c) {
         if (store.get('view') !== 'sky') store.set('view', 'sky');
-        if (store.get('selectedId') === c.id) { const p = c.pos[Math.min(store.get('scan') || 1, c.pos.length) - 1]; store.emit('flyto', { ra: p[0], dec: p[1], fov: VIEW.flyFov }); }
-        else store.set('selectedId', c.id);
+        const f = store.get('filter') || {};
+        if ((f.status && f.status !== 'all' && f.status !== c.status) || f.query) store.patch('filter', { status: 'all', query: '' });
+        store.set('selectedId', c.id); flyToCand(c);
         gotoIn.value = ''; return;
       }
       toast(`No candidate ${pad2(r.n)}`); return;
     }
     if (r && r.kind === 'pos') {
       if (store.get('view') !== 'sky') store.set('view', 'sky');
-      store.emit('flyto', { ra: r.raH, dec: r.decD, fov: VIEW.gotoFov });
+      store.emit('flyto', { ra: r.raH * 15, dec: r.decD, fov: VIEW.gotoFov, raHours: r.raH });
       announce(`Centred on RA ${fmtRA(r.raH)}, Dec ${fmtDec(r.decD)}`);
       gotoIn.value = ''; return;
     }
@@ -202,7 +199,8 @@ export function mountHud(store) {
   $('sheet-close').addEventListener('click', closeSheet);
   sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
   sheet.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeSheet(); return; }
+    e.stopPropagation(); // no view shortcut fires while the sheet is open
+    if (e.key === 'Escape' || e.key === '?') { e.preventDefault(); closeSheet(); return; }
     if (e.key !== 'Tab') return;
     const f = focusables(); if (!f.length) { e.preventDefault(); return; }
     const first = f[0], last = f[f.length - 1];
@@ -218,28 +216,32 @@ export function mountHud(store) {
   mt.addEventListener('click', () => (panel.classList.contains('open') ? closePanel() : (openPanel(), store.get('view') !== 'sky' && store.set('view', 'sky'))));
 
   // --- global shortcuts ---
+  // Sky keys act only in 'sky', a few view keys also in 'compare' (Compare handles its own B).
+  // Nothing here acts in 'field': the Field view owns the keyboard there (B/D/T, F/K, Space, N/P, 1–8, A, S, Esc).
   window.addEventListener('keydown', e => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
-    if (!sheet.hidden) return; // the sheet handles its own keys
-    if (e.key === 'Escape') {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
+    if (!sheet.hidden) return; // the sheet handles (and stops) its own keys
+    const k = e.key, view = store.get('view');
+    if (view === 'field') return;
+    if (k === 'Escape') {
       if (isTyping(e.target)) { e.target.blur(); return; }
       if (panel.classList.contains('open') && narrow()) { closePanel(); mt.focus(); return; }
-      if (store.get('view') !== 'sky') { store.set('view', 'sky'); return; }
+      if (view === 'compare') store.set('view', 'sky');
       return;
     }
-    if (isTyping(e.target) || e.defaultPrevented) return;
-    const k = e.key, view = store.get('view');
-    if (/^[1-9]$/.test(k) && view === 'sky') {
+    if (isTyping(e.target)) return;
+    if (view === 'sky' && /^[1-9]$/.test(k)) {
       const sc = (store.get('scans') || [])[+k - 1];
       if (sc && sc.has) { stopBlink(); store.set('scan', sc.id); } else if (sc) toast(`${sc.label} is scheduled for ${sc.date}`);
-    } else if ((k === 'b' || k === 'B') && view === 'sky') blinkBtn.click();
+    }
+    else if (view === 'sky' && (k === 'b' || k === 'B')) blinkBtn.click();
     else if (k === 'c' || k === 'C') setView(view === 'compare' ? 'sky' : 'compare');
-    else if (k === 'f' || k === 'F') setView(view === 'field' ? 'sky' : 'field');
-    else if (k === 's' || k === 'S') setView('sky');
-    else if ((k === 'g' || k === 'G') && view === 'sky') toggleLayer('grid');
-    else if ((k === 't' || k === 'T') && view === 'sky') toggleLayer('tracks');
+    else if (k === 'f' || k === 'F') setView('field');
+    else if (view === 'compare' && (k === 's' || k === 'S')) setView('sky');
+    else if (view === 'sky' && (k === 'g' || k === 'G')) toggleLayer('grid');
+    else if (view === 'sky' && (k === 't' || k === 'T')) toggleLayer('tracks');
     else if (k === '?') openSheet();
-    else if (k === '/') { if (getComputedStyle(gotoForm).display !== 'none') { if (view !== 'sky') store.set('view', 'sky'); gotoIn.focus(); } }
+    else if (view === 'sky' && k === '/') { if (getComputedStyle(gotoForm).display !== 'none') gotoIn.focus(); else return; }
     else return;
     e.preventDefault();
   });
@@ -247,6 +249,5 @@ export function mountHud(store) {
   return {
     readout, picked, toast, announce, setView,
     attachSky(s) { sky = s; },
-    beforePick() { fromPick = true; },
   };
 }

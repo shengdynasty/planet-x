@@ -39,7 +39,7 @@ const pField = load('field', './field/index.js', 'mountField', mountFieldStub);
 
 // Shell first so the sky paints before data arrives (a live-server probe can take up to 1.5 s).
 const hud = mountHud(store);
-const sky = mountSky($('stage'), store, { onView: hud.readout, onPick: hud.picked, onBeforePick: hud.beforePick });
+const sky = mountSky($('stage'), store, { onView: hud.readout, onPick: hud.picked });
 hud.attachSky(sky);
 mountCompare($('view-compare'), store);
 

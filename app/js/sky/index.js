@@ -1,7 +1,7 @@
 // Sky view: the three.js all-sky scene from the UI demo, driven entirely by the store.
 //   reads   candidates, filter.status, selectedId, scan, layers, view
 //   writes  selectedId (when a marker is picked)
-//   listens 'flyto' {ra (hours), dec (deg), fov?}  — also accepts {raDeg, dec}
+//   listens 'flyto' {ra (DEGREES), dec (deg), fov?}
 /* global THREE */
 import { toXYZ, yawPitchFor, raDecOf, unwrap, pad2 } from './coords.js';
 import { createBackdrop, makeRng, isLowEnd } from './backdrop.js';
@@ -23,7 +23,7 @@ export function mountSky(el, store, opts = {}) {
   const low = isLowEnd();
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   const onView = opts.onView || (() => {});
-  const onPick = opts.onPick || (() => {}), onBeforePick = opts.onBeforePick || (() => {});
+  const onPick = opts.onPick || (() => {});
 
   el.setAttribute('role', 'application');
   el.setAttribute('aria-roledescription', 'sky map');
@@ -179,8 +179,9 @@ export function mountSky(el, store, opts = {}) {
     }
     if (!drag) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; moved += Math.abs(dx) + Math.abs(dy);
-    const k = camera.fov / 60 * 0.0035;
-    tYaw -= dx * k; tPitch = clampPitch(tPitch + dy * k); yaw = tYaw; pitch = tPitch;
+    // 1:1 grab: the sky point under the finger stays under it (radians per pixel at the view centre)
+    const k = 2 * Math.tan(camera.fov * Math.PI / 360) / Math.max(1, el.clientHeight);
+    tYaw += dx * k / Math.max(0.25, Math.cos(pitch)); tPitch = clampPitch(tPitch + dy * k); yaw = tYaw; pitch = tPitch;
     drag.x = e.clientX; drag.y = e.clientY; kick();
   });
   const endPointer = (e, cancel) => {
@@ -209,13 +210,13 @@ export function mountSky(el, store, opts = {}) {
       if (!sprite.visible) return; const p = screenOf(sprite); if (!p) return;
       const d = Math.hypot(p.x - cx, p.y - cy); if (d < bd) { bd = d; best = id; }
     });
-    if (best) { onBeforePick(best); store.set('selectedId', best); onPick(best); }
+    if (best) { store.set('selectedId', best); onPick(best); }
   }
 
   // arrow keys / zoom keys (only while the sky is the active view and focus isn't in a text field)
   window.addEventListener('keydown', e => {
     if (store.get('view') !== 'sky' || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
-    const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
     if (t && t.closest && t.closest('[role="dialog"], [role="listbox"], #panel')) return;
     if (e.key === 'ArrowLeft') pan(1, 0); else if (e.key === 'ArrowRight') pan(-1, 0);
     else if (e.key === 'ArrowUp') pan(0, 1); else if (e.key === 'ArrowDown') pan(0, -1);
@@ -233,16 +234,15 @@ export function mountSky(el, store, opts = {}) {
   store.on('view', () => kick());
   store.listen('flyto', p => {
     if (!p) return;
-    const raH = p.ra != null ? p.ra : (p.raDeg != null ? p.raDeg / 15 : null);
-    if (raH == null || p.dec == null) return;
-    flyTo(raH, p.dec, p.fov);
+    if (!Number.isFinite(p.ra) || !Number.isFinite(p.dec)) return;
+    flyTo(p.ra / 15, p.dec, p.fov); // ra in degrees (contract); raHours, if present, is ignored
   });
 
   // --- render loop: only while visible, the sky is the active view, and something changed ---
   const dir = new THREE.Vector3();
   let raf = 0, dirty = true, lastW = 0, lastH = 0;
   const active = () => !document.hidden && store.get('view') === 'sky';
-  function kick() { dirty = true; if (!raf && active()) raf = requestAnimationFrame(frame); }
+  function kick() { dirty = true; settled = false; if (!raf && active()) raf = requestAnimationFrame(frame); }
   function resize() {
     const w = el.clientWidth, h = el.clientHeight; if (!w || !h) return;
     if (w === lastW && h === lastH) return; lastW = w; lastH = h;
@@ -251,7 +251,7 @@ export function mountSky(el, store, opts = {}) {
   window.addEventListener('resize', resize);
   if ('ResizeObserver' in window) new ResizeObserver(resize).observe(el);
   document.addEventListener('visibilitychange', () => kick());
-  let settled = false;
+  let settled = false, frames = 0;
   function frame() {
     raf = 0;
     if (!active()) return;
@@ -268,9 +268,10 @@ export function mountSky(el, store, opts = {}) {
     onView({ raH, decD, fov: camera.fov });
     const sc = camera.fov / 60;
     markerGroup.children.forEach(s => s.scale.set(40 * sc, 20 * sc, 1));
-    renderer.render(scene, camera);
+    renderer.render(scene, camera); frames++;
     settled = !moving;
-    if (moving || dirty) { dirty = moving; if (moving || dirty) raf = requestAnimationFrame(frame); }
+    dirty = false;
+    if (moving) raf = requestAnimationFrame(frame);
   }
   buildMarkers(); resize(); kick();
 
@@ -278,6 +279,8 @@ export function mountSky(el, store, opts = {}) {
     flyTo, reset, zoom, pan,
     centre() { camera.getWorldDirection(dir); return raDecOf([dir.x, dir.y, dir.z]); },
     get settled() { return settled; },
+    get fov() { return camera.fov; },
+    frames: () => frames,
     /** Screen position (px, relative to the stage) of a candidate's marker, or null if hidden / behind. */
     markerScreen(id) { const m = markers.get(id); if (!m || !m.sprite.visible) return null; camera.updateMatrixWorld(); return screenOf(m.sprite); },
     ready: backdrop.ready,

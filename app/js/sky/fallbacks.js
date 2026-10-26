@@ -63,7 +63,11 @@ export function mountCandidatesStub(el, store) {
       const num = (/(\d+)\s*$/.exec(c.name) || [, i + 1])[1];
       li.innerHTML = `<span class="n">${esc(pad2(+num))}</span><span>${esc((c.tag || '').split(' · ')[0])}</span><span class="s">${esc(c.status)}</span>`;
       li.hidden = !(st === 'all' || c.status === st); if (!li.hidden) shown++;
-      li.addEventListener('click', () => store.set('selectedId', c.id));
+      li.addEventListener('click', () => {
+        store.set('selectedId', c.id);
+        const p = c.pos[Math.min(store.get('scan') || 1, c.pos.length) - 1];
+        store.emit('flyto', { ra: p[0] * 15, dec: p[1], fov: 22, raHours: p[0] });
+      });
       li.addEventListener('keydown', e => {
         const items = [...list.querySelectorAll('li:not([hidden])')], k = items.indexOf(li);
         if (e.key === 'ArrowDown' && items[k + 1]) { items[k + 1].focus(); e.preventDefault(); }
@@ -94,7 +98,7 @@ export function mountCandidatesStub(el, store) {
   q('.d-fly').addEventListener('click', () => {
     const c = store.selected(); if (!c) return;
     const p = c.pos[Math.min(store.get('scan') || 1, c.pos.length) - 1];
-    store.emit('flyto', { ra: p[0], dec: p[1], fov: 22 });
+    store.emit('flyto', { ra: p[0] * 15, dec: p[1], fov: 22, raHours: p[0] });
   });
   store.on('candidates', () => { renderList(); renderDetail(); });
   store.on('filter', renderList);
