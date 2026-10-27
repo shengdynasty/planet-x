@@ -15,7 +15,7 @@ SPHEREx re-maps the whole sky every six months. A far-off planet barely shifts b
 | `app/` | The web app: 3D sky on NASA's Deep Star Maps, candidate review panel, Compare (wipe/difference/blink), and Field analysis (the detection pipeline on a patch of sky). Plain ES modules, no build step. Contracts: [`app/ARCHITECTURE.md`](app/ARCHITECTURE.md). |
 | `server/` | Optional local Node server (no npm deps) that pulls **real SPHEREx exposures** from NASA/IPAC IRSA and known objects from JPL. See [`server/README.md`](server/README.md). |
 | `artifacts/` | The two original single-file demos (UI demo, Moving Sky), kept as published snapshots. |
-| `docs/` | Project write-up, pitch outline, and pitch-deck source. |
+| `docs/` | Project write-up and pitch outline. |
 | `tests/`, `qa/` | Unit and headless-browser tests. |
 
 ## Run it
