@@ -25,7 +25,6 @@
  * @property {string} note
  * @property {boolean} simulated       true for placeholder data — UI must say so
  * @property {CandidateStatus} [pipelineStatus]  status as set by the pipeline/data source, before human review (lets a reviewer revert)
- * @property {string} [reviewNote]     free text from the reviewer (workflow)
  * @property {string} [match]          known-object designation if cross-matched
  */
 

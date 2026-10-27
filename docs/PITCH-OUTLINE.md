@@ -36,7 +36,7 @@ Nine slides, drawn from `docs/WRITEUP.md`. Every number and claim here comes fro
   - IRSA exposures (`spherex_qr2`, `spherex_qr3`) → pair at matching wavelength → align cutouts on one grid
   - Detect at 5σ with 3σ hysteresis, then reject sources narrower than the PSF
   - Pair appeared and vanished sources into movers → cross-match with JPL Small-Body Identification and Horizons
-  - Vet what is left, then mark it Follow-up or Rejected with a note
+  - Vet what is left, then mark it Follow-up or Rejected
 - **Visual:** Horizontal pipeline diagram: Find → Match wavelength → Align → Detect → Reject artifacts → Classify → Cross-match → Review.
 
 ## Slide 5: The wavelength catch
@@ -54,7 +54,7 @@ Nine slides, drawn from `docs/WRITEUP.md`. Every number and claim here comes fro
 - **Supporting points:**
   - Sky: whole-sky view with tracks, Go to, and Blink across scans
   - Compare: wipe, Difference (a mover shows up twice) and Blink; Field: the detection pipeline with stamps and spectrum
-  - Review panel: Candidate, Matched and Likely statuses, Follow-up/Rejected with notes, CSV/JSON export
+  - Review panel: Candidate, Matched and Likely statuses, Follow-up/Rejected, CSV/JSON export
   - A badge always says *Simulated data* or *Live · SPHEREx*
 - **Visual:** Side-by-side screenshots of the Sky view with the review panel and of the Field view.
 

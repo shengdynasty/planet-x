@@ -4,7 +4,7 @@
 // Store usage:
 //   reads   candidates, selectedId, scan, scans, filter
 //   writes  selectedId, filter, view ('compare' | 'field'), field
-//   updates candidates via updateCandidate: status, reviewNote, pipelineStatus (the pre-review status, kept so a
+//   updates candidates via updateCandidate: status, pipelineStatus (the pre-review status, kept so a
 //           reviewer can revert a Follow-up / Rejected back to what the pipeline said)
 //   emits   'flyto' {ra (deg), dec (deg), fov, raHours}, 'toast' string
 import * as F from './format.js';
@@ -75,8 +75,6 @@ const TEMPLATE = html`
     <div class="cx-review">
       <div class="cx-rlabel" id="cx-rs-label">Review</div>
       <div class="seg cx-rstatus" role="group" aria-labelledby="cx-rs-label"></div>
-      <label class="cx-rlabel" for="cx-rnote">Reviewer note</label>
-      <textarea id="cx-rnote" class="cx-rnote" rows="3" placeholder="What you checked, what to look at next"></textarea>
       <div class="cx-saved" aria-live="polite"></div>
     </div>
   </section>
@@ -100,7 +98,7 @@ export function mountCandidates(el, store) {
   list.addEventListener('scroll', syncMore, { passive: true });
   if (window.ResizeObserver) new ResizeObserver(syncMore).observe(list);
   const count = $('.cx-count'), q = $('.cx-q'), sortSel = $('.cx-sort'), fsel = $('.cx-fsel');
-  const moreBtn = $('.cx-more'), noteEl = $('.cx-rnote'), savedEl = $('.cx-saved');
+  const moreBtn = $('.cx-more'), savedEl = $('.cx-saved');
   const cut = $('.cx-cut'), cg = cut.getContext('2d');
   const dlg = $('.cx-dialog');
 
@@ -135,7 +133,6 @@ export function mountCandidates(el, store) {
         p.pipelineStatus = s.pipelineStatus || F.pipelineStatus(c);
         p.status = s.status;
       }
-      if (typeof s.reviewNote === 'string' && s.reviewNote !== (c.reviewNote || '')) p.reviewNote = s.reviewNote;
       if (Object.keys(p).length) patches.push([c.id, p]);
     });
     patches.forEach(([id, p]) => store.updateCandidate(id, p));
@@ -297,9 +294,6 @@ export function mountCandidates(el, store) {
       if (s === ps && s !== 'Candidate') b.title = 'Set by the pipeline';
       return b;
     }));
-    if (isNew || document.activeElement !== noteEl) {
-      if (noteEl.value !== (c.reviewNote || '')) noteEl.value = c.reviewNote || '';
-    }
     if (isNew) savedEl.textContent = persist.available() ? '' : storageMsg;
     [$('.cx-compare'), $('.cx-field'), $('.cx-fly')].forEach(b => { b.disabled = !F.hasPos(c); });
   }
@@ -331,7 +325,7 @@ export function mountCandidates(el, store) {
     store.set('view', 'field');
   });
 
-  // ---------- review: status + note ----------
+  // ---------- review status ----------
   const storageMsg = 'Not saved: browser storage is unavailable here. Export to keep your review.';
   function saved(ok) { savedEl.textContent = ok ? 'Saved on this device' : storageMsg; }
   $('.cx-rstatus').addEventListener('click', e => {
@@ -343,22 +337,6 @@ export function mountCandidates(el, store) {
     announce(`${c.name || c.id} marked ${s}.`);
     const nb = $(`.cx-rstatus button[data-s="${CSS.escape(s)}"]`); if (nb) nb.focus();
   });
-  let noteT = null, notePending = null;
-  function commitNote() {
-    clearTimeout(noteT); noteT = null;
-    if (!notePending) return;
-    const { id, value } = notePending; notePending = null;
-    const c = byId(id); if (!c || (c.reviewNote || '') === value) return;
-    store.updateCandidate(id, { reviewNote: value });
-    saved(persist.save(id, { reviewNote: value }));
-  }
-  noteEl.addEventListener('input', () => {
-    notePending = { id: shownId, value: noteEl.value };
-    savedEl.textContent = '';
-    clearTimeout(noteT); noteT = setTimeout(commitNote, 500);
-  });
-  noteEl.addEventListener('blur', commitNote);
-  window.addEventListener('pagehide', commitNote);
 
   // ---------- export ----------
   function exportText(fmt) {
@@ -419,7 +397,6 @@ export function mountCandidates(el, store) {
   store.on('candidates', () => { if (restoreNew()) return; renderList(); renderDetail(); });
   store.on('filter', () => { syncControls(); renderList(); });
   store.on('selectedId', id => {
-    if (notePending && notePending.id !== id) commitNote();
     if (id !== lastSel) {
       lastSel = id;
       const c = byId(id);

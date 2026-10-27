@@ -24,7 +24,7 @@ SPHEREx re-maps the whole sky every six months, so anything that changes positio
    - New source with a similar-brightness source gone nearby: paired as a mover. The app reports displacement and rate.
    - Unpaired appearances and disappearances are listed separately.
 7. **Cross-match with known objects.** JPL's Small-Body Identification service finds catalogued objects near the field at each frame's mid-exposure time, using SPHEREx's own position from the image header as the observer. JPL Horizons then gives each object's precise position on the grid. A Horizons match always wins: the source is labelled *Known object*, with its offset.
-8. **Vet candidates.** Show stamps, position, brightness, displacement and a spectrum for each remaining mover, then send it to the review panel, where a person marks it *Follow-up* or *Rejected* and adds notes. Spectra are still a model, not extracted from the data. Even a candidate that passes every check needs a third epoch and an orbit fit before it is anything.
+8. **Vet candidates.** Show stamps, position, brightness, displacement and a spectrum for each remaining mover, then send it to the review panel, where a person marks it *Follow-up* or *Rejected*. Spectra are still a model, not extracted from the data. Even a candidate that passes every check needs a third epoch and an orbit fit before it is anything.
 
 ## What we built
 
@@ -35,7 +35,7 @@ A full-screen browser app on NASA's Deep Star Maps 2020 all-sky image, with a st
 - **Sky view.** A 3D view of the whole sky. Drag to look around, scroll or pinch to zoom, toggle an RA/Dec grid, and turn on tracks that connect each mover's positions across scans. A "Go to" box accepts coordinates or a candidate number. A scan timeline shows four all-sky scans about six months apart (the fourth shown as scheduled); Blink cycles through them.
 - **Compare view.** Two scans of the selected mover with a draggable wipe, a Difference overlay (left subtracted from right, so a mover shows up twice) and Blink.
 - **Field view.** The detection pipeline on one patch of sky: Blink, Difference and Track views, Flags and Known-objects overlays, a list of flagged sources (uncatalogued mover, known object, variable, artifact, left the field), and a vetting panel with stamps and a spectrum. With the server running, a *Live request* box sets the centre, size, detector and an optional date, and a built-in example loads asteroid 16 Psyche.
-- **Review panel.** Every mover is *Candidate* (unmatched), *Matched* (known asteroid or comet) or *Likely* (for example, a probable brown dwarf). A reviewer can mark any mover *Follow-up* or *Rejected* and write a note; reviews are kept in the browser. The list can be filtered, sorted and searched, and exported as CSV or JSON. Sources flagged in the Field view can be added to the list.
+- **Review panel.** Every mover is *Candidate* (unmatched), *Matched* (known asteroid or comet) or *Likely* (for example, a probable brown dwarf). A reviewer can mark any mover *Follow-up* or *Rejected*; reviews are kept in the browser. The list can be filtered, sorted and searched, and exported as CSV or JSON. Sources flagged in the Field view can be added to the list.
 
 ### 2. Local data server (optional)
 

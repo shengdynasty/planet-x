@@ -9,7 +9,7 @@ function storage() {
   try { return window.localStorage; } catch { return null; }
 }
 
-/** @returns {Record<string, {status?:string, pipelineStatus?:string, reviewNote?:string, t?:number}>} */
+/** @returns {Record<string, {status?:string, pipelineStatus?:string, t?:number}>} */
 export function loadAll() {
   try {
     const ls = storage(); if (!ls) { ok = false; return {}; }

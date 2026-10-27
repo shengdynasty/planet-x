@@ -89,14 +89,8 @@
 .cx-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .cx-review { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--edge); display: flex; flex-direction: column; gap: 6px; }
 .cx-rlabel { color: var(--ink-3); font-size: 11px; }
-.cx-rlabel + .cx-rlabel, .cx-rstatus + .cx-rlabel { margin-top: 4px; }
 .cx-rstatus { align-self: flex-start; flex-wrap: wrap; }
 .cx-rstatus button { padding: 6px 9px; font-size: 11px; }
-.cx-rnote {
-  font: inherit; font-size: 12px; color: var(--ink); background: transparent; border: 1px solid var(--edge); border-radius: 6px;
-  padding: 7px 9px; width: 100%; resize: vertical; min-height: 56px; line-height: 1.4;
-}
-.cx-rnote::placeholder { color: var(--ink-3); }
 .cx-saved { color: var(--ink-3); font-size: 11px; min-height: 14px; }
 
 /* export fallback dialog */
@@ -131,7 +125,6 @@
   .cx-actions button { flex: 1 1 auto; font-size: 12px; }
   .cx-rstatus { align-self: stretch; }
   .cx-rstatus button { flex: 1; font-size: 12px; }
-  .cx-rnote { font-size: 16px; }
   .cx-menu button { min-height: 44px; }
 }
 @media (pointer: coarse) {

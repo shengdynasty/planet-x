@@ -158,10 +158,6 @@ try {
   eq((await cand(page, 'c03')).status, 'Follow-up', 'status saved to store');
   await page.waitForTimeout(80);
   ok(/marked Follow-up/.test(await page.textContent('#announce')), 'status change announced');
-  const NOTE = 'Recheck in scan 4, with "quotes", commas\nand a second line';
-  await page.fill('#panel .cx-rnote', NOTE);
-  await page.waitForTimeout(700);
-  eq((await cand(page, 'c03')).reviewNote, NOTE, 'note saved to store (debounced)');
   eq(await page.textContent('#panel .cx-saved'), 'Saved on this device', 'saved indicator');
   await page.click('#cx-opt-c05');
   eq(await page.$$eval('#panel .cx-rstatus button', b => b.map(x => x.textContent)), ['Likely', 'Follow-up', 'Rejected'], 'pipeline status shown as an option for Likely');
@@ -178,10 +174,8 @@ try {
   const rows = parseCSV(csv), head = rows[0];
   eq(rows.length, 7, 'CSV has header + 6 rows');
   const r3 = rows.find(r => r[0] === 'c03');
-  eq(r3[head.indexOf('review_note')], NOTE, 'CSV round-trips a note with commas, quotes and a newline');
   eq(r3[head.indexOf('status')], 'Follow-up', 'CSV has review status');
   eq(r3[head.indexOf('simulated')], 'true', 'CSV marks simulated rows');
-  ok(csv.includes('"Recheck in scan 4, with ""quotes"", commas\nand a second line"'), 'CSV quotes and escapes per RFC 4180');
   ok(rows.find(r => r[0] === 'c01')[head.indexOf('note')] === 'Fast main‑belt mover. Cross‑matched to JPL’s catalog on the first pass.', 'plain fields unchanged');
 
   // export: copy JSON of a filtered list
@@ -225,17 +219,15 @@ try {
   await page.waitForSelector('#panel [role="option"]');
   eq((await cand(page, 'c03')).status, 'Follow-up', 'status restored after reload');
   eq((await cand(page, 'c05')).status, 'Rejected', 'second status restored');
-  await page.click('#cx-opt-c03');
-  eq(await page.inputValue('#panel .cx-rnote'), NOTE, 'note restored after reload');
   // a saved review for an id that arrives later is restored when it arrives
   await page.evaluate(() => {
     const all = JSON.parse(localStorage.getItem('planetx.review.v1'));
-    all.c07 = { status: 'Follow-up', reviewNote: 'late arrival' };
+    all.c07 = { status: 'Follow-up' };
     localStorage.setItem('planetx.review.v1', JSON.stringify(all));
   });
   await page.click('#fake-sky #add');
   const c7 = await cand(page, 'c07');
-  ok(c7.status === 'Follow-up' && c7.reviewNote === 'late arrival', 'review restored for a candidate added later');
+  ok(c7.status === 'Follow-up', 'review restored for a candidate added later');
   // revert to pipeline status
   await page.click('#cx-opt-c03');
   await page.click('#panel .cx-rstatus button[data-s="Candidate"]');

@@ -57,3 +57,4 @@ _Last updated: 2026-10-25_
 - 2026-10-26: Full site (homepage + app + Moving Sky) published as one artifact: https://claude.ai/artifact/7coFfmF9zDLmKXTMB4A8iC (private until shared). Cross-page links now point at explicit index.html files.
 - 2026-10-26: Repo made public; live site on GitHub Pages at https://shengdynasty.github.io/planet-x/. Hosted copies no longer probe localhost:8787 (avoids Chrome local-network prompt).
 - 2026-10-27: Pitch deck dropped (not needed): docs/deck/ removed. The published deck artifact (UAqhztF4edsXdn2mTzs6fw) is private and unused; delete it from the claude.ai gallery.
+- 2026-10-27: Reviewer note box removed from the Movers panel (status buttons stay); export drops the review_note column. Suites: workflow 84, shell 87, review 64, field/live all pass, mobile/a11y 118/118.

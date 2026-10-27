@@ -96,7 +96,7 @@ export function matches(c, f) {
   if (f.status && f.status !== 'all' && c.status !== f.status) return false;
   const q = String(f.query || '').trim().toLowerCase();
   if (!q) return true;
-  const hay = [c.id, c.name, c.tag, c.status, c.band, c.note, c.reviewNote, c.match].filter(Boolean).join(' ').toLowerCase();
+  const hay = [c.id, c.name, c.tag, c.status, c.band, c.note, c.match].filter(Boolean).join(' ').toLowerCase();
   return q.split(/\s+/).every(w => hay.includes(w));
 }
 
@@ -120,7 +120,7 @@ export function csvField(v) {
   return /[",\r\n]/.test(s) || /^\s|\s$/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 export const CSV_COLUMNS = ['id', 'name', 'status', 'pipeline_status', 'tag', 'match', 'peak_band', 'shift_arcmin', 'n_scans',
-  'ra_hours_first', 'dec_deg_first', 'ra_hours_last', 'dec_deg_last', 'note', 'review_note', 'simulated'];
+  'ra_hours_first', 'dec_deg_first', 'ra_hours_last', 'dec_deg_last', 'note', 'simulated'];
 
 export function exportRow(c) {
   const p = observed(c), a = p[0] || [], b = p[p.length - 1] || [];
@@ -128,7 +128,7 @@ export function exportRow(c) {
     id: c.id, name: c.name, status: c.status, pipeline_status: pipelineStatus(c), tag: c.tag, match: c.match || '',
     peak_band: c.band, shift_arcmin: +(shiftDeg(c) * 60).toFixed(3), n_scans: p.length,
     ra_hours_first: a[0], dec_deg_first: a[1], ra_hours_last: b[0], dec_deg_last: b[1],
-    note: c.note || '', review_note: c.reviewNote || '', simulated: !!c.simulated,
+    note: c.note || '', simulated: !!c.simulated,
   };
 }
 export function toCSV(list) {
