@@ -54,6 +54,18 @@ body:not([data-view="sky"]) #top::before { content: ""; position: fixed; left: 0
 }
 #panel:empty { visibility: hidden; }
 
+/* ---------- left inspector: the selected mover's imagery and description (contents: candidates module) ---------- */
+#inspect {
+  top: calc(var(--top-h) + 8px); left: 16px; width: 300px;
+  max-height: calc(100dvh - var(--top-h) - 8px - env(safe-area-inset-bottom, 0px) - 86px);
+  border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;
+}
+#inspect[hidden] { display: none; }
+#inspect:not([hidden]) > * { animation: inspect-in .24s cubic-bezier(.2, .7, .2, 1); } /* the contents move, not the blurred panel: re-blurring every frame is costly */
+@keyframes inspect-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { #inspect > * { animation: none !important; } }
+@media (max-width: 860px) { #inspect { display: none; } } /* on phones the imagery lives in the sheet */
+
 /* ---------- bottom: timeline + controls ---------- */
 #bottom { left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); display: flex; gap: 10px; align-items: stretch; pointer-events: none; }
 #bottom > * { pointer-events: auto; }
@@ -136,7 +148,7 @@ body:not([data-view="sky"]) #top::before { content: ""; position: fixed; left: 0
   #readout .pos { position: absolute; right: 2px; top: calc(100% + 8px); white-space: nowrap; font-size: 12px; color: #b4b4b4; text-shadow: 0 1px 3px rgba(0,0,0,.9); pointer-events: none; }
   #readout .pos b { color: #f2f2f2; }
   body.panel-open #readout .pos { display: none; } /* the open sheet / docked panel sits right under it */
-  #panel { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bottom-h) + 26px); height: min(56vh, calc(100dvh - var(--top-h) - var(--bottom-h) - 40px)); transform: translateY(calc(100% + 140px)); transition: transform .25s, visibility 0s .25s; visibility: hidden; }
+  #panel { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bottom-h) + 26px); max-height: calc(100dvh - var(--top-h) - var(--bottom-h) - 40px); transform: translateY(calc(100% + 140px)); transition: transform .25s, visibility 0s .25s; visibility: hidden; }
   #panel.open { transform: none; visibility: visible; transition: transform .25s, visibility 0s; }
   #mobile-toggle { display: inline-grid; }
   .scan small { display: none; }

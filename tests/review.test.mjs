@@ -140,7 +140,7 @@ console.log('3. Compare with a candidate that has no positions');
   await ev(() => __px.set('view', 'sky'));
   await page.click('#views button[data-view="compare"]'); await page.waitForTimeout(200);
   ok(await ev(() => __px.get('view')) === 'sky', 'Compare tab: stays on the sky');
-  await ev(() => document.querySelector('#panel .cx-cut').click()); await page.waitForTimeout(200);
+  await ev(() => document.querySelector('.cx-cut').click()); await page.waitForTimeout(200);
   ok(await ev(() => __px.get('view')) === 'sky' && /no positions/.test(await ev(() => document.getElementById('toast').textContent)), 'panel cutout click: stays, with a toast');
   ok(await ev(() => document.querySelector('.cx-compare').disabled), '"Open in Compare" disabled');
   await ev(() => __px.set('view', 'compare')); await page.waitForTimeout(200);

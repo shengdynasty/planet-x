@@ -281,6 +281,7 @@ export function mountHud(store) {
       if (isTyping(e.target)) { e.target.blur(); return; }
       if (panel.classList.contains('open') && narrow()) { closePanel(); mt.focus(); return; }
       if (view === 'compare') store.set('view', 'sky');
+      else if (store.get('selectedId')) store.set('selectedId', null); // closes the inspector
       return;
     }
     if (isTyping(e.target)) return;

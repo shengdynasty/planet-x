@@ -1,17 +1,13 @@
-// Candidate review panel ("Movers"). Mounts into the shell's #panel (a bottom sheet on phones).
+// Movers panel: the list of flagged movers and the selected one's card. Mounts into the shell's #panel (a bottom sheet on phones).
 // Talks only through `store`; writes screen-reader announcements into #announce.
 //
 // Store usage:
 //   reads   candidates, selectedId, scan, scans, filter
 //   writes  selectedId, filter, view ('compare' | 'field'), field
-//   updates candidates via updateCandidate: status, pipelineStatus (the pre-review status, kept so a
-//           reviewer can revert a Follow-up / Rejected back to what the pipeline said)
 //   emits   'flyto' {ra (deg), dec (deg), fov, raHours}, 'toast' string
 import * as F from './format.js';
 import { renderCutout, seedIndex } from './cutout.js';
-import * as persist from './persist.js';
 
-const OVERFLOW = ['Likely', 'Follow-up', 'Rejected'];
 const FIELD_ARCSEC = 1968; // 320 px × 6.15″
 
 const html = String.raw;
@@ -31,15 +27,7 @@ const TEMPLATE = html`
       </div>
     </div>
       <div class="seg cx-filters" role="group" aria-label="Filter by status">
-        <button data-f="all" aria-pressed="true">All</button>
-        <button data-f="Candidate" aria-pressed="false">Unmatched</button>
-        <button data-f="Matched" aria-pressed="false">Matched</button>
-        <div class="cx-menuwrap">
-          <button class="cx-more" aria-haspopup="menu" aria-expanded="false" aria-controls="cx-more-menu" aria-pressed="false"><span>More</span> <span aria-hidden="true">▾</span></button>
-          <div class="cx-menu glass" id="cx-more-menu" role="menu" aria-label="More status filters" hidden>
-            ${OVERFLOW.map(s => html`<button role="menuitemradio" aria-checked="false" data-f="${s}">${s}</button>`).join('')}
-          </div>
-        </div>
+        ${F.FILTERS.map(f => html`<button data-f="${f.id}" aria-pressed="${f.id === 'all'}">${f.label}</button>`).join('')}
       </div>
       <select class="cx-fsel" aria-label="Filter by status">
         ${F.FILTERS.map(f => html`<option value="${f.id}">${f.label}</option>`).join('')}
@@ -52,31 +40,22 @@ const TEMPLATE = html`
   <ul class="cx-list" role="listbox" aria-labelledby="cx-title"></ul>
   <div class="cx-empty" hidden><span class="cx-empty-msg"></span> <button class="cx-clear ghost" hidden>Clear filters</button> <button class="cx-openfield" hidden>Open Field on the home patch</button></div>
   <section class="cx-detail" aria-labelledby="cx-d-name" hidden>
-    <div class="cx-dhead"><h3 id="cx-d-name"></h3><span class="cx-sim" hidden>Simulated</span></div>
-    <div class="cx-tag"></div>
-    <div class="cx-cutgrid">
-      <figure class="cx-fig">
-        <canvas class="cx-cut" width="256" height="256" role="img"></canvas>
-        <figcaption class="cx-cutlabel"><span class="cx-cutscan"></span><span>Illustrative cutout (simulated pixels)</span></figcaption>
-      </figure>
+   <div class="cx-card">
+    <div class="cx-insp-slot"></div>
+    <div class="cx-facts">
+      <div class="cx-fname"></div>
       <dl>
         <dt>Position</dt><dd class="cx-pos"></dd>
         <dt>Shift</dt><dd class="cx-shift"></dd>
-        <dt>Peak band</dt><dd class="cx-band"></dd>
-        <dt>Status</dt><dd class="cx-status"></dd>
+        <dt>Band</dt><dd class="cx-band"></dd>
       </dl>
     </div>
-    <p class="cx-note"></p>
     <div class="cx-actions">
-      <button class="cx-compare">Open in Compare</button>
+      <button class="cx-compare">Compare</button>
       <button class="cx-field">Analyse field</button>
-      <button class="cx-fly ghost">Center on sky</button>
+      <button class="cx-fly ghost" title="Center the sky on this mover">Center</button>
     </div>
-    <div class="cx-review">
-      <div class="cx-rlabel" id="cx-rs-label">Review</div>
-      <div class="seg cx-rstatus" role="group" aria-labelledby="cx-rs-label"></div>
-      <div class="cx-saved" aria-live="polite"></div>
-    </div>
+   </div>
   </section>
   <dialog class="cx-dialog" role="dialog" aria-modal="true" aria-labelledby="cx-dlg-title">
     <form method="dialog" class="cx-dlg-box">
@@ -89,17 +68,34 @@ const TEMPLATE = html`
   </dialog>
 </div>`;
 
+// The selected mover's imagery and description. Its own window left of the sky on desktop (the shell's #inspect);
+// inside the sheet's card on phones.
+const INSPECTOR = html`
+<div class="cx-insp">
+  <div class="cx-dhead"><h3 id="cx-d-name"></h3><span class="cx-sim" hidden>Simulated</span><button type="button" class="cx-close icon ghost" aria-label="Close">✕</button></div>
+  <div class="cx-tag"></div>
+  <div class="cx-cutgrid">
+    <figure class="cx-fig">
+      <canvas class="cx-cut" width="256" height="256" role="img"></canvas>
+      <figcaption class="cx-cutlabel"><span class="cx-cutscan"></span><span>Illustrative cutout (simulated pixels)</span></figcaption>
+    </figure>
+    <p class="cx-note"></p>
+  </div>
+</div>`;
+
 export function mountCandidates(el, store) {
   el.innerHTML = TEMPLATE;
   const $ = sel => el.querySelector(sel);
+  const tpl = document.createElement('template'); tpl.innerHTML = INSPECTOR;
+  const insp = tpl.content.firstElementChild, I = sel => insp.querySelector(sel);
   const root = $('.cx'), list = $('.cx-list'), detail = $('.cx-detail'), empty = $('.cx-empty');
   // fade the list's last row while there is more below it (see .cx-list.more)
   const syncMore = () => list.classList.toggle('more', list.scrollHeight - list.scrollTop - list.clientHeight > 2);
   list.addEventListener('scroll', syncMore, { passive: true });
-  if (window.ResizeObserver) new ResizeObserver(syncMore).observe(list);
+  const syncScrolls = () => detail.classList.toggle('scrolls', detail.scrollHeight - detail.clientHeight > 2);
+  if (window.ResizeObserver) { new ResizeObserver(syncMore).observe(list); new ResizeObserver(syncScrolls).observe(detail); }
   const count = $('.cx-count'), q = $('.cx-q'), sortSel = $('.cx-sort'), fsel = $('.cx-fsel');
-  const moreBtn = $('.cx-more'), savedEl = $('.cx-saved');
-  const cut = $('.cx-cut'), cg = cut.getContext('2d');
+  const cut = I('.cx-cut'), cg = cut.getContext('2d');
   const dlg = $('.cx-dialog');
 
   // ---------- helpers ----------
@@ -113,34 +109,28 @@ export function mountCandidates(el, store) {
     clearTimeout(annT); a.textContent = '';
     annT = setTimeout(() => { a.textContent = msg; }, 40);
   }
+  // restart a class-driven animation: drop the class, force a style flush, add it back
+  const replay = (node, cls) => { node.classList.remove(cls); void node.offsetWidth; node.classList.add(cls); };
+  // ---------- inspector placement ----------
+  const host = document.getElementById('inspect'), slot = $('.cx-insp-slot');
+  const narrow = window.matchMedia('(max-width: 860px)');
+  const inspOut = () => !!host && !narrow.matches;
+  function placeInsp() {
+    (inspOut() ? host : slot).appendChild(insp);
+    root.classList.toggle('insp-out', inspOut());
+    if (host) host.hidden = !(inspOut() && shownId);
+  }
+  narrow.addEventListener('change', placeInsp);
+  I('.cx-close').addEventListener('click', () => store.set('selectedId', null));
   const scanLabel = k => {
     const s = (store.get('scans') || []).find(x => x.id === k + 1);
     return s ? `${s.label} · ${s.date}` : `Scan ${k + 1}`;
   };
   const posAt = c => F.nearestPos(c, store.get('scan')); // this scan's position, else the nearest observed one
 
-  // ---------- persistence: restore saved review for every candidate the first time it appears ----------
-  const seen = new Set();
-  function restoreNew() {
-    const fresh = cands().filter(c => !seen.has(c.id));
-    if (!fresh.length) return false;
-    fresh.forEach(c => seen.add(c.id));
-    const saved = persist.loadAll(), patches = [];
-    fresh.forEach(c => {
-      const s = saved[c.id]; if (!s) return;
-      const p = {};
-      if (s.status && F.STATUSES.includes(s.status) && s.status !== c.status) {
-        p.pipelineStatus = s.pipelineStatus || F.pipelineStatus(c);
-        p.status = s.status;
-      }
-      if (Object.keys(p).length) patches.push([c.id, p]);
-    });
-    patches.forEach(([id, p]) => store.updateCandidate(id, p));
-    return patches.length > 0;
-  }
-
   // ---------- list ----------
   let focusId = null; // option that holds the roving tabindex
+  let listKey = '';   // ids last listed, in order: the rows animate in only when this changes
   function optionLabel(c) {
     return `${c.name || c.id}, ${c.tag || ''}, status ${c.status}, peak ${c.band}${c.simulated ? ', simulated' : ''}`;
   }
@@ -161,6 +151,9 @@ export function mountCandidates(el, store) {
       li.innerHTML = html`<span class="n">${esc(F.shortId(c))}</span><span class="cx-mid"><span class="cx-lab">${esc(F.shortTag(c))}</span><span class="cx-sub">${esc(c.band || '')}${c.simulated ? ' <span class="cx-sim">Simulated</span>' : ''}</span></span><span class="s s-${esc(String(c.status).toLowerCase().replace(/[^a-z]+/g, '-'))}">${esc(c.status)}</span>`;
       return li;
     }));
+    const key = vis.map(c => c.id).join(',');
+    list.classList.toggle('cx-anim', key !== listKey); listKey = key;
+    list.querySelectorAll('li').forEach((li, i) => li.style.setProperty('--i', i));
     list.hidden = !vis.length;
     syncMore();
     empty.hidden = !!vis.length;
@@ -178,10 +171,6 @@ export function mountCandidates(el, store) {
   function syncControls() {
     const f = getFilter();
     el.querySelectorAll('.cx-filters > button[data-f]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.f === f.status)));
-    const over = OVERFLOW.includes(f.status);
-    moreBtn.setAttribute('aria-pressed', String(over));
-    moreBtn.firstElementChild.textContent = over ? f.status : 'More';
-    el.querySelectorAll('#cx-more-menu [data-f]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.f === f.status)));
     fsel.value = F.FILTERS.some(x => x.id === f.status) ? f.status : 'all';
     sortSel.value = F.SORTS.some(x => x.id === f.sort) ? f.sort : 'id';
     if (document.activeElement !== q && q.value !== (f.query || '')) q.value = f.query || '';
@@ -233,7 +222,7 @@ export function mountCandidates(el, store) {
   });
   store.on('source', () => renderList());
 
-  // ---------- menus (filter overflow, export) ----------
+  // ---------- export menu ----------
   let openMenu = null;
   function closeMenu(focusBtn) {
     if (!openMenu) return;
@@ -261,7 +250,6 @@ export function mountCandidates(el, store) {
     });
     menu.addEventListener('click', e => { const b = e.target.closest('[role^="menuitem"]'); if (!b) return; closeMenu(true); onPick(b); });
   }
-  wireMenu(moreBtn, $('#cx-more-menu'), b => setStatusFilter(b.dataset.f));
   wireMenu($('.cx-export'), $('#cx-export-menu'), b => doExport(b.dataset.x, b.dataset.fmt));
   document.addEventListener('pointerdown', e => { if (openMenu && !openMenu.menu.contains(e.target) && !openMenu.btn.contains(e.target)) closeMenu(false); });
 
@@ -270,39 +258,32 @@ export function mountCandidates(el, store) {
   function renderDetail() {
     const c = store.selected ? store.selected() : byId(store.get('selectedId'));
     root.classList.toggle('has-detail', !!c);
-    if (!c) { detail.hidden = true; shownId = null; return; }
+    if (!c) { detail.hidden = true; shownId = null; if (host) host.hidden = true; return; }
     detail.hidden = false;
-    const isNew = shownId !== c.id; shownId = c.id;
+    const isNew = shownId !== c.id;
+    if (isNew && shownId) { replay(detail, 'cx-swap'); if (inspOut()) replay(insp, 'cx-swap'); } // switching movers: the new card rises in
+    shownId = c.id;
     if (isNew) detail.scrollTop = 0; // a newly selected candidate starts at its name and cutout
-    $('#cx-d-name').textContent = c.name || c.id;
-    detail.querySelector('.cx-dhead .cx-sim').hidden = !c.simulated;
-    $('.cx-tag').textContent = c.tag || '';
+    I('#cx-d-name').textContent = c.name || c.id; $('.cx-fname').textContent = c.name || c.id;
+    I('.cx-sim').hidden = !c.simulated;
+    I('.cx-tag').textContent = c.tag || '';
     $('.cx-shift').textContent = F.fmtShift(c);
     $('.cx-band').textContent = c.band || '—';
-    const ps = F.pipelineStatus(c);
-    $('.cx-status').textContent = c.status === ps ? c.status : `${c.status} (pipeline: ${ps})`;
-    $('.cx-note').textContent = c.note || '';
-    $('.cx-note').hidden = !c.note;
+    I('.cx-note').textContent = c.note || '';
+    I('.cx-note').hidden = !c.note;
+    if (host) host.hidden = !inspOut();
     drawCut(c);
-    // review controls: the pipeline's own status, plus the two a reviewer can assign
-    const opts = [...new Set([ps, ...F.USER_STATUSES])];
-    const rs = $('.cx-rstatus');
-    rs.replaceChildren(...opts.map(s => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.dataset.s = s; b.textContent = s;
-      b.setAttribute('aria-pressed', String(c.status === s));
-      if (s === ps && s !== 'Candidate') b.title = 'Set by the pipeline';
-      return b;
-    }));
-    if (isNew) savedEl.textContent = persist.available() ? '' : storageMsg;
     [$('.cx-compare'), $('.cx-field'), $('.cx-fly')].forEach(b => { b.disabled = !F.hasPos(c); });
+    // the list just lost height to the card (laid out now that the card has its text): keep the selected row in view
+    const sl = list.querySelector('[aria-selected="true"]'); if (sl) sl.scrollIntoView({ block: 'nearest' });
+    syncMore(); syncScrolls();
   }
   function drawCut(c) {
     const W = cut.width;
     const scan = store.get('scan') || 1;
     const [x, y, p, k] = renderCutout(cg, W, c, scan, seedIndex(c.id));
     if (p) { cg.strokeStyle = 'rgba(255,255,255,.6)'; cg.lineWidth = 1; cg.beginPath(); cg.arc(x, y, 16, 0, Math.PI * 2); cg.stroke(); }
-    $('.cx-cutscan').textContent = scanLabel(k);
+    I('.cx-cutscan').textContent = scanLabel(k);
     $('.cx-pos').textContent = F.fmtPos(c, scan);
     // the pixels are always synthetic until real stamps exist, whatever the candidate's source
     cut.setAttribute('aria-label', `Illustrative cutout (simulated pixels) of ${c.name || c.id}, ${scanLabel(k)}${p ? '' : ', not observed in this scan'}. Opens Compare.`);
@@ -323,19 +304,6 @@ export function mountCandidates(el, store) {
     const c = byId(store.get('selectedId')); const p = c && posAt(c); if (!p) return;
     store.set('field', { ra: p[0] * 15, dec: p[1], sizeArcsec: FIELD_ARCSEC });
     store.set('view', 'field');
-  });
-
-  // ---------- review status ----------
-  const storageMsg = 'Not saved: browser storage is unavailable here. Export to keep your review.';
-  function saved(ok) { savedEl.textContent = ok ? 'Saved on this device' : storageMsg; }
-  $('.cx-rstatus').addEventListener('click', e => {
-    const b = e.target.closest('button[data-s]'); if (!b) return;
-    const c = byId(shownId); if (!c || c.status === b.dataset.s) return;
-    const ps = F.pipelineStatus(c), s = b.dataset.s;
-    store.updateCandidate(c.id, { status: s, pipelineStatus: ps });
-    saved(persist.save(c.id, { status: s, pipelineStatus: ps }));
-    announce(`${c.name || c.id} marked ${s}.`);
-    const nb = $(`.cx-rstatus button[data-s="${CSS.escape(s)}"]`); if (nb) nb.focus();
   });
 
   // ---------- export ----------
@@ -394,7 +362,7 @@ export function mountCandidates(el, store) {
 
   // ---------- store wiring ----------
   let lastSel = store.get('selectedId');
-  store.on('candidates', () => { if (restoreNew()) return; renderList(); renderDetail(); });
+  store.on('candidates', () => { renderList(); renderDetail(); });
   store.on('filter', () => { syncControls(); renderList(); });
   store.on('selectedId', id => {
     if (id !== lastSel) {
@@ -405,10 +373,9 @@ export function mountCandidates(el, store) {
     if (id && byId(id)) focusId = id;
     renderList(); renderDetail();
   });
-  store.on('scan', () => { if (shownId) { const c = byId(shownId); if (c) drawCut(c); } });
+  store.on('scan', () => { if (shownId) { const c = byId(shownId); if (c) { drawCut(c); replay(cut, 'cx-tick'); } } });
   store.on('scans', () => { if (shownId) { const c = byId(shownId); if (c) drawCut(c); } });
 
-  restoreNew();
-  syncControls(); renderList(); renderDetail();
+  placeInsp(); syncControls(); renderList(); renderDetail();
   return { el: root };
 }

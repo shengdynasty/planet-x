@@ -22,11 +22,14 @@
     bottom: calc(env(safe-area-inset-bottom, 0px) + 86px);
     border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;
   }
+  #inspect { top: 150px; left: 16px; width: 300px; max-height: calc(100dvh - 240px); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
+  #inspect[hidden] { display: none; }
   @media (max-width: 860px) {
+    #inspect { display: none; }
     #fake-sky { right: 16px; }
     #log { display: none; }
     #announce { top: auto; bottom: 8px; }
-    #panel { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 36px); height: 56vh; max-height: 56vh; transform: translateY(calc(100% + 120px)); transition: transform .25s; }
+    #panel { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 36px); max-height: calc(100dvh - 160px); transform: translateY(calc(100% + 120px)); transition: transform .25s; }
     #panel.open { transform: none; }
   }
 </style>
@@ -48,6 +51,7 @@
   </div>
 </div>
 <aside class="hud glass open" id="panel" aria-label="Movers"></aside>
+<aside class="hud glass" id="inspect" aria-labelledby="cx-d-name" hidden></aside>
 <div id="announce" role="status" aria-live="polite"></div>
 <pre id="log" class="hud"></pre>
 

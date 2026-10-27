@@ -79,13 +79,9 @@ try {
   eq((await page.textContent('#panel .cx-count')).trim(), '2 of 6', 'count shows filtered total');
   await page.click('#panel .cx-filters > button[data-f="Matched"]');
   eq(await ids(page), ['c01', 'c02', 'c04'], 'Matched filter');
-  await page.click('#panel .cx-more');
-  ok(await page.isVisible('#cx-more-menu'), 'overflow menu opens');
-  await page.click('#cx-more-menu [data-f="Likely"]');
-  eq(await ids(page), ['c05'], 'Likely filter from overflow menu');
-  eq((await page.textContent('#panel .cx-more')).replace(/\s+/g, ' ').trim(), 'Likely ▾', 'overflow button shows the active filter');
-  await page.click('#panel .cx-more');
-  await page.click('#cx-more-menu [data-f="Rejected"]');
+  await page.click('#panel .cx-filters > button[data-f="Likely"]');
+  eq(await ids(page), ['c05'], 'Likely filter');
+  await page.fill('#panel .cx-q', 'zzz');
   ok(await page.isVisible('#panel .cx-empty'), 'empty state for an empty filter');
   ok(/Nothing matches/.test(await page.textContent('#panel .cx-empty')), 'empty state message');
   await page.click('#panel .cx-clear');
@@ -128,20 +124,20 @@ try {
   const fly = await page.evaluate(() => window.__events.filter(e => e[0] === 'flyto').pop());
   ok(await page.evaluate(n => window.__events.filter(e => e[0] === 'flyto').length === n + 1, nEv), 'Enter emits flyto');
   ok(fly && Math.abs(fly[1].ra - 4.55 * 15) < 1e-9 && fly[1].dec === 9.2, 'flyto at the active scan position (deg)');
-  await page.waitForTimeout(80);
-  ok(/Candidate 01 selected/.test(await page.textContent('#announce')), 'selection announced in #announce');
+  // announce is debounced 40 ms, and the software renderer can hold the main thread well past that
+  ok(await page.waitForFunction(() => /Candidate 01 selected/.test(document.getElementById('announce').textContent), null, { timeout: 3000 }).then(() => true, () => false), 'selection announced in #announce');
 
   // detail card
   await page.click('#cx-opt-c03');
   eq(await page.textContent('#cx-d-name'), 'Candidate 03', 'click selects; detail card shows');
-  ok(await page.isVisible('#panel .cx-dhead .cx-sim'), 'detail shows "Simulated"');
+  ok(await page.isVisible('.cx-insp .cx-dhead .cx-sim'), 'detail shows "Simulated"');
   eq(await page.textContent('#panel .cx-pos'), '16h 11m, +41.4°', 'position for active scan 3');
   await page.evaluate(() => window.__px.set('scan', 1));
   eq(await page.textContent('#panel .cx-pos'), '16h 06m, +41.0°', 'position follows store.scan');
-  eq(await page.textContent('#panel .cx-cutscan'), 'Scan 1 · May 2025', 'cutout label follows scan');
-  const px1 = await page.$eval('#panel .cx-cut', c => c.toDataURL());
+  eq(await page.textContent('.cx-cutscan'), 'Scan 1 · May 2025', 'cutout label follows scan');
+  const px1 = await page.$eval('.cx-cut', c => c.toDataURL());
   await page.evaluate(() => window.__px.set('scan', 2)); await page.evaluate(() => window.__px.set('scan', 1));
-  ok(px1 === await page.$eval('#panel .cx-cut', c => c.toDataURL()), 'cutout is deterministic');
+  ok(px1 === await page.$eval('.cx-cut', c => c.toDataURL()), 'cutout is deterministic');
   await page.evaluate(() => window.__px.set('scan', 3));
   ok(/over 3 scans/.test(await page.textContent('#panel .cx-shift')), 'shift over scans');
   eq(await page.textContent('#panel .cx-band'), '4.6 µm', 'peak band');
@@ -152,18 +148,12 @@ try {
   eq(await page.evaluate(() => window.__px.get('view')), 'compare', 'Open in Compare sets view');
   await page.evaluate(() => window.__px.set('view', 'sky'));
 
-  // review
-  eq(await page.$$eval('#panel .cx-rstatus button', b => b.map(x => x.textContent)), ['Candidate', 'Follow-up', 'Rejected'], 'review options for an unmatched mover');
-  await page.click('#panel .cx-rstatus button[data-s="Follow-up"]');
-  eq((await cand(page, 'c03')).status, 'Follow-up', 'status saved to store');
-  await page.waitForTimeout(80);
-  ok(/marked Follow-up/.test(await page.textContent('#announce')), 'status change announced');
-  eq(await page.textContent('#panel .cx-saved'), 'Saved on this device', 'saved indicator');
-  await page.click('#cx-opt-c05');
-  eq(await page.$$eval('#panel .cx-rstatus button', b => b.map(x => x.textContent)), ['Likely', 'Follow-up', 'Rejected'], 'pipeline status shown as an option for Likely');
-  await page.click('#panel .cx-rstatus button[data-s="Rejected"]');
-  eq((await cand(page, 'c05')).status, 'Rejected', 'Likely → Rejected');
-  ok(/pipeline: Likely/.test(await page.textContent('#panel .cx-status')), 'detail keeps the pipeline status visible');
+  // the whole card is visible without scrolling it
+  {
+    const m = await page.evaluate(() => { const d = document.querySelector('#panel .cx-detail'), a = document.querySelector('#panel .cx-actions').getBoundingClientRect(), p = document.querySelector('#panel').getBoundingClientRect(); return { over: d.scrollHeight - d.clientHeight, fits: a.bottom <= p.bottom + 1 }; });
+    ok(m.over <= 1 && m.fits, `card fits without scrolling (${JSON.stringify(m)})`);
+    ok(await page.$eval('#cx-opt-c03', li => { const l = li.parentElement.getBoundingClientRect(), r = li.getBoundingClientRect(); return r.top >= l.top - 1 && r.bottom <= l.bottom + 1; }), 'selected row stays in view when the list shrinks');
+  }
 
   // export: download CSV
   await page.click('#panel .cx-filters > button[data-f="all"]');
@@ -174,7 +164,7 @@ try {
   const rows = parseCSV(csv), head = rows[0];
   eq(rows.length, 7, 'CSV has header + 6 rows');
   const r3 = rows.find(r => r[0] === 'c03');
-  eq(r3[head.indexOf('status')], 'Follow-up', 'CSV has review status');
+  eq(r3[head.indexOf('status')], 'Candidate', 'CSV has the status');
   eq(r3[head.indexOf('simulated')], 'true', 'CSV marks simulated rows');
   ok(rows.find(r => r[0] === 'c01')[head.indexOf('note')] === 'Fast main‑belt mover. Cross‑matched to JPL’s catalog on the first pass.', 'plain fields unchanged');
 
@@ -184,8 +174,8 @@ try {
   await page.click('#cx-export-menu [data-x="copy"][data-fmt="json"]');
   await page.waitForTimeout(100);
   const js = JSON.parse(await page.evaluate(() => navigator.clipboard.readText()));
-  eq(js.candidates.map(c => c.id), ['c06'], 'JSON export follows the filter (c03 is now Follow-up)');
-  ok(js.count === 1 && js.filter.status === 'Candidate', 'JSON export metadata');
+  eq(js.candidates.map(c => c.id), ['c03', 'c06'], 'JSON export follows the filter');
+  ok(js.count === 2 && js.filter.status === 'Candidate', 'JSON export metadata');
 
   // export: clipboard failure → fallback dialog
   await page.evaluate(() => { navigator.clipboard.writeText = () => Promise.reject(new Error('blocked')); });
@@ -203,8 +193,13 @@ try {
   await page.click('#fake-sky [data-sel="c05"]');
   eq(await page.getAttribute('#cx-opt-c05', 'aria-selected'), 'true', 'external selectedId reflected in list');
   eq(await page.textContent('#cx-d-name'), 'Candidate 05', 'external selectedId reflected in detail');
+  ok(await page.isVisible('#inspect .cx-insp'), 'desktop: imagery and description open in the left window');
   await page.evaluate(() => window.__px.set('selectedId', null));
   ok(await page.isHidden('#panel .cx-detail'), 'deselect hides detail');
+  ok(await page.isHidden('#inspect'), 'deselect closes the left window');
+  await page.click('#cx-opt-c03');
+  await page.click('#inspect .cx-close');
+  ok(await page.isHidden('#inspect') && !(await page.evaluate(() => window.__px.get('selectedId'))), 'the window\'s close button deselects');
 
   // runtime-added candidate
   await page.click('#fake-sky #add');
@@ -213,25 +208,6 @@ try {
 
   // honesty
   ok(!/detection/i.test(await page.textContent('#panel')), 'panel never says "detection"');
-
-  // persistence across reload
-  await page.reload();
-  await page.waitForSelector('#panel [role="option"]');
-  eq((await cand(page, 'c03')).status, 'Follow-up', 'status restored after reload');
-  eq((await cand(page, 'c05')).status, 'Rejected', 'second status restored');
-  // a saved review for an id that arrives later is restored when it arrives
-  await page.evaluate(() => {
-    const all = JSON.parse(localStorage.getItem('planetx.review.v1'));
-    all.c07 = { status: 'Follow-up' };
-    localStorage.setItem('planetx.review.v1', JSON.stringify(all));
-  });
-  await page.click('#fake-sky #add');
-  const c7 = await cand(page, 'c07');
-  ok(c7.status === 'Follow-up', 'review restored for a candidate added later');
-  // revert to pipeline status
-  await page.click('#cx-opt-c03');
-  await page.click('#panel .cx-rstatus button[data-s="Candidate"]');
-  eq((await cand(page, 'c03')).status, 'Candidate', 'reviewer can revert to the pipeline status');
 
   eq(errors, [], 'no console errors (desktop)');
   await ctx.close();
@@ -246,9 +222,7 @@ try {
     await p.waitForSelector('#panel [role="option"]');
     eq((await ids(p)).length, 6, 'panel works when localStorage throws');
     await p.click('#cx-opt-c06');
-    await p.click('#panel .cx-rstatus button[data-s="Follow-up"]');
-    eq((await cand(p, 'c06')).status, 'Follow-up', 'status still updates the store');
-    ok(/Not saved/.test(await p.textContent('#panel .cx-saved')), 'says it could not save');
+    eq(await p.textContent('#cx-d-name'), 'Candidate 06', 'selection still works');
     eq(errs, [], 'no console errors when storage throws');
     await c.close();
   }
@@ -275,11 +249,9 @@ try {
         eq(small, [], `tap targets ≥ 40px at 390 (${scheme})`);
         const ov = await p.evaluate(() => { const d = document.querySelector('.cx'); return d.scrollWidth <= d.clientWidth + 1; });
         ok(ov, `no horizontal overflow at 390 (${scheme})`);
-        const scrolls = await p.$eval('#panel .cx-detail', d => getComputedStyle(d).overflowY === 'auto' && d.scrollHeight > d.clientHeight);
-        ok(scrolls, `detail card scrolls within the sheet (${scheme})`);
-        await p.$eval('#panel .cx-detail', d => { d.scrollTop = d.scrollHeight; });
-        const f2 = path.join(SHOTS, `${vp.name}-${scheme}-scrolled.png`);
-        await p.screenshot({ path: f2 }); console.log('  shot ' + f2);
+        ok(await p.$eval('#panel .cx-insp-slot .cx-insp', e => !!e) && await p.isHidden('#inspect'), `phone: imagery inside the sheet (${scheme})`);
+        const fit = await p.evaluate(() => { const d = document.querySelector('#panel .cx-detail'), a = document.querySelector('#panel .cx-actions').getBoundingClientRect(), pr = document.querySelector('#panel').getBoundingClientRect(); return { over: d.scrollHeight - d.clientHeight, fits: a.bottom <= pr.bottom + 1 }; });
+        ok(fit.over <= 1 && fit.fits, `card fits in the sheet without scrolling (${scheme}, ${JSON.stringify(fit)})`);
         // At 360 px too
         await p.setViewportSize({ width: 360, height: 740 });
         await p.waitForTimeout(300);
@@ -288,7 +260,7 @@ try {
         const f3 = path.join(SHOTS, `360-${scheme}.png`);
         await p.screenshot({ path: f3 }); console.log('  shot ' + f3);
       } else {
-        await p.click('#panel .cx-more');
+        await p.click('#panel .cx-export');
         const f4 = path.join(SHOTS, `${vp.name}-${scheme}-menu.png`);
         await p.screenshot({ path: f4, clip: { x: 900, y: 40, width: 380, height: 400 } }); console.log('  shot ' + f4);
       }

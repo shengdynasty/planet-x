@@ -27,6 +27,7 @@ Dev-server ports (avoid clashes): shell 8101, field 8102, data 8103, workflow 81
 `app/index.html` (shell) contains these empty mount points and loads every module's CSS:
 
 - `<aside id="panel">` — the right-hand Movers panel (bottom sheet on phones). **workflow** mounts into it.
+- `<aside id="inspect" hidden>` — left of the sky: the selected mover's imagery and description. **workflow** fills it on desktop (≥ 861 px) and shows it while a mover is selected; on phones that content sits inside the sheet instead.
 - `<section id="view-field" hidden>` — full-screen view like Compare. **field** mounts into it.
 - `<section id="view-compare" hidden>` — Compare (shell's own).
 - `#stage` sky canvas, top bar, timeline, zoom controls, help sheet, toast, `#announce` live region — shell.

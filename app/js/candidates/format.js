@@ -9,8 +9,6 @@ export const FILTERS = [
   { id: 'Candidate', label: 'Unmatched' },
   { id: 'Matched', label: 'Matched' },
   { id: 'Likely', label: 'Likely' },
-  { id: 'Follow-up', label: 'Follow-up' },
-  { id: 'Rejected', label: 'Rejected' },
 ];
 export const SORTS = [
   { id: 'id', label: 'Id' },
