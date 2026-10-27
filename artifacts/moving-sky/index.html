@@ -74,10 +74,11 @@ canvas.sky{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .rail{display:flex;flex-direction:column;gap:12px}
 .block{padding:14px}
 .block h2{font-size:13px;font-weight:500;margin:0 0 8px}
-.epochs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
-@media (min-width:600px) and (max-width:880px){.epochs{grid-template-columns:repeat(8,1fr)}}
-.epochs button{border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:6px 2px;font-size:12px;cursor:pointer;line-height:1.2;color:var(--muted);min-height:44px;white-space:nowrap}
-.epochs button small{display:block;font-size:10.5px;opacity:.8}
+.epochs{display:flex;flex-wrap:wrap;gap:5px}
+.epochs button{border:1px solid var(--line);background:var(--panel-2);border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;line-height:1.2;color:var(--muted);min-height:40px;white-space:nowrap;transition:background-color .15s,color .15s,border-color .15s}
+.epochs button:hover{color:var(--ink);border-color:var(--muted)}
+.epochs button small{font-size:11px;opacity:.75;margin-left:5px}
+.epochs button.other{border-style:dashed} /* taken at another wavelength: can be looked at, not compared */
 .epochs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .epochs button[aria-pressed="true"] small{opacity:.9}
 .rowlab{font-size:13px;color:var(--muted);margin:8px 0 4px}
@@ -109,7 +110,7 @@ ul.dets li button[aria-pressed="true"]{border-color:var(--accent);box-shadow:ins
 .note h2{font-size:13px;font-weight:500;color:var(--ink);margin:0 0 6px}
 .note p{margin:6px 0}
 code{font-size:13px;background:var(--panel-2);padding:1px 5px;border-radius:4px}
-@media (pointer:coarse){.seg button,.warn button{min-height:44px}.stretch input{height:44px}}
+@media (pointer:coarse){.seg button,.warn button,.epochs button{min-height:44px}.stretch input{height:44px}}
 @media (max-width:640px), (pointer:coarse){
   .stage{aspect-ratio:auto}
   canvas.sky{height:auto;aspect-ratio:1/1}
@@ -126,7 +127,7 @@ code{font-size:13px;background:var(--panel-2);padding:1px 5px;border-radius:4px}
   <p class="sub">Compare two passes of the infrared sky and find what moved.</p>
   <span class="badge">Simulated field</span>
 </header>
-<p class="lead">SPHEREx re-maps the whole sky every six months. Asteroids, comets, brown dwarfs and any undiscovered planet show up only as things that change position between images. Pick a reference pass and a comparison pass, blink them, and the detector flags every source that moved, appeared, vanished or brightened — then checks each one against the known-object ephemeris.</p>
+<p class="lead">SPHEREx re-maps the whole sky every six months. Asteroids, comets, brown dwarfs and any undiscovered planet show up only as things that change position between images. Pick a later pass to compare with the first, blink them, and the detector flags every source that moved, appeared, vanished or brightened — then checks each one against the known-object ephemeris.</p>
 
 <div class="grid">
   <section class="panel viewer" aria-label="Sky viewer">
@@ -138,11 +139,11 @@ code{font-size:13px;background:var(--panel-2);padding:1px 5px;border-radius:4px}
       </div>
       <div class="seg" role="group" aria-label="Overlays">
         <button id="o-marks" aria-pressed="true">Flags</button>
-        <button id="o-known" aria-pressed="false">Known objects</button>
+        <button id="o-known" aria-pressed="false">Known</button>
       </div>
       <div class="seg" id="flipwrap" hidden><button id="flip">Show comparison</button></div>
       <span class="spacer"></span>
-      <label class="stretch">Stretch <input id="stretch" type="range" min="0.3" max="3" step="0.05" value="1"></label>
+      <label class="stretch">Contrast <input id="stretch" type="range" min="0.3" max="3" step="0.05" value="1"></label>
     </div>
     <div class="stage">
       <canvas class="sky" id="sky" width="640" height="640" role="img" aria-label="Infrared sky image, false colour. Flagged sources are listed under Detections; select one there to vet it." aria-describedby="flash"></canvas>
@@ -154,10 +155,8 @@ code{font-size:13px;background:var(--panel-2);padding:1px 5px;border-radius:4px}
 
   <aside class="rail">
     <div class="panel block">
-      <h2>Observations of this field</h2>
-      <div class="rowlab" id="labA">Reference pass</div>
-      <div class="epochs" id="epA" role="group" aria-labelledby="labA"></div>
-      <div class="rowlab" id="labB">Compare with</div>
+      <h2>Passes over this field</h2>
+      <div class="rowlab" id="labB">Compare the first pass (0 d, 0.95 µm) with</div>
       <div class="epochs" id="epB" role="group" aria-labelledby="labB"></div>
       <div class="baseline" id="baseline"></div>
       <div class="vh" id="announce" role="status" aria-live="polite"></div>
@@ -348,11 +347,13 @@ function setTimer(){ clearInterval(timer); timer=null; if(mode==='blink' && !red
 const spokenT = l => l.replace(/(\d+) (d|h|min)$/,(_,n,u)=>`${n} ${{d:'day',h:'hour',min:'minute'}[u]}${n==='1'?'':'s'}`);
 function announce(msg){ document.getElementById('announce').textContent=msg; }
 function announceSel(){ announce(selected? `Selected: ${selected.title}. ${selected.detail}` : 'Selection cleared'); }
+// one row of the later passes; the reference is always the first pass (A = 0)
 function epochButtons(id, get, set){ const el=document.getElementById(id);
-  if (!el.children.length) EPOCHS.forEach((e,i)=>{ const b=document.createElement('button'); b.innerHTML=`${e.label}<small>${e.sub}</small>`; b.setAttribute('aria-label',`${spokenT(e.label)}, ${e.band} µm`); b.addEventListener('click',()=>{ set(i); update(); }); el.appendChild(b); });
-  [...el.children].forEach((b,i)=>b.setAttribute('aria-pressed',String(get()===i))); }
+  if (!el.children.length) EPOCHS.forEach((e,i)=>{ if (i===A) return; const other=e.band!==EPOCHS[A].band, b=document.createElement('button'); b.dataset.i=i; b.className=other?'other':'';
+    b.innerHTML = other? `${e.label}<small>${e.sub}</small>` : e.label; b.setAttribute('aria-label',`${spokenT(e.label)}, ${e.band} µm`); b.addEventListener('click',()=>{ set(i); update(); }); el.appendChild(b); });
+  [...el.children].forEach(b=>b.setAttribute('aria-pressed',String(get()===+b.dataset.i))); }
 function update(){
-  epochButtons('epA',()=>A,i=>A=i); epochButtons('epB',()=>B,i=>B=i);
+  epochButtons('epB',()=>B,i=>B=i);
   const a=EPOCHS[A], b=EPOCHS[B], dt=Math.abs(b.t-a.t), matched=a.band===b.band;
   const baseTxt = A===B? 'Pick two different passes.' : `Baseline ${fmtDt(dt)} · ${matched?`both at ${a.band} µm`:`${a.band} vs ${b.band} µm`}`, bl=document.getElementById('baseline');
   if (bl.textContent!==baseTxt){ bl.textContent=baseTxt; announce(`Reference ${spokenT(a.label)}, compare ${spokenT(b.label)}. ${baseTxt}`); }

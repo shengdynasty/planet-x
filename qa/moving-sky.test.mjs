@@ -52,24 +52,16 @@ ok(fmt.map(f => f[1]).join('|') === '2.4 min|10.1 h|1.0 d|2.0 d|181 d|183 d|366 
 ok(fmt[2][2] === '100.0″/day' && fmt[5][2] === '10.15°/yr' && fmt[1][2] === '4.2″/h', 'fmtRate units follow fmtDt');
 
 // ---------- 2. interactions ----------
-const btn = (grp, i) => p.locator(`#${grp} button`).nth(i);
-const pressedB = () => p.evaluate(() => [...document.querySelectorAll('#epB button')].findIndex(x => x.getAttribute('aria-pressed') === 'true'));
+const btn = (grp, i) => p.locator(`#${grp} button[data-i="${i}"]`); // i = index into EPOCHS
+const pressedB = () => p.evaluate(() => { const b = document.querySelector('#epB button[aria-pressed="true"]'); return b ? +b.dataset.i : -1; });
 const det = () => p.locator('#dets li').allInnerTexts();
 await p.screenshot({ path: OUT + '/01-default.png', fullPage: true });
-await btn('epB', 0).click();
-ok((await p.textContent('#baseline')).includes('Pick two different'), 'A===B baseline message');
-ok((await det()).join().includes('Choose a comparison pass'), 'A===B empty list text');
 await btn('epB', 2).click();
 ok(await p.locator('#warn.on').count() === 1, 'mismatch warning shown');
 await p.click('#warn button');
 ok(await pressedB() === 1, 'nearest-match from 0 d/+10 h picks +2 min');
-await btn('epA', 2).click(); await btn('epB', 5).click();   // reference is the only 1.62 µm pass
-if (await p.locator('#warn button').count()) await p.click('#warn button');
-ok(await pressedB() >= 0, 'B never becomes -1 when no matching pass exists');
-ok(errs.length === 0, 'no page errors after no-match case: ' + errs.join(' | '));
-await p.screenshot({ path: OUT + '/02-nomatch.png' });
-
-await btn('epA', 0).click(); await btn('epB', 5).click();
+ok(await p.$$eval('#epB button', b => b.length) === 7 && await p.$$eval('#epB button.other', b => b.length) === 2, 'one row: the 7 later passes, the 2 other-wavelength ones marked');
+await btn('epB', 5).click();
 const items = await det(); const ci = items.findIndex(t => t.includes('Uncatalogued mover'));
 ok(ci >= 0, 'candidate listed for 0 d vs +183 d');
 await p.locator('#dets button').nth(Math.max(ci, 0)).click();

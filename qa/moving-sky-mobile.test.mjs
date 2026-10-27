@@ -169,7 +169,7 @@ for (const [vname, vopts] of VIEWS) for (const theme of ['light', 'dark']) {
 {
   const { ctx, page } = await open(urlCur);
   const a = await page.evaluate(() => ({
-    epLabels: [...document.querySelectorAll('#epA button')].map(b => b.getAttribute('aria-label')),
+    epLabels: [...document.querySelectorAll('#epB button')].map(b => b.getAttribute('aria-label')),
     groups: [...document.querySelectorAll('.epochs')].map(g => g.getAttribute('aria-labelledby') ? document.getElementById(g.getAttribute('aria-labelledby')).textContent : g.getAttribute('aria-label')),
     warnLive: document.getElementById('warn').closest('[role=status],[role=alert],[aria-live]') !== null,
     baseLive: document.getElementById('baseline').closest('[aria-live]') !== null || !!document.getElementById('announce'),
@@ -181,12 +181,12 @@ for (const [vname, vopts] of VIEWS) for (const theme of ['light', 'dark']) {
   check(a.baseLive, 'baseline change has a polite live region');
   check(a.canvasRole === 'img', 'canvas exposed as role=img');
   // keyboard: activate an epoch button with Enter; focus should stay on it and the change be announced
-  await page.locator('#epB button').nth(7).focus(); await page.keyboard.press('Enter');
-  const k = await page.evaluate(() => ({ idx: [...document.querySelectorAll('#epB button')].indexOf(document.activeElement),
+  await page.locator('#epB button[data-i="7"]').focus(); await page.keyboard.press('Enter');
+  const k = await page.evaluate(() => ({ idx: +(document.activeElement.dataset.i ?? -1),
     live: document.getElementById('announce')?.textContent }));
   check(k.idx === 7, `focus stays on the activated epoch button (index ${k.idx})`);
   check(/Baseline/.test(k.live || ''), `baseline announced ("${k.live}")`);
-  await page.locator('#epB button').nth(6).focus(); await page.keyboard.press('Enter');
+  await page.locator('#epB button[data-i="6"]').focus(); await page.keyboard.press('Enter');
   const w = await page.evaluate(() => document.getElementById('announce')?.textContent);
   console.log('      mismatch announcement:', w);
   // tab order (first 12 stops)
