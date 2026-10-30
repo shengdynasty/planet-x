@@ -4,7 +4,7 @@
 //   listens 'flyto' {ra (DEGREES), dec (deg), fov?}
 /* global THREE */
 import { toXYZ, yawPitchFor, raDecOf, unwrap } from './coords.js';
-import { shortId, matches, posAt, observed, hasPos } from '../candidates/format.js';
+import { shortId, designation, matches, posAt, observed, hasPos } from '../candidates/format.js';
 import { createBackdrop, makeRng, isLowEnd } from './backdrop.js';
 import { VIEW } from './config.js';
 
@@ -95,19 +95,30 @@ export function mountSky(el, store, opts = {}) {
   const markerGroup = new THREE.Group(); scene.add(markerGroup);
   const trackGroup = new THREE.Group(); scene.add(trackGroup);
   const texCache = new Map();
-  function reticleTex(label, filled) {
-    const key = label + (filled ? '*' : '');
+  // Marker texture: reticle at (64,64) — tests look for the filled dot there — then the list number in bold and the
+  // object's name after it. TEX_W × 128, drawn by a sprite of the same aspect, anchored on the reticle centre.
+  const TEX_W = 1280, FONT = 'Inter, Helvetica, Arial, sans-serif';
+  function reticleTex(label, name, filled) {
+    const key = label + '\u0000' + name + (filled ? '*' : '');
     if (texCache.has(key)) return texCache.get(key);
-    const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d');
-    g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 6;
+    const c = document.createElement('canvas'); c.width = TEX_W; c.height = 128; const g = c.getContext('2d');
+    g.shadowColor = 'rgba(0,0,0,.7)'; g.shadowBlur = 8;
     g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(64, 64, 22, 0, Math.PI * 2); g.stroke();
     if (filled) { g.fillStyle = '#fff'; g.beginPath(); g.arc(64, 64, 7, 0, Math.PI * 2); g.fill(); }
-    g.fillStyle = '#fff'; g.font = '500 30px Inter, Helvetica, Arial, sans-serif'; g.textBaseline = 'middle'; g.fillText(label, 100, 64);
+    g.textBaseline = 'middle'; g.fillStyle = '#fff';
+    g.font = `600 62px ${FONT}`; g.fillText(label, 104, 64);
+    if (name) {
+      let x = 104 + g.measureText(label).width + 22, txt = name;
+      g.font = `400 62px ${FONT}`; g.fillStyle = 'rgba(255,255,255,.92)';
+      while (txt.length > 1 && x + g.measureText(txt).width > TEX_W - 8) txt = txt.slice(0, -2).trimEnd() + '…'; // keep inside the texture
+      g.fillText(txt, x, 64);
+    }
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; texCache.set(key, t);
     return t;
   }
   const labelOf = c => shortId(c); // same short label as the Movers list ('03', or 'F' for a Field-added candidate)
-  /** @type {Map<string, {sprite: THREE.Sprite, track: THREE.Group, c: object, label: string, here: boolean}>} */
+  const nameOf = c => designation(c); // the object's own name ('2003 UB', '16 Psyche', 'slow mover')
+  /** @type {Map<string, {sprite: THREE.Sprite, track: THREE.Group, c: object, label: string, name: string, here: boolean}>} */
   let markers = new Map();
   function disposeGroup(g) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && !o.material.map) o.material.dispose(); }); g.clear(); }
   function buildMarkers() {
@@ -118,15 +129,15 @@ export function mountSky(el, store, opts = {}) {
     const ptMat = new THREE.PointsMaterial({ color: 0xffffff, size: 4, sizeAttenuation: false, transparent: true, opacity: 0.6 });
     (store.get('candidates') || []).forEach(c => {
       if (!hasPos(c)) return;
-      const label = labelOf(c);
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: reticleTex(label, false), transparent: true, depthWrite: false, depthTest: false }));
-      s.center.set(0.25, 0.5); s.userData.id = c.id; markerGroup.add(s);
+      const label = labelOf(c), name = nameOf(c);
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: reticleTex(label, name, false), transparent: true, depthWrite: false, depthTest: false }));
+      s.center.set(64 / TEX_W, 0.5); s.userData.id = c.id; markerGroup.add(s);
       const pts = observed(c).map(p => v3(p[0], p[1], R_MARK)); // scans without a position are skipped
       const tg = new THREE.Group();
       if (pts.length > 1) tg.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
       tg.add(new THREE.Points(new THREE.BufferGeometry().setFromPoints(pts), ptMat));
       trackGroup.add(tg);
-      markers.set(c.id, { sprite: s, track: tg, c, label, here: true });
+      markers.set(c.id, { sprite: s, track: tg, c, label, name, here: true });
     });
     placeMarkers();
   }
@@ -139,10 +150,10 @@ export function mountSky(el, store, opts = {}) {
   const visibleByFilter = c => matches(c, store.get('filter') || {}); // status filter and search, exactly as the list
   function styleMarkers() {
     const sel = store.get('selectedId'), layers = store.get('layers') || {};
-    markers.forEach(({ sprite, track, c, label, here }) => {
+    markers.forEach(({ sprite, track, c, label, name, here }) => {
       const show = visibleByFilter(c);
       sprite.visible = show && here; track.visible = show && !!layers.tracks;
-      const map = reticleTex(label, c.id === sel);
+      const map = reticleTex(label, name, c.id === sel);
       if (sprite.material.map !== map) { sprite.material.map = map; sprite.material.needsUpdate = true; }
       sprite.renderOrder = c.id === sel ? 2 : 1;
     });
@@ -269,7 +280,7 @@ export function mountSky(el, store, opts = {}) {
     const { raH, decD } = raDecOf([dir.x, dir.y, dir.z]);
     onView({ raH, decD, fov: camera.fov });
     const sc = camera.fov / 60;
-    markerGroup.children.forEach(s => s.scale.set(52 * sc, 26 * sc, 1)); // a touch larger than the demo: the real map is busier
+    markerGroup.children.forEach(s => s.scale.set(36 * (TEX_W / 128) * sc, 36 * sc, 1)); // same aspect as the texture; 36 units tall ≈ 25 px type on an 800 px view
     renderer.render(scene, camera); frames++;
     settled = !moving;
     dirty = false;
@@ -289,6 +300,8 @@ export function mountSky(el, store, opts = {}) {
     markerScreen(id) { const m = markers.get(id); if (!m || !m.sprite.visible) return null; camera.updateMatrixWorld(); return screenOf(m.sprite); },
     /** The label drawn next to a candidate's marker (same as the list's short id), or null if it has no marker. */
     markerLabel(id) { const m = markers.get(id); return m ? m.label : null; },
+    /** The object's name drawn after the number, or null if it has no marker. */
+    markerName(id) { const m = markers.get(id); return m ? m.name : null; },
     /** Whether a candidate's marker is shown (filter + search + observed in the current scan), wherever the camera is. */
     markerShown(id) { const m = markers.get(id); return !!(m && m.sprite.visible); },
     ready: backdrop.ready,

@@ -72,11 +72,13 @@ export function drawOverlay(canvas, o) {
   g.clearRect(0, 0, W, W);
   const S = W / o.N, P = (v) => (v + 0.5) * S;
   const k = Math.max(0.75, Math.min(1.25, css / 640)) * dpr;   // marker scale: readable on phones, not huge on big screens
-  const fs = Math.round(11 * Math.max(0.95, Math.min(1.15, css / 640)) * dpr);
-  if (o.showKnown) for (const [x, y] of o.knownPts) {
+  const fs = Math.round(13 * Math.max(0.95, Math.min(1.15, css / 640)) * dpr);
+  // Ephemeris circles carry the object's name (knownPts: [x, y] or {x, y, name}).
+  if (o.showKnown) for (const q of o.knownPts) {
+    const x = Array.isArray(q) ? q[0] : q.x, y = Array.isArray(q) ? q[1] : q.y, name = (Array.isArray(q) ? '' : q.name) || 'Ephemeris';
     if (x < -5) continue; g.setLineDash([4 * k, 4 * k]); g.lineWidth = 1.5 * k; g.strokeStyle = MARK.known.col;
     g.beginPath(); g.arc(P(x), P(y), 14 * k, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
-    label(g, 'Ephemeris', P(x) - 14 * k, P(y) + 22 * k, MARK.known.col, fs);
+    g.textAlign = 'left'; label(g, name, P(x) - 14 * k, P(y) + 22 * k, MARK.known.col, fs);
   }
   if (!o.showMarks) return;
   for (const r of o.results) {
@@ -88,9 +90,12 @@ export function drawOverlay(canvas, o) {
     }
     g.setLineDash(m.dash.map(v => v * k)); shape(g, r.kind, P(r.x), P(r.y), rr); g.stroke(); g.setLineDash([]);
     if (r === o.selected) { g.lineWidth = 1.5 * k; g.strokeStyle = '#fff'; g.beginPath(); g.arc(P(r.x), P(r.y), 19 * k, 0, Math.PI * 2); g.stroke(); }
-    const lx = P(r.x) + rr + 5 * k, flip = lx + 70 * k > W;   // keep labels inside the image
+    // Known objects are labelled with their name ('Known · 16 Psyche'); other kinds with the kind.
+    const text = r.kind === 'known' && r.obj && r.obj.name ? `Known · ${r.obj.name}` : m.label;
+    g.font = `600 ${fs}px Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
+    const lx = P(r.x) + rr + 5 * k, flip = lx + g.measureText(text).width + 4 * k > W;   // keep labels inside the image
     g.textAlign = flip ? 'right' : 'left';
-    label(g, m.label, flip ? P(r.x) - rr - 5 * k : lx, P(r.y) - rr * 0.6, m.col, fs);
+    label(g, text, flip ? P(r.x) - rr - 5 * k : lx, P(r.y) - rr * 0.6, m.col, fs);
     g.textAlign = 'left';
   }
 }

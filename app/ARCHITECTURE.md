@@ -31,6 +31,9 @@ Dev-server ports (avoid clashes): shell 8101, field 8102, data 8103, workflow 81
 - `<section id="view-field" hidden>` — full-screen view like Compare. **field** mounts into it.
 - `<section id="view-compare" hidden>` — Compare (shell's own).
 - `#stage` sky canvas, top bar, timeline, zoom controls, help sheet, toast, `#announce` live region — shell.
+  Sky markers are labelled with the list number **and the object's name** (`designation(c)` in `candidates/format.js`:
+  the live match, else the part of the tag after ' · ' without the placeholder note, else the short tag). Field markers
+  label known objects `Known · <name>` and ephemeris circles with the name.
 
 `app/js/main.js` (shell) boots in this order:
 ```js

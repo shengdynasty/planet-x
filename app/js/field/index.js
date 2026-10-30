@@ -430,7 +430,7 @@ export function mountField(el, store) {
     if (!W) return;
     if (ov.width !== W) { ov.width = ov.height = W; }
     const matched = field.epochs[A].band === field.epochs[B].band;
-    const knownPts = []; for (const t of lastKnownT) for (const k of field.known || []) { const q = k.pos(t); if (q) knownPts.push(q); }
+    const knownPts = []; for (const t of lastKnownT) for (const k of field.known || []) { const q = k.pos(t); if (q) knownPts.push({ x: q[0], y: q[1], name: k.name }); }
     drawOverlay(ov, { N: field.N, dpr, results: matched ? results : [], selected, showMarks, showKnown, knownPts });
   }
   function syncFlip() {

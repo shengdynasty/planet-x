@@ -89,6 +89,12 @@ export const shortTag = c => String(c.tag || c.name || c.id).split(' · ')[0];
 /** Two-digit number shown in the list, from the id ('c03' → '03'). */
 // Pipeline candidates are c01, c02…; ones added from the Field view have position ids (f-70.4235+19.2830) and show as "F".
 export const shortId = c => { const m = String(c.id).match(/^c(\d+)$/); return m ? pad2(+m[1]) : String(c.id).startsWith('f-') ? 'F' : String(c.id); };
+/** The object's own name for a sky marker: the live match ('16 Psyche'), else the designation after ' · ' in the tag
+ *  ('Known asteroid · 2003 UB (placeholder)' → '2003 UB', 'Unmatched · slow mover' → 'slow mover'), else the short tag. */
+export const designation = c => {
+  const d = String(c.match || String(c.tag || '').split(' · ')[1] || '').replace(/\s*\(placeholder\)\s*$/i, '').trim();
+  return d || shortTag(c);
+};
 
 export function matches(c, f) {
   if (f.status && f.status !== 'all' && c.status !== f.status) return false;
