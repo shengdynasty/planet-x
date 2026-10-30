@@ -156,7 +156,7 @@ code{font-size:13px;background:var(--panel-2);padding:1px 5px;border-radius:4px}
   <aside class="rail">
     <div class="panel block">
       <h2>Passes over this field</h2>
-      <div class="rowlab" id="labB">Compare the first pass (0 d, 0.95 µm) with</div>
+      <div class="rowlab" id="labB">Compare Pass 1 (0.95 µm) with</div>
       <div class="epochs" id="epB" role="group" aria-labelledby="labB"></div>
       <div class="baseline" id="baseline"></div>
       <div class="vh" id="announce" role="status" aria-live="polite"></div>
@@ -318,7 +318,7 @@ function render(){
   const fa=frame(A), fb=frame(B), matched=EPOCHS[A].band===EPOCHS[B].band;
   const flash=document.getElementById('flash');
   let knownT;
-  if (mode==='blink'){ const showB=blinkPhase%2===1; shown=showB?fb:fa; drawImage(shown,false); flash.textContent=showB?`Compare · ${EPOCHS[B].label}`:`Reference · ${EPOCHS[A].label}`; knownT=[EPOCHS[showB?B:A].t]; }
+  if (mode==='blink'){ const showB=blinkPhase%2===1; shown=showB?fb:fa; drawImage(shown,false); flash.textContent=showB?`Compare · ${NAME(B)}`:`Reference · ${NAME(A)}`; knownT=[EPOCHS[showB?B:A].t]; }
   else if (mode==='diff'){ const key=A+','+B; if(diffCache.key!==key){ const d=new Float32Array(N*N); for(let p=0;p<N*N;p++) d[p]=fb[p]-fa[p]; diffCache={key,d}; } shown=diffCache.d; drawImage(shown,true); flash.textContent='Compare − Reference'; knownT=[EPOCHS[A].t,EPOCHS[B].t]; }
   else { // stack the reference-band passes inside the chosen baseline, so the trail matches the flagged pair
     const band=EPOCHS[A].band, lo=Math.min(EPOCHS[A].t,EPOCHS[B].t), hi=Math.max(EPOCHS[A].t,EPOCHS[B].t); const key=band+','+lo+','+hi; let c=stackCache.get(key);
@@ -326,7 +326,7 @@ function render(){
       EPOCHS.forEach((e,i)=>{ if(e.band!==band||e.t<lo||e.t>hi) return; ts.push(e.t); const f=frame(i); for(let p=0;p<N*N;p++) if(f[p]>st[p]) st[p]=f[p]; });
       stackCache.set(key,c={st,ts}); }
     const st=c.st; knownT=c.ts.slice();
-    shown=st; drawImage(st,false); const n=knownT.length, [e0,e1]=EPOCHS[A].t<=EPOCHS[B].t?[A,B]:[B,A]; flash.textContent=`Max-stack of ${n} pass${n===1?'':'es'} at ${band} µm, ${EPOCHS[e0].label} to ${EPOCHS[e1].label}`; }
+    shown=st; drawImage(st,false); const n=knownT.length, [e0,e1]=EPOCHS[A].t<=EPOCHS[B].t?[A,B]:[B,A]; flash.textContent=`Max-stack of ${n} pass${n===1?'':'es'} at ${band} µm, ${NAME(e0)} to ${NAME(e1)}`; }
   if (showKnown){ for(const t of knownT) for(const k of KNOWN){ const [x,y]=k.pos(t); if(x>-5) circle(x,y,13,colorFor('known'),[4,4]); } }
   if (showMarks && matched){ for(const r of results){ const col=colorFor(r.kind);
       if (r.to){ circle(r.to.x,r.to.y,r.kind==='cand'?11:9,col,r.kind==='art'?[3,3]:[]); }
@@ -345,22 +345,23 @@ function setTimer(){ clearInterval(timer); timer=null; if(mode==='blink' && !red
 
 // ---------- UI ----------
 const spokenT = l => l.replace(/(\d+) (d|h|min)$/,(_,n,u)=>`${n} ${{d:'day',h:'hour',min:'minute'}[u]}${n==='1'?'':'s'}`);
+const NAME = i => `Pass ${i+1}`; // short pass names; the offset lives in the tooltip and the baseline line
 function announce(msg){ document.getElementById('announce').textContent=msg; }
 function announceSel(){ announce(selected? `Selected: ${selected.title}. ${selected.detail}` : 'Selection cleared'); }
 // one row of the later passes; the reference is always the first pass (A = 0)
 function epochButtons(id, get, set){ const el=document.getElementById(id);
   if (!el.children.length) EPOCHS.forEach((e,i)=>{ if (i===A) return; const other=e.band!==EPOCHS[A].band, b=document.createElement('button'); b.dataset.i=i; b.className=other?'other':'';
-    b.innerHTML = other? `${e.label}<small>${e.sub}</small>` : e.label; b.setAttribute('aria-label',`${spokenT(e.label)}, ${e.band} µm`); b.addEventListener('click',()=>{ set(i); update(); }); el.appendChild(b); });
+    b.innerHTML = other? `${NAME(i)}<small>${e.sub}</small>` : NAME(i); b.title = `${e.label} · ${e.sub}`; b.setAttribute('aria-label',`${NAME(i)}, ${spokenT(e.label)}, ${e.band} µm`); b.addEventListener('click',()=>{ set(i); update(); }); el.appendChild(b); });
   [...el.children].forEach(b=>b.setAttribute('aria-pressed',String(get()===+b.dataset.i))); }
 function update(){
   epochButtons('epB',()=>B,i=>B=i);
   const a=EPOCHS[A], b=EPOCHS[B], dt=Math.abs(b.t-a.t), matched=a.band===b.band;
   const baseTxt = A===B? 'Pick two different passes.' : `Baseline ${fmtDt(dt)} · ${matched?`both at ${a.band} µm`:`${a.band} vs ${b.band} µm`}`, bl=document.getElementById('baseline');
-  if (bl.textContent!==baseTxt){ bl.textContent=baseTxt; announce(`Reference ${spokenT(a.label)}, compare ${spokenT(b.label)}. ${baseTxt}`); }
+  if (bl.textContent!==baseTxt){ bl.textContent=baseTxt; announce(`Reference ${NAME(A)}, compare ${NAME(B)}. ${baseTxt}`); }
   const warn=document.getElementById('warn');
   if (!matched){ warn.className='warn on'; warn.innerHTML=`<span>These passes were taken at different wavelengths (${a.band} and ${b.band} µm). Blinking them shows colour differences, not motion, so detection is off.</span>`;
     let best=-1,bd=1e9; EPOCHS.forEach((e,i)=>{ if(i!==A&&e.band===a.band&&Math.abs(e.t-b.t)<bd){bd=Math.abs(e.t-b.t);best=i;} });
-    if (best>=0){ const btn=document.createElement('button'); btn.textContent=`Compare with ${EPOCHS[best].label} instead`; btn.title='Nearest pass in time at the reference wavelength'; btn.addEventListener('click',()=>{ B=best; update(); }); warn.appendChild(btn); }
+    if (best>=0){ const btn=document.createElement('button'); btn.textContent=`Compare with ${NAME(best)} instead`; btn.title='Nearest pass in time at the reference wavelength'; btn.addEventListener('click',()=>{ B=best; update(); }); warn.appendChild(btn); }
     else warn.insertAdjacentHTML('beforeend',`<span>No other pass of this field was taken at ${a.band} µm, so pick a different reference.</span>`);
     results=[]; }
   else { warn.className='warn'; warn.innerHTML=''; results = A===B? [] : analyse(A,B); }
@@ -401,7 +402,7 @@ function renderVet(){ const p=document.getElementById('vetpanel'); if(!selected)
   rows.push(['Verdict', {cand:'Worth a follow-up: not in catalogue, PSF-shaped, consistent two-epoch motion. Needs a third epoch and an orbit fit before it is anything.', known:'Identified. Position agrees with the ephemeris.', var:'Photometric variable, not a mover.', art:'Reject. Single-frame, not PSF-shaped.', left:'Known object no longer inside the cutout.'}[r.kind]]);
   kv.innerHTML=rows.map(([k,v])=>`<div>${k}</div><div>${v}</div>`).join('');
   stamp('stA',frame(A),r.from?r.from.x:r.x,r.from?r.from.y:r.y); stamp('stB',frame(B),r.to?r.to.x:r.x,r.to?r.to.y:r.y);
-  document.getElementById('capA').textContent=`Reference ${EPOCHS[A].label}, 15×15 px`; document.getElementById('capB').textContent=`Compare ${EPOCHS[B].label}, 15×15 px`;
+  document.getElementById('capA').textContent=`Reference ${NAME(A)}, 15×15 px`; document.getElementById('capB').textContent=`Compare ${NAME(B)}, 15×15 px`;
   const svg=document.getElementById('spec'); const kind=r.kind==='known'?'asteroid':r.kind==='cand'?'ice':'star';
   const pts=spectrum(kind); const mx=Math.max(...pts.map(p=>p[1]));
   const X=l=>20+(l-0.75)/4.25*300, Y=v=>100-v/mx*85;

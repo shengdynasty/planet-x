@@ -111,7 +111,8 @@ const noHScroll = p => p.evaluate(() => { const v = document.querySelector('.fv'
   await ep(p, 'epA', 0).click(); await ep(p, 'epB', 5).click();
   for (const m of ['diff', 'track', 'blink']) { await p.click(`[data-mode="${m}"]`); ok(await p.getAttribute(`[data-mode="${m}"]`, 'aria-pressed') === 'true', m + ' pressed'); }
   await p.click('[data-mode="track"]');
-  ok(/Max-stack of 5 passes at 0\.95 µm, 0 d to \+183 d/.test(await p.locator('[data-ref="flash"]').innerText()), 'track label');
+  ok(/Max-stack of 5 passes at 0\.95 µm, Pass 1 to Pass 6/.test(await p.locator('[data-ref="flash"]').innerText()), 'track label');
+  ok(await p.evaluate(() => [...document.querySelectorAll('[data-ref="epA"] button')].map(b => b.firstChild.textContent).join(',')) === 'Pass 1,Pass 2,Pass 3,Pass 4,Pass 5,Pass 6,Pass 7,Pass 8', 'passes have short names');
   await p.screenshot({ path: OUT + '/desktop-track.png' });
   await p.click('[data-act="known"]'); ok(await p.getAttribute('[data-act="known"]', 'aria-pressed') === 'true', 'known toggle');
   await p.click('[data-act="marks"]'); ok(await p.getAttribute('[data-act="marks"]', 'aria-pressed') === 'false', 'flags toggle');

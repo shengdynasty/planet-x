@@ -88,7 +88,7 @@ ok((await p.textContent('#readout')).match(/Pixel \d+, \d+Value -?\d/), 'hover r
 for (const m of ['m-diff', 'm-track', 'm-blink']) { await p.click('#' + m); ok(await p.getAttribute('#' + m, 'aria-pressed') === 'true', m + ' pressed');
   if (m !== 'm-blink') await p.screenshot({ path: `${OUT}/04-${m}.png` }); }
 await p.click('#m-track'); const tl = await p.textContent('#flash'); console.log('track label:', tl);
-ok(/5 passes at 0.95 µm, 0 d to \+183 d/.test(tl), 'track stacks same-band passes within the selected window');
+ok(/5 passes at 0.95 µm, Pass 1 to Pass 6/.test(tl), 'track stacks same-band passes within the selected window');
 await p.click('#m-blink');
 await p.click('#o-known'); ok(await p.getAttribute('#o-known', 'aria-pressed') === 'true', 'known toggle on');
 await p.click('#o-marks'); ok(await p.getAttribute('#o-marks', 'aria-pressed') === 'false', 'flags toggle off');

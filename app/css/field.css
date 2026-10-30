@@ -44,12 +44,7 @@
 .fv-epochs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; border: 1px solid var(--edge); border-radius: 7px; padding: 2px; }
 .fv-epochs button { border: 0; border-radius: 5px; padding: 6px 2px 5px; line-height: 1.2; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .fv-epochs button small { display: block; font-size: 10px; color: var(--ink-3); margin-top: 2px; }
-.fv-epochs button[aria-pressed="true"] small { color: inherit; opacity: .7; }
-/* Live passes are named by their dataset (observation id): one pass per row, name left, offset and wavelength right. */
-.fv-epochs.named { grid-template-columns: 1fr; }
-.fv-epochs.named button { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; min-width: 0; padding: 7px 10px; text-align: left; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; letter-spacing: .01em; }
-.fv-epochs.named button small { display: inline; margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 10.5px; white-space: nowrap; }
-.fv-status:empty { display: none; }
+.fv-epochs button[aria-pressed="true"] small { color: inherit; opacity: .7; }.fv-status:empty { display: none; }
 .fv-warn { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--ink-3); border-radius: 8px; display: grid; grid-template-columns: 18px 1fr; gap: 8px 8px; color: var(--ink); line-height: 1.45; }
 .fv-warn > :not(.fv-bang) { grid-column: 2; }
 .fv-warn button { justify-self: start; }

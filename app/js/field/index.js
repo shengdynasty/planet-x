@@ -6,11 +6,15 @@ import { drawImage, drawStamp, drawOverlay, glyph, KIND_NAME } from './render.js
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const spokenT = l => l.replace(/(\d+) (d|h|min)$/, (_, n, u) => `${n} ${{ d: 'day', h: 'hour', min: 'minute' }[u]}${n === '1' ? '' : 's'}`);
-// A pass is named by its dataset (the SPHEREx observation id, e.g. 2026W07_2A_0580_4) when it has one; the
-// simulated field's passes have no dataset and keep their time offsets ('+183 d').
-const epName = e => e.obsId || e.label;
-const epSub = e => e.obsId ? `${e.label} · ${String(e.sub || e.band + ' µm').split(' · ')[0]}` : (e.sub || e.band + ' µm'); // the id already carries the week
-const spoken = e => e.obsId ? `observation ${e.obsId.replace(/_/g, ' ')}, ${spokenT(e.label)}` : spokenT(e.label);
+// Passes get short names, not offsets or ids: live frames are 'Scan 2' (the survey pass; 'Scan 2a', '2b' when the
+// field has two frames from the same pass), simulated ones 'Pass 3'. The offset stays in the tooltip and the baseline line.
+const epName = (E, e) => {
+  if (e.scan == null) return `Pass ${E.indexOf(e) + 1}`;
+  const same = E.filter(x => x.scan === e.scan);
+  return `Scan ${e.scan}${same.length > 1 ? String.fromCharCode(97 + same.indexOf(e)) : ''}`;
+};
+const epSub = e => String(e.sub || e.band + ' µm').split(' · ')[0]; // the wavelength only
+const epTitle = e => `${e.label}${e.date ? ` · ${String(e.date).slice(0, 10)}` : ''}${e.obsId ? ` · ${e.obsId}` : ''}`;
 const DETECTORS = [[1, '0.75–1.09 µm'], [2, '1.10–1.62 µm'], [3, '1.63–2.41 µm'], [4, '2.42–3.82 µm'], [5, '3.83–4.41 µm'], [6, '4.42–5.00 µm']];
 const PSYCHE = { ra: 70.2635, dec: 19.0558, sizeArcsec: 300, det: 3, t: 61087.1294 }; // 16 Psyche in the 15 Feb 2026 frame (server/README.md)
 const isoToMJD = ms => ms / 86400000 + 40587;
@@ -277,11 +281,11 @@ export function mountField(el, store) {
 
   // ---------- epoch pickers / warning / list ----------
   function epochButtons(box, get, setI) {
-    if (!box.children.length) { box.classList.toggle('named', field.epochs.some(e => e.obsId)); field.epochs.forEach((e, i) => {
-      const b = document.createElement('button'); b.innerHTML = `${esc(epName(e))}<small>${esc(epSub(e))}</small>`;
-      b.setAttribute('aria-label', `${spoken(e)}, ${e.band} µm`);
+    if (!box.children.length) field.epochs.forEach((e, i) => {
+      const b = document.createElement('button'); b.innerHTML = `${esc(epName(field.epochs, e))}<small>${esc(epSub(e))}</small>`;
+      b.title = epTitle(e); b.setAttribute('aria-label', `${epName(field.epochs, e)}, ${spokenT(e.label)}, ${e.band} µm`);
       b.addEventListener('click', () => { setI(i); update(); }); box.appendChild(b);
-    }); }
+    });
     [...box.children].forEach((b, i) => b.setAttribute('aria-pressed', String(get() === i)));
   }
   function update() {
@@ -290,13 +294,13 @@ export function mountField(el, store) {
     epochButtons($('epA'), () => A, i => A = i); epochButtons($('epB'), () => B, i => B = i);
     const a = E[A], b = E[B], dt = Math.abs(b.t - a.t), matched = a.band === b.band;
     const baseTxt = A === B ? 'Pick two different passes.' : `Baseline ${fmtDt(dt)} · ${matched ? `both at ${a.band} µm` : `${a.band} vs ${b.band} µm`}`;
-    if ($('baseline').textContent !== baseTxt) { const first = !$('baseline').textContent; $('baseline').textContent = baseTxt; if (!first && visible()) announce(`Reference ${spoken(a)}, compare ${spoken(b)}. ${baseTxt}`); }
+    if ($('baseline').textContent !== baseTxt) { const first = !$('baseline').textContent; $('baseline').textContent = baseTxt; if (!first && visible()) announce(`Reference ${epName(E, a)}, compare ${epName(E, b)}. ${baseTxt}`); }
     const warn = $('warn');
     if (!matched) {
       warn.hidden = false;
       warn.innerHTML = `<span class="fv-bang" aria-hidden="true">!</span><span>These passes were taken at different wavelengths (${esc(a.band)} and ${esc(b.band)} µm). Blinking them shows colour differences, not motion, so flagging is off.</span>`;
       let best = -1, bd = 1e9; E.forEach((e, i) => { if (i !== A && e.band === a.band && Math.abs(e.t - b.t) < bd) { bd = Math.abs(e.t - b.t); best = i; } });
-      if (best >= 0) { const btn = document.createElement('button'); btn.textContent = `Compare with ${epName(E[best])} instead`; btn.title = 'Nearest pass in time at the reference wavelength';
+      if (best >= 0) { const btn = document.createElement('button'); btn.textContent = `Compare with ${epName(E, E[best])} instead`; btn.title = 'Nearest pass in time at the reference wavelength';
         btn.addEventListener('click', () => { B = best; update(); $('epB').children[B]?.focus(); }); warn.appendChild(btn); }
       else warn.insertAdjacentHTML('beforeend', `<span>No other pass of this field was taken at ${esc(a.band)} µm, so pick a different reference.</span>`);
       results = [];
@@ -361,8 +365,8 @@ export function mountField(el, store) {
     $('kv').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
     drawStamp($('stA'), field.frame(A), field.N, r.from ? r.from.x : r.x, r.from ? r.from.y : r.y);
     drawStamp($('stB'), field.frame(B), field.N, r.to ? r.to.x : r.x, r.to ? r.to.y : r.y);
-    $('capA').textContent = `Reference ${epName(E[A])}`; $('capB').textContent = `Compare ${epName(E[B])}`;
-    $('stA').setAttribute('aria-label', `Reference cutout, ${spoken(E[A])}, 15 by 15 pixels`); $('stB').setAttribute('aria-label', `Comparison cutout, ${spoken(E[B])}, 15 by 15 pixels`);
+    $('capA').textContent = `Reference ${epName(E, E[A])}`; $('capB').textContent = `Compare ${epName(E, E[B])}`;
+    $('stA').setAttribute('aria-label', `Reference cutout, ${epName(E, E[A])}, 15 by 15 pixels`); $('stB').setAttribute('aria-label', `Comparison cutout, ${epName(E, E[B])}, 15 by 15 pixels`);
     // spectrum: model shapes (simulated field only; live fields don't extract one yet)
     const svg = $('spec'), none = r.kind === 'art' || r.kind === 'left' || !field.simulated;
     const kind = r.kind === 'known' ? 'asteroid' : r.kind === 'cand' ? 'ice' : 'star';
@@ -397,7 +401,7 @@ export function mountField(el, store) {
       id, name: `Field candidate ${fmtRA(ra).replace(/\.\ds$/, 's')}, ${fmtDec(dec)}`,
       tag: r.from ? 'Unmatched · slow mover' : 'Unmatched · new source',
       status: 'Candidate', pipelineStatus: 'Candidate', band: `${E[B].band} µm`, pos,
-      note: `${r.title}: ${r.detail} Flagged in field analysis (reference ${epName(E[A])}, compare ${epName(E[B])})${field.simulated ? '' : ' on live SPHEREx frames from IRSA'}. Candidate signal, not a detection.`,
+      note: `${r.title}: ${r.detail} Flagged in field analysis (reference ${epName(E, E[A])}, compare ${epName(E, E[B])})${field.simulated ? '' : ' on live SPHEREx frames from IRSA'}. Candidate signal, not a detection.`,
       simulated: !!field.simulated, live: !field.simulated, source: 'field',
     };
     store.set('candidates', [...list, cand]);
@@ -420,12 +424,12 @@ export function mountField(el, store) {
     let knownT;
     legend.hidden = mode !== 'diff';
     if (mode === 'blink') { const showB = blinkPhase % 2 === 1; shown = field.frame(showB ? B : A); drawImage(img, shown, N, false, stretch);
-      flash.textContent = showB ? `Compare · ${epName(E[B])}` : `Reference · ${epName(E[A])}`; knownT = [E[showB ? B : A].t]; }
+      flash.textContent = showB ? `Compare · ${epName(E, E[B])}` : `Reference · ${epName(E, E[A])}`; knownT = [E[showB ? B : A].t]; }
     else if (mode === 'diff') { shown = diff(field, A, B); drawImage(img, shown, N, true, stretch); flash.textContent = 'Compare − Reference'; knownT = [E[A].t, E[B].t];
       legend.innerHTML = '<i aria-hidden="true"></i><span>fainter · brighter</span>'; }
     else { const band = E[A].band, c = maxStack(field, band, A, B); shown = c.img; drawImage(img, shown, N, false, stretch); knownT = c.ts.slice();
       const n = knownT.length, [e0, e1] = E[A].t <= E[B].t ? [A, B] : [B, A];
-      flash.textContent = `Max-stack of ${n} pass${n === 1 ? '' : 'es'} at ${band} µm, ${epName(E[e0])} to ${epName(E[e1])}`; }
+      flash.textContent = `Max-stack of ${n} pass${n === 1 ? '' : 'es'} at ${band} µm, ${epName(E, E[e0])} to ${epName(E, E[e1])}`; }
     lastKnownT = knownT; renderOverlay(); showReadout();
   }
   let lastKnownT = [], lastXY = null;
