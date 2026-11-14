@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import * as P from '../app/js/pipeline/index.js';
 import * as CO from '../app/js/sky/coords.js';
 import * as CF from '../app/js/candidates/format.js';
+import { gridSky, gridPixel } from '../server/lib/wcs.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fx = JSON.parse(fs.readFileSync(path.join(here, 'fixtures/moving-sky-analyse.json'), 'utf8'));
@@ -56,6 +57,25 @@ const [ra, dec] = P.radec(field, 160, 160);
 ok(ra === 70.42 && dec === 19.18, 'radec centre');
 const [px, py] = P.pixel(field, ...P.radec(field, 37.5, 250.25));
 ok(Math.abs(px - 37.5) < 1e-9 && Math.abs(py - 250.25) < 1e-9, 'pixel inverts radec');
+// ISS-15: radec/pixel are the exact TAN grid, identical to the server's, at every declination (corners of a 600″ field)
+for (const d0 of [0, 30, 60, 80, 85, 89, -66.5]) {
+  const f = { N: 100, scale: 6, ra0: 123.4, dec0: d0 };
+  let worst = 0, rt = 0;
+  for (const [x, y] of [[0, 0], [100, 0], [0, 100], [100, 100], [37.5, 80.25], [50, 50]]) {
+    const [ra, dec] = P.radec(f, x, y), [sa, sd] = gridSky(f.ra0, f.dec0, f.scale, f.N, x, y);
+    const dra = ((ra - sa + 540) % 360 - 180) * Math.cos(dec * Math.PI / 180) * 3600, ddec = (dec - sd) * 3600;
+    worst = Math.max(worst, Math.hypot(dra, ddec));
+    const [px, py] = P.pixel(f, ra, dec); rt = Math.max(rt, Math.abs(px - x), Math.abs(py - y));
+    const [gx, gy] = gridPixel(f.ra0, f.dec0, f.scale, f.N, ra, dec); rt = Math.max(rt, Math.abs(px - gx), Math.abs(py - gy));
+  }
+  ok(worst < 1e-6 && rt < 1e-6, `radec/pixel match the server TAN at Dec ${d0} (worst ${worst.toExponential(1)}″, round trip ${rt.toExponential(1)} px)`);
+}
+// ISS-05: across RA 0h/360° nothing jumps by a whole turn
+{ const f = { N: 100, scale: 6, ra0: 359.9985, dec0: 2 };
+  const [r1] = P.radec(f, 0, 50), [r2] = P.radec(f, 100, 50);
+  ok(r1 >= 0 && r1 < 360 && r2 >= 0 && r2 < 360, 'radec stays in [0,360) across RA 0h');
+  const [x1] = P.pixel(f, 0.0015, 2), [x2] = P.pixel(f, 359.9975, 2);
+  ok(Math.abs(x1) < 100 && Math.abs(x2) < 100 && x1 < x2, `pixel is finite across RA 0h (${x1.toFixed(1)}, ${x2.toFixed(1)})`); }
 ok(P.fmtRA(70.42) === '04h 41m 40.8s' && P.fmtDec(19.18) === '+19° 10′ 48″', 'fmtRA / fmtDec');
 // ISS-13: rounding carries instead of printing 60.0s / 60″
 ok(P.fmtRA((8 + 55 / 60 + 59.97 / 3600) * 15) === '08h 56m 00.0s' && P.fmtRA(359.99999) === '00h 00m 00.0s', `fmtRA carries (${P.fmtRA((8 + 55 / 60 + 59.97 / 3600) * 15)})`);

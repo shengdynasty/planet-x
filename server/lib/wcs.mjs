@@ -58,7 +58,7 @@ export function tanInverse(xi, eta, a0, d0) {
 /**
  * Output grid used for every epoch: TAN projection centred on (ra0, dec0), north up, east left,
  * `scale` arcsec/px, pixel (x right, y down) with the field centre at (N/2, N/2). Matches
- * app/js/pipeline/format.js `radec()` to first order (it is the small-field approximation of this).
+ * app/js/pipeline/format.js `radec()` (the app now uses the same exact TAN).
  */
 export function gridSky(ra0, dec0, scale, N, x, y) {
   const s = scale / 3600 * D2R;

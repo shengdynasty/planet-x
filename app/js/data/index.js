@@ -7,6 +7,7 @@
 //   getField({ra, dec, sizeArcsec}) → Promise<Field>  (field.simulated is always truthful; saved fields carry field.snapshot)
 
 import { FIELD_SIZE_MIN, FIELD_SIZE_MAX, FIELD_SIZE_DEFAULT, clampFieldSize } from '../core/limits.js';
+import { pixel } from '../pipeline/format.js';
 
 export const SERVER = (typeof globalThis !== 'undefined' && globalThis.PLANETX_SERVER) || 'http://localhost:8787';
 export const HOME = { ra: 70.42, dec: 19.18, sizeArcsec: FIELD_SIZE_DEFAULT }; // live mode's default field (Taurus, near the ecliptic)
@@ -213,15 +214,14 @@ export function toField(j) {
     };
   });
   // Gaia DR3 stars: pixel position at field time t (days from the first frame), propagating the proper motion
-  // from J2016.0 on the same first-order tangent plane as pipeline/format.js radec().
+  // from J2016.0 on the same exact TAN grid as pipeline/format.js radec().
   const t0 = j.epochs && j.epochs[0] && Number.isFinite(j.epochs[0].mjd) ? j.epochs[0].mjd : GAIA_EPOCH_MJD;
-  const cosd = Math.cos(j.dec0 * Math.PI / 180);
   const stars = (j.stars || []).map(s => ({
     id: s.id, name: s.name || `Gaia DR3 ${s.id}`, g: s.g, rp: s.rp, pm: s.pmra == null || s.pmdec == null ? 0 : Math.hypot(s.pmra, s.pmdec) / 1000,
     pos: t => {
       const dt = (t0 + t - GAIA_EPOCH_MJD) / 365.25;
       const ra = s.ra + (s.pmra || 0) * dt / 3.6e6 / Math.cos(s.dec * Math.PI / 180), dec = s.dec + (s.pmdec || 0) * dt / 3.6e6;
-      return [j.N / 2 - (ra - j.ra0) * 3600 / j.scale * cosd, j.N / 2 - (dec - j.dec0) * 3600 / j.scale];
+      return pixel(j, ra, dec);   // exact TAN, same as the server grid; also correct across RA 0h (ISS-05)
     },
   }));
   const { frames: _f, flags: _fl, known: _k, stars: _s, ...meta } = j;

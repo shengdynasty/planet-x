@@ -6,7 +6,7 @@
 //   writes  selectedId, filter, view ('compare' | 'field'), field
 //   emits   'flyto' {ra (deg), dec (deg), fov, raHours}, 'toast' string
 import * as F from './format.js';
-import { renderCutout, seedIndex } from './cutout.js';
+import { renderCutout } from '../compare/cutout.js';
 
 const FIELD_ARCSEC = 1968; // 320 px × 6.15″
 
@@ -281,7 +281,7 @@ export function mountCandidates(el, store) {
   function drawCut(c) {
     const W = cut.width;
     const scan = store.get('scan') || 1;
-    const [x, y, p, k] = renderCutout(cg, W, c, scan, seedIndex(c.id));
+    const [x, y, p, k] = renderCutout(cg, W, c, scan);
     if (p) { cg.strokeStyle = 'rgba(255,255,255,.6)'; cg.lineWidth = 1; cg.beginPath(); cg.arc(x, y, 16, 0, Math.PI * 2); cg.stroke(); }
     I('.cx-cutscan').textContent = scanLabel(k);
     $('.cx-pos').textContent = F.fmtPos(c, scan);
