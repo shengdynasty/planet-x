@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""Cut NASA's Deep Star Maps 2020 (equirectangular OpenEXR) into a pyramid of 512x512 WebP (or JPEG) tiles for the Sky view.
+"""Cut NASA's Deep Star Maps 2020 (equirectangular OpenEXR) into a pyramid of 512x512 AVIF (or WebP / JPEG) tiles for the Sky view.
 
-    python scripts/make-sky-tiles.py starmap_2020_64k.exr app/assets/skytiles
+    python scripts/make-sky-tiles.py starmap_2020_64k.exr app/assets/skytiles --format avif --quality 50 --top-level 5
+
+That command makes the set that is committed: levels 3-5 (32,768 px wide, 91 px per degree) as AVIF, about 93 MB. Encoding runs in
+parallel (--workers) and --resume continues an interrupted run. --top-level 6 adds the full 64k level (WebP q70: 372 MB more).
 
 Level l is the whole map at 1024 * 2^l px wide: 2^(l+1) columns x 2^l rows of tiles (see app/js/sky/tilemath.js). A 64k
 map gives levels 3..6 (level 6 = 65,536 px wide). Tiles are written to <out>/<level>/<col>_<row>.webp plus <out>/manifest.json.
@@ -16,6 +19,7 @@ Needs: pip install OpenEXR Imath numpy pillow
 Source: NASA SVS 4851, https://svs.gsfc.nasa.gov/4851/  (NASA/GSFC Scientific Visualization Studio; Gaia DR2: ESA/Gaia/DPAC)
 """
 import argparse
+import concurrent.futures as cf
 import gc
 import json
 import os
@@ -47,13 +51,32 @@ def srgb8(lin, gain=None, floor=None):
     return np.rint(s * 255.0).astype(np.uint8)
 
 
+def encode_tile(job):
+    """Worker process: linear float16 tile -> sRGB -> image file. Returns (level, bytes)."""
+    path, lin, gain, fmt, quality, subsampling, speed, level = job
+    im = Image.fromarray(srgb8(lin.astype(np.float32), gain))
+    tmp = path + ".tmp"
+    if fmt == "avif":
+        im.save(tmp, "AVIF", quality=quality, speed=speed)
+    elif fmt == "webp":
+        im.save(tmp, "WEBP", quality=quality, method=4)
+    else:
+        im.save(tmp, "JPEG", quality=quality, subsampling=subsampling, optimize=True)
+    os.replace(tmp, path)
+    return level, os.path.getsize(path)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("exr")
     ap.add_argument("out")
     ap.add_argument("--min-level", type=int, default=3, help="coarsest level to write (default 3 = 8192 px wide)")
-    ap.add_argument("--format", choices=["webp", "jpg"], default="webp")
-    ap.add_argument("--quality", type=int, default=70)
+    ap.add_argument("--format", choices=["avif", "webp", "jpg"], default="webp")
+    ap.add_argument("--quality", type=int, default=70, help="quality of the finest level written (and of all levels unless --quality-coarse)")
+    ap.add_argument("--quality-coarse", type=int, default=None, help="quality of the coarser levels (they are few and small, so they can afford more)")
+    ap.add_argument("--top-level", type=int, default=None, help="finest level to write (default: the map's own finest, 6 for the 64k file); 5 = 32,768 px wide")
+    ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 2), help="encoder processes (default: all but two cores)")
+    ap.add_argument("--speed", type=int, default=5, help="AVIF encoder speed 0 (best, slowest) to 10")
     ap.add_argument("--subsampling", type=int, default=0, help="PIL JPEG subsampling: 0 = 4:4:4, 2 = 4:2:0")
     ap.add_argument("--gain", type=float, default=GAIN, help="exposure multiplier (default %(default)s; see GAIN)")
     ap.add_argument("--resume", action="store_true", help="skip tiles that already exist (a run that stopped part-way can be continued)")
@@ -63,30 +86,34 @@ def main():
     f = OpenEXR.InputFile(a.exr)
     dw = f.header()["dataWindow"]
     W, H = dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1
-    max_level = int(round(np.log2(W / 1024)))
-    assert W == 1024 * 2 ** max_level and H == W // 2, f"unexpected size {W}x{H}"
-    print(f"{W}x{H}: levels {a.min_level}..{max_level}", flush=True)
+    map_level = int(round(np.log2(W / 1024)))
+    max_level = map_level
+    top_level = map_level if a.top_level is None else min(a.top_level, map_level)
+    assert W == 1024 * 2 ** map_level and H == W // 2, f"unexpected size {W}x{H}"
+    print(f"{W}x{H}: writing levels {a.min_level}..{top_level} as {a.format}", flush=True)
     r0, r1 = (0, H // TILE) if not a.rows else map(int, a.rows.split(":"))
     half = Imath.PixelType(Imath.PixelType.HALF)
-    sizes = {l: [0, 0] for l in range(a.min_level, max_level + 1)}  # bytes, count
+    sizes = {l: [0, 0] for l in range(a.min_level, top_level + 1)}  # bytes, count
     pending = {l: [] for l in range(a.min_level, max_level)}
 
+    pool = cf.ProcessPoolExecutor(max_workers=a.workers) if a.workers > 1 else None
+
     def write_level_row(level, row, lin):
+        """Encode every tile of one level-row, in parallel; waits for them, so memory stays bounded."""
         os.makedirs(os.path.join(a.out, str(level)), exist_ok=True)
+        q = a.quality if (a.quality_coarse is None or level == top_level) else a.quality_coarse
+        jobs = []
         for col in range(lin.shape[1] // TILE):
             p = os.path.join(a.out, str(level), f"{col}_{row}.{a.format}")
             if a.resume and os.path.exists(p):
                 sizes[level][0] += os.path.getsize(p); sizes[level][1] += 1
                 continue
-            im = Image.fromarray(srgb8(lin[:, col * TILE:(col + 1) * TILE].astype(np.float32), a.gain))  # one tile at a time: keeps peak memory low
-            if a.format == "webp":
-                im.save(p, "WEBP", quality=a.quality, method=4)
-            else:
-                im.save(p, "JPEG", quality=a.quality, subsampling=a.subsampling, optimize=True)
-            sizes[level][0] += os.path.getsize(p); sizes[level][1] += 1
+            jobs.append((p, np.ascontiguousarray(lin[:, col * TILE:(col + 1) * TILE]), a.gain, a.format, q, a.subsampling, a.speed, level))
+        for lv, nbytes in (pool.map(encode_tile, jobs, chunksize=2) if pool else map(encode_tile, jobs)):
+            sizes[lv][0] += nbytes; sizes[lv][1] += 1
 
     def emit(level, row, lin):
-        if level >= a.min_level:
+        if a.min_level <= level <= top_level:
             write_level_row(level, row, lin)
         if level > a.min_level:
             h, w, _ = lin.shape
@@ -122,6 +149,8 @@ def main():
         emit(max_level, row, read_strip(row))
         done = row - r0 + 1
         print(f"row {row + 1}/{r1}  {time.time() - t0:5.0f}s", flush=True) if done % 4 == 0 or done == r1 - r0 else None
+    if pool:
+        pool.shutdown()
     # a partial --rows run leaves unmatched half-rows pending; that is expected
     total = sum(b for b, _ in sizes.values())
     for l, (b, n) in sizes.items():
@@ -129,7 +158,7 @@ def main():
     print(f"total {total / 1e6:.1f} MB")
     if not a.rows:
         with open(os.path.join(a.out, "manifest.json"), "w") as m:
-            json.dump({"tileSize": TILE, "minLevel": a.min_level, "maxLevel": max_level, "ext": a.format, "width": W, "height": H,
+            json.dump({"tileSize": TILE, "minLevel": a.min_level, "maxLevel": top_level, "ext": a.format, "width": W, "height": H,
                        "source": "NASA SVS 4851, Deep Star Maps 2020 (starmap_2020_%dk.exr)" % (W // 1024),
                        "gain": a.gain, "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio. Gaia DR2: ESA/Gaia/DPAC."}, m, indent=1)
 

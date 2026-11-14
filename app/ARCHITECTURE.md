@@ -123,9 +123,11 @@ cannot load (offline, blocked) the NASA picture simply stays. Pure helpers are t
 
 The 4k backdrop is ~11 px/deg, so it blurs when zoomed. NASA publishes the same Deep Star Map at up to 65,536 × 32,768 px
 (182 px/deg, one image pixel per screen pixel at the 6° zoom limit). `scripts/make-sky-tiles.py` cuts it into a pyramid of
-512 px WebP tiles (`<level>/<col>_<row>.webp`, levels 3–6, 10,880 tiles, about 525 MB in all). **This PR is code only; the tiles are separate**
-(a Pages site is limited to 1 GB and each regeneration would add its size to the repo history, so they are committed once, not per code change):
-levels 3–5 (about 153 MB, up to 91 px/deg) in their own PR, and all four levels (up to 182 px/deg) on the branch `feat/sky-tiles-all`.
+512 px tiles (`<level>/<col>_<row>.avif`). **This PR is code only; the tiles are separate** (a Pages site is limited to 1 GB and each
+regeneration would add its size to the repo history, so they are committed once, not per code change): levels 3–5 as AVIF (32,768 px
+wide, up to 91 px/deg, 2,688 tiles, about 93 MB) in their own PR, and the full four levels as WebP (up to 182 px/deg, about 525 MB) on the
+branch `feat/sky-tiles-all`. In side-by-side tests 32k looked far sharper than 16k, while 64k was not visibly different from 32k. AVIF needs
+Chrome 85+, Firefox 93+ or Safari 16.4+; on anything older the tiles fail quietly and the 4k sky stays.
 To make them yourself, run the script on `starmap_2020_64k.exr`. They can also be hosted elsewhere: point `SKY_TILES.remote` in
 `sky/config.js` (or `?tiles=<url>`) at them; that host must send `Access-Control-Allow-Origin`. `manifest.json` says which levels exist. `sky/hdtiles.js` streams only what is needed, like culling and LOD in a game:
 
