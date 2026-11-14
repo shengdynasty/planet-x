@@ -174,6 +174,8 @@ report lives in the URL hash (deflate-raw + base64url, ~0.7–1.5 KB), which is 
   a scale bar. If the frames are unreachable the page says "Stamps unavailable offline" and shows the rest.
 - Simulated dates: the simulation has no calendar, so its epochs sit on a nominal date (`SIM_T0_MJD`, 2025-05-15) and
   the page and files say so.
-- QR code: `qrcode-generator` 1.4.4 from cdnjs, on `report.html` only; without it the link text stands alone.
+- QR code: `qrcode-generator` 1.4.4 from cdnjs (with an integrity hash), on `report.html` only; without it the link text
+  stands alone. It encodes the ~80-character deep link to the field (`render.js` `fieldLink`), not the 700–1,000-character
+  report link: a code of the latter has ~100 modules a side and cannot be read from a 32 mm print.
 - Tests: `node tests/report.test.mjs` (Node), `node tests/report-browser.test.mjs` (browser, port 8109).
 <!-- /report:doc -->

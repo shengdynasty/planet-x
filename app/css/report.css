@@ -44,7 +44,7 @@ body.rp { overflow: auto; height: auto; min-height: 100%; }
 .rp-follow { border: 1px solid var(--edge); border-radius: 6px; padding: 12px 14px; align-self: start; }
 
 .rp-foot { display: flex; gap: 16px; align-items: flex-start; border-top: 1px solid var(--edge); padding-top: 12px; }
-.rp-qr { width: 88px; height: 88px; flex: none; image-rendering: pixelated; background: #fff; }
+.rp-qr { width: 120px; height: 120px; flex: none; image-rendering: pixelated; background: #fff; }
 .rp-linkhead { margin: 0 0 3px; font-size: 11px; }
 .rp-link { margin: 0; font: 10px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; color: var(--ink-2); max-height: 5.4em; overflow: hidden; }
 .rp-credits { margin: 6px 0 0; font-size: 10.5px; color: var(--ink-3); line-height: 1.4; }
@@ -75,7 +75,7 @@ body.rp { overflow: auto; height: auto; min-height: 100%; }
   .rp-figs figure { width: 25mm; }
   .rp-figs canvas { width: 25mm; height: 25mm; }
   .rp-figs figcaption, .rp-note, .rp-credits { font-size: 7pt; }
-  .rp-qr { width: 24mm; height: 24mm; }
+  .rp-qr { width: 32mm; height: 32mm; }
   .rp-link { font-size: 6pt; max-height: none; }
   .rp-follow { border-color: #000; }
   section, .rp-foot, figure { break-inside: avoid; }

@@ -79,12 +79,23 @@ function render(view) {
   ]);
 
   // link + QR
+  // The report link is 700–1,000 characters: a QR code of it has ~100 modules a side and cannot be read from a 24 mm
+  // print. The QR therefore carries the short deep link that opens this field in the app (same frames, same flags, the
+  // source to re-select); the full report link stays as text and behind the Copy link button.
   const link = location.href; $('link').textContent = link;
-  drawQR(link);
+  drawQR(fieldLink(c));
 }
 
 // separation for the offset column (kept local so render.js needs nothing else from predict.js)
 function sepArcsecLocal(r1, d1, r2, d2) { const R = Math.PI / 180, a = Math.sin((d2 - d1) * R / 2) ** 2 + Math.cos(d1 * R) * Math.cos(d2 * R) * Math.sin((r2 - r1) * R / 2) ** 2; return 2 * Math.asin(Math.min(1, Math.sqrt(a))) / R * 3600; }
+
+/** Deep link to the report's field in the app (app/?ra=&dec=&size=&det=&t=), ~80 characters, so its QR code stays readable. */
+export function fieldLink(c) {
+  const u = new URL('./', location.href), q = u.searchParams, r = c.data.req;
+  if (r) { q.set('ra', String(r.ra)); q.set('dec', String(r.dec)); if (r.size) q.set('size', String(r.size)); if (r.det) q.set('det', String(r.det)); if (r.t != null) q.set('t', String(r.t)); }
+  else { q.set('ra', String(c.data.ra0)); q.set('dec', String(c.data.dec0)); if (c.data.sim) q.set('data', 'sim'); }
+  return u.href;
+}
 
 function drawQR(text, tries = 0) {
   const lib = globalThis.qrcode, cv = $('qr');
