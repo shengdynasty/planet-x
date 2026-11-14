@@ -146,6 +146,7 @@ PLANETX_OFFLINE=1 node --test tests/data.test.mjs   # data module; drop PLANETX_
 node --test tests/injection.test.mjs                # injection-recovery on the saved real fields (Node, seconds)
 node scripts/injection-recovery.mjs [--clear-gaia]  # the full recovery tables behind docs/WRITEUP.md
 node tests/link.test.mjs                            # cross-field linker: parallax prediction + planted counterpart (Node, offline)
+node tests/parallax.test.mjs                        # parallax-distance estimator: distance with an error bar from a measured shift (Node, offline)
 node scripts/link-fields.mjs --field app/data/snapshots/psyche.json --pair 0,1   # link that pair's vanished sources (needs the server; --predict-only does not)
 node tests/shell.test.mjs                           # app shell, top bar, badge         (browser)
 node tests/review.test.mjs                          # review panel + sky markers        (browser)

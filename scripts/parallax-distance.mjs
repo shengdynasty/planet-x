@@ -9,7 +9,7 @@
 // (Starting at 10 AU: a body at 5 AU may move 19° by itself between passes, which would "explain" any shift; bodies that near are told apart by their motion within a pass, not here.)
 // ownMotionMax(r) is the largest displacement the body's OWN orbital motion can add in the time between the passes if it
 // is bound to the Sun: speed ≤ escape speed 2π·√2/√r AU/yr, all of it sideways, i.e. 8.886·(Δt/yr)/r^1.5 · 206265″.
-// It is ~80″ at 500 AU, ~20″ at 1000 AU over six months, and it grows fast inside ~50 AU, where it swamps the parallax.
+// It is ~80″ at 500 AU, ~30″ at 1000 AU over six months, and it grows fast inside ~50 AU, where it swamps the parallax.
 // So the accepted distances form an interval, and the verdict follows from where the interval sits:
 //   'trans-neptunian'  the interval lies at 100 AU or more and ends below maxAU: a distance with an error bar
 //   'solar-system'     the interval ends below 100 AU: own motion is as big as the parallax, no distance can be given
