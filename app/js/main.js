@@ -14,9 +14,11 @@ window.__pxBoot = boot;
 
 // Deep links: /app/?ra=&dec=[&size=40–600″&det=1-6&t=MJD|date] opens the Field view on that patch (RA/Dec in degrees or
 // sexagesimal), so a position can be embedded or shared; ?api=https://… points the data module at a hosted data
-// server (otherwise it looks for one on localhost:8787 only when the page itself is served locally).
+// server (otherwise it looks for one on localhost:8787 only when the page itself is served locally); ?data=sim skips
+// the server and the saved snapshots (app/data/snapshots/) and runs on the simulation.
 const Q = new URLSearchParams(location.search);
 if (Q.get('api')) globalThis.PLANETX_SERVER = Q.get('api').replace(/\/+$/, '');
+if (Q.get('data') === 'sim') globalThis.PLANETX_DATA = 'sim';
 function deepLink() {
   if (!Q.has('ra') || !Q.has('dec')) return null;
   const c = parseCentre(`${Q.get('ra')}, ${Q.get('dec')}`); if (!c) { console.warn('[planet-x] ?ra/?dec not understood'); return null; }

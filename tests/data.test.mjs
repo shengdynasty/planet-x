@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -26,7 +26,7 @@ function checkScan(s) {
 }
 function checkCandidate(c) {
   for (const k of ['id', 'name', 'tag', 'status', 'band', 'note']) assert.equal(typeof c[k], 'string', k);
-  assert.ok(['Candidate', 'Matched', 'Likely', 'Rejected', 'Follow-up'].includes(c.status));
+  assert.ok(['Candidate', 'Matched', 'Likely'].includes(c.status));
   assert.equal(c.pipelineStatus, c.status);
   assert.ok(Array.isArray(c.pos) && c.pos.every(p => p.length === 2 && p.every(Number.isFinite)));
   assert.equal(typeof c.simulated, 'boolean');
@@ -99,6 +99,126 @@ test('field size: one range shared by the deep link, the data module and the ser
   assert.equal(liveSize(10), 40); assert.equal(liveSize(600), 600); assert.equal(liveSize(119.6), 120);
   assert.equal(liveSize(1968), 300, 'a sim-sized field re-requested live gets the 300″ default, not the maximum');
   assert.equal(liveSize(NaN), HOME.sizeArcsec); assert.equal(HOME.sizeArcsec, 120);
+});
+
+// ---------- saved snapshots (app/data/snapshots/, written by scripts/save-snapshots.mjs; what the hosted copy shows) ----------
+const SNAP_DIR = new URL('../app/data/snapshots/', import.meta.url);
+const readSnap = name => JSON.parse(readFileSync(new URL(name, SNAP_DIR), 'utf8'));
+/** Serve app/data/snapshots/ over HTTP (Node's fetch has no file: URLs; the browser loads them relative to the app). */
+const serveSnapshots = () => http.createServer((req, res) => {
+  try { const body = readFileSync(new URL('.' + req.url.split('?')[0], SNAP_DIR)); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(body); }
+  catch { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end('{"error":"not found"}'); }
+});
+
+test('snapshots: one saved field per example target, each decodes via toField; Psyche has its JPL object', async () => {
+  const { EXAMPLES } = await import('../app/js/field/examples.js');
+  const idx = readSnap('index.json');
+  assert.ok(Date.parse(idx.savedAt) > 0, 'savedAt is a date');
+  assert.ok(idx.scans.length >= 2, 'home-patch scans for the timeline'); idx.scans.forEach(checkScan);
+  assert.equal(idx.targets.length, EXAMPLES.length, 'one snapshot per example (rerun scripts/save-snapshots.mjs if IRSA refused one)');
+  const { toField } = await dataModule('http://127.0.0.1:9');
+  for (const ex of EXAMPLES) {
+    const t = idx.targets.find(x => x.id === ex.id); assert.ok(t, ex.id);
+    assert.ok(Math.abs(t.ra - ex.ra) < 1e-6 && Math.abs(t.dec - ex.dec) < 1e-6 && t.sizeArcsec === ex.sizeArcsec && t.det === ex.det, `${ex.id} matches examples.js`);
+    assert.ok(!t.partial, `${ex.id}: complete (JPL and Gaia answered)`);
+    const j = readSnap(t.file);
+    assert.equal(j.simulated, false); assert.ok(j.epochs.length >= 2, `${ex.id}: ≥ 2 epochs`); assert.equal(t.epochs, j.epochs.length);
+    assert.equal(j.knownStatus, 'ok'); assert.equal(j.starsStatus, 'ok'); assert.ok(!('timingsMs' in j), 'timings dropped');
+    assert.ok(Math.abs(j.ra0 - ex.ra) < 1e-6 && Math.abs(j.dec0 - ex.dec) < 1e-6, 'field centred on the target');
+    assert.ok(j.epochs.every(e => typeof e.url === 'string' && /irsa\.ipac\.caltech\.edu/.test(e.url)), 'provenance: every frame names its IRSA file');
+    const f = toField(j);
+    for (let i = 0; i < j.epochs.length; i++) { const fr = f.frame(i); assert.equal(fr.length, f.N * f.N); assert.ok(fr.every(Number.isFinite), 'finite'); }
+    console.log(`  ${ex.id.padEnd(9)} ${j.epochs.length} epochs · ${f.known.length} known · ${f.stars.length} stars · ${(t.bytes / 1024).toFixed(0)} KB`);
+  }
+  assert.ok(readSnap('psyche.json').known.some(k => /Psyche/.test(k.name) && (k.kind || 'sb') === 'sb'), 'Psyche is a JPL known object in its field');
+  assert.ok(idx.candidates.some(c => /Psyche/.test(c.name) && c.status === 'Matched' && c.simulated === false), 'and a Matched candidate for the panel');
+  // ISS-09: the Epsilon Indi pair is one Gaia DR3 source; the server names it (GAIA_NAMES) and the saved files say the same
+  const { GAIA_NAMES } = await import('../server/lib/gaia.mjs');
+  assert.equal(GAIA_NAMES['6412596012146801152'], 'Epsilon Indi Ba/Bb');
+  assert.ok(readSnap('epsindi.json').known.some(k => k.name === 'Epsilon Indi Ba/Bb' && k.kind === 'star' && k.gaiaId === '6412596012146801152'), 'named in its field, not listed by Gaia id');
+  assert.ok(idx.candidates.some(c => c.name === 'Epsilon Indi Ba/Bb' && c.tag === 'Known high-proper-motion star · Epsilon Indi Ba/Bb'), 'and in the panel');
+  for (const c of idx.candidates) {
+    for (const k of ['id', 'name', 'tag', 'status', 'band', 'note']) assert.equal(typeof c[k], 'string', k);
+    assert.equal(c.pipelineStatus, c.status); assert.ok(c.pos.every(p => p === null || (p.length === 2 && p.every(Number.isFinite))));
+    assert.match(c.note, /not a (confirmed pixel|pixel) detection/);
+  }
+  assert.deepEqual(idx.candidates.map(c => c.id), idx.candidates.map((_, i) => 'k' + String(i + 1).padStart(2, '0')));
+});
+
+test('snapshot mode: boots from the saved files when no server answers; getField matches exactly, by containment, or falls back', async () => {
+  const srv = serveSnapshots(); const base = await listen(srv);
+  globalThis.PLANETX_SNAPSHOTS = base + '/';
+  try {
+    const store = await freshStore(); const toasts = []; store.listen('toast', m => toasts.push(m));
+    const data = await dataModule('http://127.0.0.1:9');
+    const t0 = performance.now(); await data.initData(store); console.log(`  snapshot initData: ${(performance.now() - t0).toFixed(0)} ms`);
+    const src = store.get('source');
+    assert.equal(src.mode, 'snapshot'); assert.equal(src.live, false); assert.equal(src.snapshot, true);
+    assert.match(src.note, /^Saved SPHEREx data · saved \d{1,2} \w{3} \d{4}$/);
+    assert.ok(data.isSnapshot() && !data.isLive() && data.dataMode() === 'snapshot');
+    assert.ok(store.get('scans').length >= 2); store.get('scans').forEach(checkScan);
+    assert.ok(store.get('candidates').some(c => /Psyche/.test(c.name) && c.simulated === false), 'Psyche in the panel (ISS-26, snapshot mode)');
+    // exact: the Examples menu's own request → the saved field, no note
+    const ex = (await import('../app/js/field/examples.js')).EXAMPLES.find(e => e.id === 'psyche');
+    const f = await data.getField({ ra: ex.ra, dec: ex.dec, sizeArcsec: ex.sizeArcsec, det: ex.det, t: ex.t });
+    assert.equal(f.simulated, false); assert.equal(f.snapshot.id, 'psyche'); assert.equal(f.request.sizeArcsec, 300); assert.equal(f.request.det, 3);
+    assert.ok(f.known.some(k => /Psyche/.test(k.name))); assert.ok(f.frame(0) instanceof Float32Array);
+    assert.equal(toasts.length, 0, 'no toast for an exact request');
+    // containment: a candidate's position 1′ off the centre, the panel's default 120″ → the saved 300″ field, said so
+    const g = await data.getField({ ra: ex.ra + 0.0167, dec: ex.dec, sizeArcsec: 120 });
+    assert.equal(g.snapshot.id, 'psyche'); assert.equal(g.simulated, false);
+    assert.equal(toasts.length, 1); assert.match(toasts[0], /^Showing the saved 300″ field for 16 Psyche/);
+    // outside every saved field → simulation, said plainly
+    const h = await data.getField({ ra: 10, dec: 10, sizeArcsec: 120 });
+    assert.equal(h.simulated, true); assert.match(h.fallbackReason, /No saved SPHEREx data/); assert.equal(toasts.length, 2);
+    // findSnapshot: RA wrap at 0h and the containment radius (half the saved size)
+    const T = [{ id: 'a', ra: 359.9995, dec: 0, sizeArcsec: 300 }];
+    assert.deepEqual([data.findSnapshot(T, 0.0001, 0).target.id, data.findSnapshot(T, 0.0001, 0).exact], ['a', true]);
+    assert.equal(data.findSnapshot(T, 0.03, 0).exact, false); assert.equal(data.findSnapshot(T, 0.05, 0), null);
+    assert.equal(data.findSnapshot(T, NaN, 0), null);
+  } finally { srv.close(); delete globalThis.PLANETX_SNAPSHOTS; }
+});
+
+test('getField without ra/dec: refused before any request in live and snapshot modes, still fine for the simulation (ISS-25)', async () => {
+  const sim = await dataModule('http://127.0.0.1:9');
+  try { assert.equal((await sim.getField({})).simulated, true, 'sim: picks its own centre'); } catch (e) { assert.match(e.message, /pipeline\/index\.js/); }
+  // live: a stand-in server (health + one scan) that counts field requests; none may arrive for a request without a position
+  let fields = 0;
+  const srv = http.createServer((req, res) => {
+    const p = req.url.split('?')[0], ok = b => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(b)); };
+    if (p === '/api/health') return ok({ ok: true });
+    if (p === '/api/scans') return ok({ epochs: [{ id: 1, label: 'Scan 1', date: 'Sep 2025' }] });
+    if (p === '/api/candidates') return ok({ candidates: [] });
+    if (p === '/api/field') fields++;
+    res.writeHead(400, { 'Content-Type': 'application/json' }); res.end('{"error":"stand-in server has no fields"}');
+  });
+  const url = await listen(srv);
+  try {
+    const store = await freshStore(); const toasts = []; store.listen('toast', m => toasts.push(m));
+    const live = await dataModule(url); await live.initData(store);
+    assert.equal(store.get('source').mode, 'live');
+    for (const q of [{}, { ra: 70.42 }, { ra: 70.42, dec: NaN }, { dec: 19.18, fallback: true }]) await assert.rejects(live.getField(q), /^Error: Field request needs ra and dec$/, JSON.stringify(q));
+    assert.equal(fields, 0, 'no /api/field request for a missing position'); assert.equal(toasts.length, 0, 'and no simulated stand-in');
+    await assert.rejects(live.getField({ ra: 70.42, dec: 19.18, fallback: false }), /stand-in server has no fields/, 'a complete request still goes to the server');
+    assert.equal(fields, 1);
+  } finally { srv.close(); }
+  const snap = serveSnapshots(); const base = await listen(snap); globalThis.PLANETX_SNAPSHOTS = base + '/';
+  try {
+    const store = await freshStore(); const data = await dataModule('http://127.0.0.1:9'); await data.initData(store);
+    assert.ok(data.isSnapshot());
+    await assert.rejects(data.getField({}), /Field request needs ra and dec/);
+  } finally { snap.close(); delete globalThis.PLANETX_SNAPSHOTS; }
+});
+
+test('?data=sim forces the simulation even when snapshots are available', async () => {
+  const srv = serveSnapshots(); const base = await listen(srv);
+  globalThis.PLANETX_SNAPSHOTS = base + '/'; globalThis.PLANETX_DATA = 'sim';
+  try {
+    const store = await freshStore(); const { initData, dataMode } = await dataModule('http://127.0.0.1:9');
+    await initData(store);
+    assert.equal(store.get('source').mode, 'sim'); assert.equal(dataMode(), 'sim'); assert.match(store.get('source').note, /data=sim/);
+    assert.deepEqual(store.get('candidates').map(c => c.id), ['c01', 'c02', 'c03', 'c04', 'c05', 'c06']);
+  } finally { srv.close(); delete globalThis.PLANETX_SNAPSHOTS; delete globalThis.PLANETX_DATA; }
 });
 
 test('server: a size outside 40–600″ is refused with a 400 that names the range (no upstream call)', async () => {

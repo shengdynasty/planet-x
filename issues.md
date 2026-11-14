@@ -47,17 +47,20 @@ Not covered: Firefox/Safari, real phones, screen readers, cold JPL builds for ev
 - Examples: Barnard field, Gaia G 13.0 star, "×0.48 in peak" with 5×5 flux ratio 0.97 (frame 1: 24.6 at the centre pixel; frame 2: 12.0 with its neighbours at 11.4 and 12.0); Psyche field G 16.6 star ×2.77 with flux ×1.12.
 - Impact: roughly 85% of variable flags on real data are false. Reviewers are told these sources "dropped/changed" when they did not.
 - Fix: compare aperture or PSF-fit flux instead of peak, or compare 3×3 sums.
+- **Fixed** 2026-11-13 (see STATUS.md).
 
 **ISS-02: Fake stars are drawn on top of the real star map.**
 `app/js/sky/index.js:80-82` adds three always-on `THREE.Points` layers: 26,000 random "resolved stars" (12,000 on low-end), 280 random bright stars of 3.2 to 5 px and 280 matching 18 to 42 px halos, all from a seeded RNG, on top of the NASA/Gaia backdrop.
 - Check: I reproduced the RNG positions. Only 23 of the 280 bright sprites lie within 0.5° of a real G < 5.2 star (chance level is 14.6), so about **92% of the bright, haloed stars are fake**. The 26,000 faint ones are random by construction.
 - Impact: any star the user sees may not exist at that position. This conflicts with the project's honesty rule, and it matters for the per-star accuracy requirement.
 - Fix: remove the three layers (the 4k Gaia-based backdrop already carries the stars), or draw a real catalogue.
+- **Fixed** 2026-11-13 (see STATUS.md).
 
 **ISS-03: `node server/index.mjs` does nothing on Windows.**
 `server/index.mjs:123` starts only `if (import.meta.url === \`file://${process.argv[1]}\` || process.argv[1]?.endsWith('server/index.mjs'))`. On Windows `argv[1]` is `F:\...\server\index.mjs`, so both tests are false. The process exits with code 0, prints nothing and listens on nothing. The README's "Run it" and "For the team" steps both fail, and the badge silently stays on *Simulated data*.
 - Workaround used: `node --input-type=module -e "const m=await import('./server/index.mjs'); m.createServer().listen(8787,'127.0.0.1')"`.
 - Fix: compare `fileURLToPath(import.meta.url)` with `path.resolve(process.argv[1])`.
+- **Fixed** 2026-11-14 (see STATUS.md).
 
 **ISS-04: IRSA 502s make live mode unreliable, and failure handling is poor.**
 During testing, IRSA's `spherex_dr1` SIA endpoint answered **HTTP 502 on about half of cold requests** (e.g. 5 of 6 attempts for Psyche, 3 of 4 for Eps Indi). `server/lib/net.mjs` retries once; one failed collection (out of two) fails the whole request.
@@ -73,16 +76,19 @@ During testing, IRSA's `spherex_dr1` SIA endpoint answered **HTTP 502 on about h
 - Reproduce: `GET /api/field?ra=359.9985&dec=2.0&size=300&det=1&known=0`. 5 of 9 Gaia stars get |x| > 200 px, and only 4 of the 7 that exactly belong in the frame are placed inside it. The server's own `gridPixel` is correct (it uses `sin(Δα)`).
 - Impact: for a field that straddles RA 0h/360° (roughly 1 pointing in 4,000 for a 300″ field) the *Gaia stars* overlay and the "a change at a catalogued star is variability" matching silently lose the stars on the other side of the wrap.
 - Fix: wrap `ra - ra0` into (-180°, 180°], or reuse the server's tangent-plane formula.
+- **Fixed** 2026-11-14 in PR #6 (Tejas): `toField` wraps RA into (−180°, 180°].
 
 **ISS-06: The Help sheet and STATUS.md advertise review features that were removed.**
 `app/index.html:80`: "Movers panel: review candidates. Filter, sort, **mark them follow-up or rejected, and add notes**." Commits `5ce9599` and `a696c43` removed the buttons and the note box. `Follow-up`/`Rejected`, `USER_STATUSES`, and the Rejected sort order remain as dead code in `candidates/format.js`, and STATUS.md still lists "Follow-up/Rejected review with notes (localStorage)" as done.
 - Fix: update the Help text and STATUS.md, or restore the feature. Without it, a reviewer has no way to record a decision.
+- **Fixed** 2026-11-14 (see STATUS.md).
 
 **ISS-07: "Faded star" / "Brightened star" flags fire on blends and noise crossings, and sometimes duplicate.**
 - Barnard field, Gaia G 15.6: *Faded star*, "dropped below detection", although the star's pixel value **rose** from 2.0 to 4.6. It is the shoulder of a brighter neighbour and has no local maximum in frame 1.
 - Barnard field, G 16.7: *Brightened star* from a 7σ threshold crossing (pixel values 1.1 and 1.6 over a 0.9 background).
 - RW Aur field: one Gaia star (156430027546480512, G 14.8) is flagged twice in one pair (×0.25 and ×1.83, 0.6 px apart).
 - Fix: use flux in a fixed aperture and de-duplicate flags within a few pixels.
+- **Fixed** 2026-11-13 (see STATUS.md).
 
 **ISS-08: "Matches proper motion/ephemeris" is asserted on a 3 px tolerance, not on the measured displacement.**
 `detect.js:127,166,188` accept a known object within 3 px, and the verdict reads "Identified. Position agrees with the ephemeris."
@@ -94,11 +100,13 @@ During testing, IRSA's `spherex_dr1` SIA endpoint answered **HTTP 502 on about h
 - *R Draconis*: the note and README promise "Variable flags … a textbook Variable". The G 6.4 star saturates (flags TRANSIENT, SUR_ERROR, OVERFLOW; noise σ is 0.26 to 0.61 here against 0.02 to 0.18 in the other fields), so the only flags are "Flagged by the SPHEREx pipeline" artifacts with the verdict "Reject". The Mira itself is never reported as variable.
 - *Epsilon Indi Ba/Bb*: the note says the pair is "absent from Gaia", but the app itself identifies **Gaia DR3 6412596012146801152** (G 18.03, parallax 270.7 mas, proper motion 3982/−2467 mas/yr, so 4.68″/yr) as the known mover at the field centre. It is listed as "Gaia DR3 <id>" because only Barnard's Star has a name in `GAIA_NAMES`.
 - (Example coordinates are fine; see section 3.)
+- **Fixed** 2026-11-14 (see STATUS.md).
 
 **ISS-10: Compare and the Movers cutouts are always synthetic, even for live data, and two generators disagree.**
 `compare/cutout.js` and `candidates/cutout.js` draw invented star fields and an invented mover (exaggerated up to ×6000 for slow ones). It is labelled "Illustrative cutout (simulated pixels)", but real known objects from JPL (live mode) are shown on fake pixels, and the real frames are only reachable through Field.
 - The two files use different seeds (`hash(c.id)` against `seedIndex`), so the inspector and Compare draw different star fields for the same candidate. `candidates/cutout.js` also lacks the RA-wrap fix that `compare/cutout.js` has (a track crossing 0h is pinned to the edge).
 - Fix: render the Field frames for live candidates, or at least share one generator.
+- **Fixed** 2026-11-14 in PR #6 (Tejas): one shared generator with the RA-wrap fix. Live candidates still show synthetic cutouts (the first half of this issue stays open).
 
 **ISS-11: The quality gates do not run on Windows.**
 - `tests/browser.mjs:75` spawns `python3`. On Windows that is the Store stub, so **every browser suite dies with "could not start a static server"** (README says "use `py` instead of `python3` on Windows", but the helper hard-codes it).
@@ -107,10 +115,17 @@ During testing, IRSA's `spherex_dr1` SIA endpoint answered **HTTP 502 on about h
 - `tests/live.test.mjs:56` uses `window` inside Node (`ReferenceError`) behind `|| true`, so the assertion is vacuous and the suite crashes if any candidate exists.
 - `tests/browser.mjs:17` hard-codes a macOS session scratch path.
 - STATUS.md test counts (workflow 88, shell 87, review 64) no longer match the suites (77, 96, 66).
+- **Fixed** 2026-11-14 (see STATUS.md).
 
 **ISS-12: The "Anchor on date" box silently ignores or snaps bad dates.**
 `getField` (`data/index.js:209`) drops `t` unless `t > 60000`, so a date before 25 Feb 2023 loads an *unanchored* field with no message (`t=2020-01-01` gave "Live · SPHEREx D3 · 1.66 µm"). A date past the survey (`t=69000`, 2050) is accepted and snaps to the last exposure (2.41 µm) without saying so. Only unparsable text is rejected.
 - Fix: validate against the survey's date range and say what the anchor resolved to.
+
+**ISS-28: A mover that lands within 1.5 px of a catalogued star is reported as that star brightening.**
+`detect.js` `starAt()` matches any appeared or vanished source to a Gaia DR3 star within 1.5 px and then judges it as variability, never motion. Found by the injection-recovery test (`scripts/injection-recovery.mjs`, 2026-11-14): planted anywhere, 12σ+ movers are recovered 66–81% of the time overall but only 28% in Barnard's Star's field (218 Gaia stars in 49×49 px, so ~60% of the area is within 1.5 px of a star); planted clear of stars the same field gives 74%.
+- Impact: in dense fields most real movers would be filed as *Brightened star* / *Faded star* and never reach the review list.
+- Fix: before calling it a brightening, require the star to be bright enough that the pipeline would have detected it (G limit per band), or compare the appeared source's flux with the star's catalogue magnitude; otherwise report both readings ("brightening of G 18.6 star, or a mover on top of it").
+- **Fixed** 2026-11-14: `detect.js` now compares an appeared or vanished source's 5×5 aperture flux with what the coincident star should have from its Gaia RP magnitude (zero point from the frame's own matched stars, limit max(×3.2, 3 × the field's scatter); no test next to a blend or within 8 px of a star ≥ 20× brighter), and only keeps the brightening/fading reading when the light is plausibly the star's and actually rose/fell by ×1.5; otherwise it reports the mover and names the coincidence. Injection test, planted anywhere: Barnard's field 28% → 77%, all fields 66–81% → 73–91% at ≥ 12σ; the un-injected pairs are unchanged (pipeline 132, injection 3).
 
 ### Low
 
@@ -118,19 +133,20 @@ During testing, IRSA's `spherex_dr1` SIA endpoint answered **HTTP 502 on about h
 |---|---|---|
 | ISS-13 (fixed) | Wrong rounding in the Field/Live text: `pipeline/format.js` `fmtRA`/`fmtDec` print "60.0s" / "60″" | RA 08h55m59.97s prints `08h 55m 60.0s`; Dec −7°14′59.6″ prints `−7° 14′ 60″`. Visible in the loading box: "Dec −33° 19′ 60″" |
 | ISS-14 (fixed) | `candidates/format.js` `fmtDec(-0.04)` gives "−0.0°", while `sky/coords.js` deliberately gives "+0.0°" | Two formatters disagree |
-| ISS-15 | `radec()` / `pixel()` use a first-order tangent plane. Error against exact TAN at the corners of a 600″ field: 0.3″ at Dec 30°, 0.85″ at 60°, 2.8″ at 80°, 5.7″ at 85°, 30″ at 89° | Used for Add to review list and Show on sky positions; the server uses exact TAN |
+| ISS-15 (fixed) | `radec()` / `pixel()` use a first-order tangent plane. Error against exact TAN at the corners of a 600″ field: 0.3″ at Dec 30°, 0.85″ at 60°, 2.8″ at 80°, 5.7″ at 85°, 30″ at 89° | Used for Add to review list and Show on sky positions; the server uses exact TAN |
 | ISS-16 (fixed) | `parseCentre('12h +30d')` returns null although `parseDec('30d')` is accepted; `'08h 55m 60s, 0'` is accepted as 55m + 60 s; `'24h, 0'` becomes RA 0 | `sky/coords.js` |
 | ISS-17 | Saturated-star cores appear as holes in the Field image (masked pixels become the frame median) | Barnard's Star, section 3 |
-| ISS-18 | The sky camera cannot look at the celestial poles: `clampPitch` (`sky/index.js:165`) stops at 1.5 rad, so go-to `0h, +90` centres on Dec ±85.9° with no message | North/south pole checks, centre Dec 85.94° |
+| ISS-18 (fixed) | The sky camera cannot look at the celestial poles: `clampPitch` (`sky/index.js:165`) stops at 1.5 rad, so go-to `0h, +90` centres on Dec ±85.9° with no message | North/south pole checks, centre Dec 85.94° |
 | ISS-19 (fixed) | CSV export does not neutralise cells starting with `=`, `+`, `-`, `@` (spreadsheet formula injection from server-supplied names/notes) | `csvField('=HYPERLINK("http://x")')` is quoted but still starts with `=` |
-| ISS-20 | three.js r128 and the Inter font load from cdnjs/Google Fonts with no SRI, and the sky cannot render offline (a clear message is shown instead) | `app/index.html:10-11,110` |
-| ISS-21 | `artifacts/ui-demo/index.html` requests `assets/sky_4k.jpg`, which is not in the snapshot (404 on every load; it falls back to the procedural sky) | Console 404 |
-| ISS-22 | Documentation drift: README/server README say `spherex_qr2 + qr3` (code uses `dr1 + qr3`); README, WRITEUP and PITCH still have `[Team member names]` and `[Video link]`; STATUS.md and README mention `docs/deck/`, removed in `ab2c660`; README says run `python3 -m http.server` | grep of the `*.md` files |
+| ISS-20 (fixed) | three.js r128 and the Inter font load from cdnjs/Google Fonts with no SRI, and the sky cannot render offline (a clear message is shown instead) | `app/index.html:10-11,110` |
+| ISS-21 (fixed) | `artifacts/ui-demo/index.html` requests `assets/sky_4k.jpg`, which is not in the snapshot (404 on every load; it falls back to the procedural sky) | Console 404 |
+| ISS-22 (fixed) | Documentation drift: README/server README say `spherex_qr2 + qr3` (code uses `dr1 + qr3`); README, WRITEUP and PITCH still have `[Team member names]` and `[Video link]`; STATUS.md and README mention `docs/deck/`, removed in `ab2c660`; README says run `python3 -m http.server` | grep of the `*.md` files |
 | ISS-23 | The field overlay's labels collide ("252790 (2002 EM154)" over "Variable" in the Psyche field) | Screenshot with Known objects and Flags on |
-| ISS-24 | Size limits disagree: server accepts `size` 20 to 600 but clamps to ≥ 40 (N ≥ 8); the deep link accepts 20 to 3000; the Live request box offers 120/300/600 only | `server/index.mjs`, `lib/field.mjs:128`, `main.js:23` |
-| ISS-25 | Opening Field in live mode with `store.field` null requests `ra=undefined` ("Live field failed (Bad parameter ra=undefined)") | Reachable only through the store, not the UI, because the Field tab always sets a field first |
-| ISS-27 | On phones the "Planet X" title link is 51×16 px, below a comfortable touch target | Measured at 390 px |
-| ISS-26 | Live mode's panel is empty by default (0 movers in the home patch); the message is clear, but the demo opens with nothing to review | `/api/candidates` returns `[]` for the home patch |
+| ISS-24 (fixed) | Size limits disagree: server accepts `size` 20 to 600 but clamps to ≥ 40 (N ≥ 8); the deep link accepts 20 to 3000; the Live request box offers 120/300/600 only | `server/index.mjs`, `lib/field.mjs:128`, `main.js:23` |
+| ISS-25 (fixed) | Opening Field in live mode with `store.field` null requests `ra=undefined` ("Live field failed (Bad parameter ra=undefined)") | Reachable only through the store, not the UI, because the Field tab always sets a field first |
+| ISS-27 (fixed) | On phones the "Planet X" title link is 51×16 px, below a comfortable touch target | Measured at 390 px |
+| ISS-26 | Live mode's panel is empty by default (0 movers in the home patch); the message is clear, but the demo opens with nothing to review. _Snapshot mode (no server; the hosted copy) opens with the known objects of the six saved example fields, 16 Psyche first (2026-11-14); live mode is unchanged._ | `/api/candidates` returns `[]` for the home patch |
+| ISS-29 | At ≥ 30σ, about 5% of PSF-shaped sources fail the PSF-fit artifact test at unlucky sub-pixel phases and are called *Not PSF-shaped* (`psfMisfit` evaluates the Gaussian at a 3×3 centroid that is biased towards the pixel centre on an under-sampled PSF); a bright real mover can be rejected for this | Injection-recovery test, 2026-11-14: 50 of 960 planted 40σ sources |
 
 ---
 

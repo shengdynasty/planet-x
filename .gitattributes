@@ -1,0 +1,13 @@
+# Every checkout gets LF, whatever core.autocrlf says: the suites read sources byte for byte
+# (qa/moving-sky-mobile.test.mjs looks for '\nupdate();\n') and Chrome serves the files as they are.
+* text=auto eol=lf
+
+# Images and fonts are never line-ending converted.
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary

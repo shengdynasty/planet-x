@@ -64,9 +64,10 @@ Views show/hide themselves from `store.on('view', …)`; the shell owns the top-
 
 ## Data API (data → used by main, field)
 
-`app/js/data/index.js`:
-- `initData(store)` — sets `scans`, `candidates`, `source`. Tries the local server (`http://localhost:8787/api/health`, 1.5 s timeout); falls back to simulated. Hosted as a claude.ai artifact, outside network is blocked, so it must fall back silently.
-- `getField({ra, dec, sizeArcsec}) → Promise<Field>` — live: real SPHEREx cutouts via the server; sim: `simulateField()` re-centred on the request. Always sets `field.simulated` truthfully.
+`app/js/data/index.js`, three sources in order of preference, `source.mode` = `'live' | 'snapshot' | 'sim'`:
+- `initData(store)` — sets `scans`, `candidates`, `source`. Tries the local server (`http://localhost:8787/api/health`, 1.5 s timeout, only when the page is served locally or `?api=` names one); then the saved snapshots (`app/data/snapshots/index.json`, 5 s timeout: real data for the six example targets, written by `scripts/save-snapshots.mjs`, so the hosted copy is not simulated); then the simulation. `?data=sim` (`globalThis.PLANETX_DATA`) forces the simulation; `PLANETX_SNAPSHOTS` points at another copy of the snapshots (tests). Hosted as a claude.ai artifact, outside network is blocked, so it must fall back silently.
+- `getField({ra, dec, sizeArcsec, det, t}) → Promise<Field>` — live: real SPHEREx cutouts via the server; snapshot: the saved field at those coordinates, or the one whose field contains them (with a toast when the request asked for another size/detector/date), else the simulation with `field.fallbackReason`; sim: `simulateField()` re-centred on the request. Live and snapshot reject a request without finite `ra`/`dec` ("Field request needs ra and dec") before any network call; only the sim accepts none (the Field view then substitutes `source.home`, or in snapshot mode the first saved target, since the home patch has no saved field). Always sets `field.simulated` truthfully; a saved field carries `field.snapshot = {id, label, savedAt}` and `field.request` describes what was actually loaded.
+- `isLive()`, `isSnapshot()`, `dataMode()`; `source.note` is the badge tooltip; in snapshot mode `source.targets` lists the saved fields.
 
 Server (`server/index.mjs`, Node ≥ 20, no npm deps): `/api/health`, `/api/scans?ra&dec`, `/api/field?ra&dec&size`
 (epochs + frames as Float32 binary or base64), `/api/known?ra&dec&t` (JPL small-body identification). Disk cache in `server/.cache/` (gitignored).
@@ -135,3 +136,13 @@ To make them yourself, run the script on `starmap_2020_64k.exr`. They can also b
 - If `assets/skytiles/manifest.json` is missing the module turns itself off and the sky is the 4k backdrop as before.
 
 URL switches while testing: `?hd=0` (off), `?hdmax=5` (cap the level), `?tiles=<url>` (tile location). The Aladin survey layer (`deepzoom.js`) is now opt-in (`?sky=`, `?deep=`).
+
+<!-- aladin:doc -->
+## Other telescopes (aladin)
+
+`app/js/aladin/index.js` exports `mountOtherTelescopes(el)`. The Field view mounts it into `[data-ref="other"]` in the vetting
+section (lazy `import()`, first time a source is selected) and calls `setTarget({ra, dec, stampArcsec})` from `renderVet`.
+Chips: DSS2 (1980s–90s), 2MASS (1997–2001), AllWISE (2010–2011) and SIMBAD names; pressing a lit chip closes the viewer.
+Aladin Lite (GPL-3.0) is never copied into the repo: it is loaded from the CDS CDN only when a chip is pressed. Surveys and
+dates live in `app/js/aladin/geom.js`. Dev page `app/dev/aladin.html`; test `node tests/aladin.test.mjs`.
+<!-- /aladin:doc -->

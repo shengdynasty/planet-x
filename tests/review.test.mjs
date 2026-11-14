@@ -2,7 +2,7 @@
 // Run from the repo root:  node tests/review.test.mjs
 // Serves the worktree on 127.0.0.1:8107 itself (reuses a server already listening there). Hermetic: the local live
 // server (:8787) is blocked, so the app always boots on simulated data.
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 import { launch, serve } from './browser.mjs';
@@ -22,6 +22,7 @@ async function open({ width = 1280, height = 800 } = {}) {
   page.on('console', m => { if (m.type() === 'error' && !benign(m.text())) errors.push(m.text()); });
   page.on('pageerror', e => errors.push('[pageerror] ' + e.message));
   await page.route(/(localhost|127\.0\.0\.1):8787/, r => r.abort());
+  await page.route(/\/data\/snapshots\//, r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"targets":[],"note":"blocked by test"}' })); // no saved fields either: simulation
   await page.goto(URL_);
   await page.waitForFunction(() => document.documentElement.dataset.ready === 'true', null, { timeout: 30000 });
   await page.waitForFunction(() => window.__sky, null, { timeout: 20000 });
@@ -39,7 +40,7 @@ const ALLNULL = { id: 'k03', name: 'Allnull', tag: 'Known small body', status: '
 // =====================================================================
 console.log('pure helpers (app/js/candidates/format.js)');
 {
-  const F = await import(path.join(ROOT, 'app/js/candidates/format.js'));
+  const F = await import(pathToFileURL(path.join(ROOT, 'app/js/candidates/format.js')).href); // a file URL: a bare Windows path is not an ESM specifier
   ok(F.posAt(GAPPY, 1) === GAPPY.pos[0] && F.posAt(GAPPY, 2) === null && F.posAt(GAPPY, 3) === GAPPY.pos[2], 'posAt: the scan\'s entry, null where unobserved');
   ok(F.posAt(NOPOS, 1) === null && F.posAt({ id: 'x' }, 1) === null, 'posAt: null for no positions');
   ok(F.posAt({ pos: [[1, 2], [3, 4]] }, 3)[0] === 3, 'posAt: older data with fewer entries clamps to the last');
@@ -245,7 +246,7 @@ console.log('9. labels are consistent');
   ok(labels.find(x => x[0] === FC.id)[1] === 'F', 'Field-added candidate shows "F"');
   const names = await ev(() => ({ c01: __sky.markerName('c01'), c05: __sky.markerName('c05'), k42: __sky.markerName('k42') }));
   ok(names.c01 === '2003 UB' && names.c05 === 'Probable brown dwarf' && names.k42 === 'Known', `sky markers carry the object name (${Object.values(names).join(' / ')})`);
-  const F9 = await import(path.join(ROOT, 'app/js/candidates/format.js'));
+  const F9 = await import(pathToFileURL(path.join(ROOT, 'app/js/candidates/format.js')).href);
   ok(F9.designation({ tag: 'Known small body · 16 Psyche', match: '16 Psyche' }) === '16 Psyche' && F9.designation({ tag: 'Unmatched · slow mover' }) === 'slow mover', 'designation()');
   await page.fill('#goto-in', 'candidate 42'); await page.press('#goto-in', 'Enter'); await page.waitForTimeout(200);
   ok(await ev(() => __px.get('selectedId')) === null && /No candidate 42/.test(await ev(() => document.getElementById('toast').textContent)), '"candidate 42" does not match a non-cNN id');
@@ -253,12 +254,12 @@ console.log('9. labels are consistent');
   ok(await ev(() => __px.get('selectedId')) === null, '"candidate 7" does not pick a Field candidate named "… 7" or the 7th in the list');
   await page.fill('#goto-in', 'candidate 5'); await page.press('#goto-in', 'Enter'); await page.waitForTimeout(200);
   ok(await ev(() => __px.get('selectedId')) === 'c05', '"candidate 5" → c05');
-  // Compare scales by the pipeline status, like the panel: a reviewer's Rejected on a Matched mover changes nothing
+  // Compare scales by the pipeline status, like the panel: pipelineStatus wins over status when both are set
   const same = await ev(async () => {
     const { renderCutout } = await import('/app/js/compare/cutout.js');
     const base = { id: 'z1', pos: [[10, 20], [10.001, 20.001], [10.002, 20.002]] };
     const draw = c => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; renderCutout(cv.getContext('2d'), 128, c, 3); return cv.toDataURL(); };
-    const a = draw({ ...base, status: 'Matched' }), b = draw({ ...base, status: 'Rejected', pipelineStatus: 'Matched' }), c = draw({ ...base, status: 'Candidate' });
+    const a = draw({ ...base, status: 'Matched' }), b = draw({ ...base, status: 'Candidate', pipelineStatus: 'Matched' }), c = draw({ ...base, status: 'Candidate' });
     return { same: a === b, differs: a !== c };
   });
   ok(same.same && same.differs, 'Compare scale follows pipelineStatus ?? status');

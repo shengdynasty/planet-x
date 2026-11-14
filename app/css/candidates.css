@@ -66,12 +66,9 @@
 .cx-list .s::before { content: ""; width: 6px; height: 6px; border-radius: 50%; border: 1px solid transparent; flex: none; transition: background-color .15s var(--ease), border-color .15s var(--ease); }
 .cx-list .s-candidate { color: var(--ink); }
 .cx-list .s-candidate::before { background: var(--ink); border-color: var(--ink); }
-.cx-list .s-follow-up { color: var(--ink); }
-.cx-list .s-follow-up::before { border-color: var(--ink); }
 .cx-list .s-likely { color: var(--ink-2); }
 .cx-list .s-likely::before { border-color: var(--ink-2); }
-.cx-list .s-rejected { text-decoration: line-through; text-decoration-color: var(--ink-3); }
-.cx-list li[aria-selected="true"] .n, .cx-list li[aria-selected="true"] .s-matched, .cx-list li[aria-selected="true"] .s-rejected, .cx-list li[aria-selected="true"] .cx-sub { color: var(--ink-2); }
+.cx-list li[aria-selected="true"] .n, .cx-list li[aria-selected="true"] .s-matched, .cx-list li[aria-selected="true"] .cx-sub { color: var(--ink-2); }
 .cx-count { transition: opacity .15s var(--ease); }
 .cx-sim { font-size: 10px; line-height: 1; padding: 2px 5px; border: 1px solid var(--edge); border-radius: 4px; color: var(--ink-2); letter-spacing: .01em; white-space: nowrap; }
 /* in the list the label is quiet inline text; the top-bar badge and the detail header carry the bordered chip */

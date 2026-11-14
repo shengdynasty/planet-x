@@ -2,7 +2,7 @@
 // Run from the repo root:  node tests/shell.test.mjs
 // Serves the repo on 127.0.0.1:8101 itself (reuses a server already listening there). Screenshots go to the scratchpad.
 import { mkdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 import { launch, serve, SCRATCH } from './browser.mjs';
@@ -28,8 +28,10 @@ async function open({ width, height, scheme = 'dark', mobile = false, reduced = 
   page.on('console', m => { if (m.type() === 'error') (benign(m.text()) ? notFound : errors).push(m.text()); });
   page.on('pageerror', e => errors.push(String(e)));
   page.on('response', r => { if (r.status() === 404) notFound.push(r.url()); });
-  // hermetic: these checks expect simulated data even when a local live server is running on :8787
+  // hermetic: these checks expect simulated data even when a local live server is running on :8787, and the saved
+  // snapshots (app/data/snapshots/, tests/snapshot.test.mjs) are served empty so the app falls through to the simulation
   await page.route(/(localhost|127\.0\.0\.1):8787/, r => r.abort());
+  await page.route(/\/data\/snapshots\//, r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"targets":[],"note":"blocked by test"}' }));
   await page.goto(URL_);
   await page.waitForFunction(() => document.documentElement.dataset.ready === 'true', null, { timeout: 15000 });
   await page.waitForFunction(() => window.__sky && window.__sky.backdrop, null, { timeout: 20000 });
@@ -47,7 +49,7 @@ const sepDeg = (r1, d1, r2, d2) => { // hours, degrees
 // =====================================================================
 console.log('pure helpers (app/js/sky/coords.js)');
 {
-  const C = await import(path.join(ROOT, 'app/js/sky/coords.js'));
+  const C = await import(pathToFileURL(path.join(ROOT, 'app/js/sky/coords.js')).href); // a file URL: a bare Windows path is not an ESM specifier
   ok(C.fmtRA(19.9999) === '20h 00m' && C.fmtRA(23.999) === '0h 00m', `fmtRA carries rounding (${C.fmtRA(19.9999)})`);
   ok(C.fmtDec(-0.04) === '+0.0°' && C.fmtDec(-12.34) === '−12.3°', `fmtDec never shows −0.0° (${C.fmtDec(-0.04)})`);
   const g = q => JSON.stringify(C.parseGoto(q));
@@ -284,6 +286,7 @@ console.log('deep links: /app/?ra=&dec=[&size=&det=&t=]');
 {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   await ctx.route(/(localhost|127\.0\.0\.1):8787/, r => r.abort());
+  await ctx.route(/\/data\/snapshots\//, r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"targets":[],"note":"blocked by test"}' }));
   const page = await ctx.newPage(); const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   await page.goto(URL_ + '?ra=241.5&dec=41&size=300&det=2&t=2026-02-16');

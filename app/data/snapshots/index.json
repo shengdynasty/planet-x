@@ -1,0 +1,272 @@
+{
+ "savedAt": "2026-11-14T17:07:22.445Z",
+ "server": {
+  "version": "0.1.0",
+  "url": "http://localhost:8787"
+ },
+ "home": {
+  "ra": 70.42,
+  "dec": 19.18,
+  "size": 120
+ },
+ "scans": [
+  {
+   "id": 1,
+   "label": "Scan 1",
+   "date": "Sep 2025",
+   "has": true,
+   "start": "2025-08-26",
+   "end": "2025-09-07",
+   "nExposures": 107
+  },
+  {
+   "id": 2,
+   "label": "Scan 2",
+   "date": "Feb 2026",
+   "has": true,
+   "start": "2026-02-15",
+   "end": "2026-03-05",
+   "nExposures": 105
+  },
+  {
+   "id": 3,
+   "label": "Scan 3",
+   "date": "Sep 2026",
+   "has": true,
+   "start": "2026-08-26",
+   "end": "2026-09-15",
+   "nExposures": 110
+  }
+ ],
+ "candidates": [
+  {
+   "id": "k01",
+   "name": "252790 (2002 EM154)",
+   "tag": "Known small body · 252790 (2002 EM154)",
+   "status": "Matched",
+   "pipelineStatus": "Matched",
+   "band": "1.86 µm",
+   "pos": [
+    [
+     4.686132,
+     19.096014
+    ],
+    null,
+    null
+   ],
+   "scans": [
+    1
+   ],
+   "match": "252790 (2002 EM154)",
+   "simulated": false,
+   "note": "JPL predicts this catalogued object inside the 301″ field (V≈21.2). This is an ephemeris prediction, not a confirmed pixel detection."
+  },
+  {
+   "id": "k02",
+   "name": "16 Psyche (A852 FA)",
+   "tag": "Known small body · 16 Psyche (A852 FA)",
+   "status": "Matched",
+   "pipelineStatus": "Matched",
+   "band": "1.86 µm",
+   "pos": [
+    null,
+    [
+     4.684596,
+     19.057372
+    ],
+    null
+   ],
+   "scans": [
+    2
+   ],
+   "match": "16 Psyche (A852 FA)",
+   "simulated": false,
+   "note": "JPL predicts this catalogued object inside the 301″ field (V≈11.2). This is an ephemeris prediction, not a confirmed pixel detection."
+  },
+  {
+   "id": "k03",
+   "name": "407046 (2009 SG111)",
+   "tag": "Known small body · 407046 (2009 SG111)",
+   "status": "Matched",
+   "pipelineStatus": "Matched",
+   "band": "1.86 µm",
+   "pos": [
+    null,
+    null,
+    [
+     4.682698,
+     19.033199
+    ]
+   ],
+   "scans": [
+    3
+   ],
+   "match": "407046 (2009 SG111)",
+   "simulated": false,
+   "note": "JPL predicts this catalogued object inside the 301″ field (V≈21.9). This is an ephemeris prediction, not a confirmed pixel detection."
+  },
+  {
+   "id": "k04",
+   "name": "Barnard's Star",
+   "tag": "Known high-proper-motion star · Barnard's Star",
+   "status": "Matched",
+   "pipelineStatus": "Matched",
+   "band": "1.02 µm",
+   "pos": [
+    [
+     17.96309,
+     4.767243
+    ],
+    [
+     17.963082,
+     4.768747
+    ],
+    [
+     17.963075,
+     4.770062
+    ]
+   ],
+   "scans": [
+    1,
+    2,
+    3
+   ],
+   "match": "Barnard's Star",
+   "simulated": false,
+   "note": "Barnard's Star (Gaia DR3 4472832130942575872): G = 8.2, proper motion 10.39″/yr. A star, not a solar-system object. Position from Gaia DR3 proper motion, not a pixel detection."
+  },
+  {
+   "id": "k05",
+   "name": "Epsilon Indi Ba/Bb",
+   "tag": "Known high-proper-motion star · Epsilon Indi Ba/Bb",
+   "status": "Matched",
+   "pipelineStatus": "Matched",
+   "band": "1.34 µm",
+   "pos": [
+    [
+     22.073019,
+     -56.800197
+    ],
+    [
+     22.073077,
+     -56.800488
+    ],
+    [
+     22.073152,
+     -56.80088
+    ],
+    [
+     22.07321,
+     -56.801171
+    ]
+   ],
+   "scans": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "match": "Gaia DR3 6412596012146801152",
+   "simulated": false,
+   "note": "Gaia DR3 6412596012146801152: G = 18.0, proper motion 4.68″/yr. A star, not a solar-system object. Position from Gaia DR3 proper motion, not a pixel detection."
+  }
+ ],
+ "targets": [
+  {
+   "id": "psyche",
+   "label": "16 Psyche · asteroid crossing, 16 Feb 2026",
+   "ra": 70.2635,
+   "dec": 19.0558,
+   "sizeArcsec": 300,
+   "det": 3,
+   "t": 61087.1294,
+   "note": "Main-belt asteroid. Expect one Known object within ~2″ of the JPL ephemeris in the Feb 2026 frame, and nothing there in the other passes.",
+   "file": "psyche.json",
+   "bytes": 90030,
+   "epochs": 3,
+   "nKnown": 3,
+   "nStars": 44,
+   "builtAt": "2026-11-13T15:48:58.118Z"
+  },
+  {
+   "id": "barnard",
+   "label": "Barnard's Star · fastest proper motion",
+   "ra": 269.4463,
+   "dec": 4.7682,
+   "sizeArcsec": 300,
+   "det": 1,
+   "t": null,
+   "note": "10.4″/yr, about 1.7 px per year here. Gaia DR3 knows it, so it is a Known star; Play shows the drift between passes.",
+   "file": "barnard.json",
+   "bytes": 124045,
+   "epochs": 3,
+   "nKnown": 1,
+   "nStars": 218,
+   "builtAt": "2026-11-13T15:51:26.109Z"
+  },
+  {
+   "id": "epsindi",
+   "label": "Epsilon Indi Ba/Bb · brown-dwarf pair",
+   "ra": 331.096,
+   "dec": -56.801,
+   "sizeArcsec": 300,
+   "det": 2,
+   "t": null,
+   "note": "Two T dwarfs moving 4.7″/yr, bright near 1.25 µm and absent from Gaia. Under a pixel between adjacent passes, so compare the first and last.",
+   "file": "epsindi.json",
+   "bytes": 164993,
+   "epochs": 6,
+   "nKnown": 1,
+   "nStars": 25,
+   "builtAt": "2026-11-14T16:59:53.533Z"
+  },
+  {
+   "id": "wise0855",
+   "label": "WISE 0855−0714 · coldest brown dwarf",
+   "ra": 133.7599,
+   "dec": -7.2422,
+   "sizeArcsec": 300,
+   "det": 6,
+   "t": null,
+   "note": "8″/yr but extremely faint even at 4.5 µm. SPHEREx may not detect it at all; an honest null result is the expected answer.",
+   "file": "wise0855.json",
+   "bytes": 86973,
+   "epochs": 3,
+   "nKnown": 0,
+   "nStars": 31,
+   "builtAt": "2026-11-14T16:55:20.122Z"
+  },
+  {
+   "id": "rwaur",
+   "label": "RW Aurigae · variable young star",
+   "ra": 76.9565,
+   "dec": 30.4014,
+   "sizeArcsec": 300,
+   "det": 1,
+   "t": null,
+   "note": "Brightness changes at a fixed position: expect Variable flags on the Gaia star, not motion.",
+   "file": "rwaur.json",
+   "bytes": 105796,
+   "epochs": 3,
+   "nKnown": 0,
+   "nStars": 128,
+   "builtAt": "2026-11-14T00:10:21.173Z"
+  },
+  {
+   "id": "rdra",
+   "label": "R Draconis · Mira variable",
+   "ra": 248.1673,
+   "dec": 66.755,
+   "sizeArcsec": 300,
+   "det": 1,
+   "t": null,
+   "note": "Mira-type pulsator with magnitudes of change over a year: a textbook Variable, not a mover.",
+   "file": "rdra.json",
+   "bytes": 111948,
+   "epochs": 4,
+   "nKnown": 0,
+   "nStars": 25,
+   "builtAt": "2026-11-14T17:07:22.438Z"
+  }
+ ]
+}

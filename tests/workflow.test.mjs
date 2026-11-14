@@ -19,8 +19,9 @@ const eq = (a, b, msg) => ok(JSON.stringify(a) === JSON.stringify(b), `${msg} (g
 const server = await serve(PORT, ROOT); // refuses a stale server that serves other files
 
 const browser = await launch();
-// Hermetic: never talk to a live data server on :8787 (tests/live.test.mjs covers live mode).
-{ const nc = browser.newContext.bind(browser); browser.newContext = async (o) => { const c = await nc(o); await c.route(/^http:\/\/(localhost|127\.0\.0\.1):8787\//, r => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: '{"ok":false,"note":"blocked by test"}' })); return c; }; }
+// Hermetic: never talk to a live data server on :8787 (tests/live.test.mjs covers live mode), and serve the saved
+// snapshots empty (tests/snapshot.test.mjs covers them), so the app runs on the simulation.
+{ const nc = browser.newContext.bind(browser); browser.newContext = async (o) => { const c = await nc(o); await c.route(/^http:\/\/(localhost|127\.0\.0\.1):8787\//, r => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: '{"ok":false,"note":"blocked by test"}' })); await c.route(/\/data\/snapshots\//, r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"targets":[],"note":"blocked by test"}' })); return c; }; }
 
 
 function watch(page, errors) {

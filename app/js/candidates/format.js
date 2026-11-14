@@ -1,9 +1,7 @@
 // Pure helpers for the candidate panel (no DOM): formatting, filtering, sorting, export.
 // Importable from Node for tests.
 
-export const STATUSES = ['Candidate', 'Follow-up', 'Likely', 'Matched', 'Rejected'];
-/** Statuses a human reviewer may assign. Matched / Likely are set by the pipeline. */
-export const USER_STATUSES = ['Follow-up', 'Rejected'];
+export const STATUSES = ['Candidate', 'Likely', 'Matched'];
 export const FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'Candidate', label: 'Unmatched' },
@@ -29,10 +27,9 @@ export const fmtDec = d => {
   return `${r < 0 ? '−' : '+'}${Math.abs(r).toFixed(1)}°`;
 };
 
-/** Status the pipeline gave this candidate, before any human review. */
+/** Status the pipeline / data source gave this candidate. */
 export function pipelineStatus(c) {
-  if (c.pipelineStatus) return c.pipelineStatus;
-  return USER_STATUSES.includes(c.status) ? 'Candidate' : c.status;
+  return c.pipelineStatus || c.status;
 }
 
 /** Index of the position to show for a (1-based) scan id: clamps to the last available entry (older data had fewer

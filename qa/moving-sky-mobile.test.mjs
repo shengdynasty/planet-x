@@ -9,6 +9,7 @@
 import { execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { launch, SCRATCH } from '../tests/browser.mjs';
 const OUT = process.env.OUT || `${SCRATCH}/moving-sky-qa`;
@@ -27,7 +28,7 @@ function instrument(src, name) {
   const i = src.lastIndexOf('\nupdate();\n');
   if (i < 0) throw new Error('cannot find init call to instrument in ' + name);
   const out = src.slice(0, i + 1) + HOOK + src.slice(i + '\nupdate();\n'.length);
-  const p = `${OUT}/${name}.html`; writeFileSync(p, out); return 'file://' + p;
+  const p = path.join(OUT, `${name}.html`); writeFileSync(p, out); return pathToFileURL(p).href; // not 'file://' + p: a Windows path needs its drive and slashes encoded
 }
 const urlCur = instrument(readFileSync(path.join(ROOT, FILE), 'utf8'), 'current');
 const urlBase = instrument(execSync(`git show ${BASE}:${FILE}`, { cwd: ROOT }).toString(), 'base');

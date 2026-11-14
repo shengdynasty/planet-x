@@ -6,8 +6,9 @@ export const GAIA_TAP = 'https://gea.esac.esa.int/tap-server/tap/sync';
 export const GAIA_EPOCH_MJD = 57388.5; // J2016.0, the reference epoch of Gaia DR3 positions
 /** Stars with a proper motion at least this large (mas/yr) are listed as known movers: 1″/yr ≈ 0.16 px/yr at 6.15″/px. */
 export const HIGH_PM_MAS = 1000;
-/** Common names for a few Gaia DR3 source ids (the challenge's test targets that Gaia sees). */
-export const GAIA_NAMES = { '4472832130942575872': "Barnard's Star" };
+/** Common names for a few Gaia DR3 source ids (the challenge's test targets that Gaia sees; the Epsilon Indi brown-dwarf
+ *  pair is a single G 18.0 source to Gaia). */
+export const GAIA_NAMES = { '4472832130942575872': "Barnard's Star", '6412596012146801152': 'Epsilon Indi Ba/Bb' };
 const DAY = 86400000;
 
 /**

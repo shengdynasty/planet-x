@@ -5,11 +5,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-const SCR = '/private/tmp/claude-501/-Users-shengyan-planet-x/fe009937-83d1-4373-acb2-17af4df64bc0/scratchpad';
-const { chromium } = await import(process.env.PW_CORE || SCR + '/pw/node_modules/playwright-core/index.mjs');
+import { chromePath, playwright } from '../browser.mjs'; // same playwright-core and Chrome lookup as the suites ($PW_CORE, $CHROME)
+const { chromium } = await playwright();
 const here = path.dirname(fileURLToPath(import.meta.url));
 const url = pathToFileURL(path.join(here, '../../artifacts/moving-sky/index.html')).href + '#test';
-const b = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' });
+const b = await chromium.launch({ executablePath: chromePath() });
 const p = await b.newPage();
 await p.goto(url); await p.waitForFunction(() => window.__ms);
 const out = await p.evaluate(() => {

@@ -3,6 +3,8 @@
 // Node >= 20, zero npm dependencies.  Run:  node server/index.mjs   (PORT env var, default 8787)
 import http from 'node:http';
 import zlib from 'node:zlib';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { scansAt, buildField, knownAt, progress, SIZE_MIN, SIZE_MAX, SIZE_DEFAULT } from './lib/field.mjs';
 import { COLLECTIONS, SIA_URL } from './lib/irsa.mjs';
 import { SB_IDENT } from './lib/jpl.mjs';
@@ -123,6 +125,7 @@ export function createServer() {
   });
 }
 
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('server/index.mjs')) {
+// Listen only when run directly (tests import createServer). Compare paths, not URLs: on Windows argv[1] is `F:\...\index.mjs`.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   createServer().listen(PORT, HOST, () => console.log(`Planet X data server on http://${HOST === '127.0.0.1' ? 'localhost' : HOST}:${PORT}  (cache: ${CACHE_DIR})`));
 }

@@ -86,10 +86,12 @@ export function mountHud(store) {
   const badge = $('source-badge'), badgeText = $('source-text');
   function renderSource(src) {
     src = src || { mode: 'sim', live: false };
-    const live = src.mode === 'live' && src.live !== false;
-    badge.dataset.mode = live ? 'live' : 'sim';
-    badgeText.textContent = live ? 'Live · SPHEREx' : 'Simulated data';
-    const note = src.note && src.note !== badgeText.textContent ? `${badgeText.textContent}. ${src.note}` : badgeText.textContent;
+    // three honest states: live server, saved snapshots of the example fields (real data, but not a feed), simulation
+    const live = src.mode === 'live' && src.live !== false, snap = !live && src.mode === 'snapshot';
+    badge.dataset.mode = live ? 'live' : snap ? 'snapshot' : 'sim';
+    badgeText.textContent = live ? 'Live · SPHEREx' : snap ? 'Saved SPHEREx data' : 'Simulated data';
+    let note = src.note && src.note !== badgeText.textContent ? (src.note.startsWith(badgeText.textContent) ? src.note : `${badgeText.textContent}. ${src.note}`) : badgeText.textContent;
+    if (snap) note += '. Real SPHEREx images from NASA/IPAC IRSA with JPL known objects and Gaia DR3 stars, saved for the example targets and analysed in your browser. Not a live feed.';
     badge.title = note; badge.setAttribute('aria-label', `Data source: ${note}`);
   }
   store.on('source', (s, prev) => { renderSource(s); if (prev && prev.mode !== s.mode) announce(`Data source: ${badgeText.textContent}`); });

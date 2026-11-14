@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Planet X</title>
 <link rel="icon" href="data:,">
-<meta name="description" content="Look for a distant Planet X as a slow mover in SPHEREx's six-monthly all-sky survey.">
+<meta name="description" content="Look for a distant Planet X by its parallax in SPHEREx's six-monthly all-sky survey: real frames, known objects and Gaia stars, with every flag left for a person to vet.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="css/compare.css">
 <link rel="stylesheet" href="css/field.css">
 <link rel="stylesheet" href="css/candidates.css">
+<link rel="stylesheet" href="css/aladin.css"> <!-- aladin -->
 </head>
 <body data-view="sky">
 <a class="skip" href="#panel">Skip to movers</a>
@@ -71,18 +72,18 @@
   <div class="box" tabindex="-1">
     <button type="button" class="ghost close icon" id="sheet-close" aria-label="Close">✕</button>
     <h2 id="sheet-title">Planet X</h2>
-    <p>A tool for the Space Apps challenge “Planet X and SPHEREx”: look for a distant planet as a very slow mover between SPHEREx’s six‑monthly all‑sky scans. Anything that moves and doesn’t match a known object is a <em>candidate</em> for a human to review, not a confirmed object.</p>
+    <p>A tool for the Space Apps challenge “Planet X and SPHEREx”: look for a distant planet by its parallax. SPHEREx looks 90° from the Sun, so its six‑monthly passes see every patch from opposite sides of Earth’s orbit: a body at 500 AU jumps 825″ between passes and drifts 7″ a day between the re‑visits within a pass. Anything that moves and doesn’t match a known object is a <em>candidate</em> for a human to review, not a confirmed object.</p>
     <h3>Views</h3>
     <ul>
       <li><b>Sky</b>: the whole sky with every flagged mover. Pick a marker, step through scans on the timeline, or Blink between them.</li>
       <li><b>Compare</b>: two scans of the selected mover with a wipe, a difference image, or blink.</li>
-      <li><b>Field</b>: analyse one patch of sky: align the epochs, subtract, find what moved, and cross‑match it.</li>
-      <li><b>Movers panel</b>: review candidates. Filter, sort, mark them follow‑up or rejected, and add notes.</li>
+      <li><b>Field</b>: analyse one patch of sky: align the epochs, subtract, find what moved, and cross‑match it. Its vetting panel can show the selected source in DSS2, 2MASS and AllWISE images, with SIMBAD names. <!-- aladin-help --></li>
+      <li><b>Movers panel</b>: review candidates. Filter, sort and search the list, export it as CSV or JSON, and open a mover in Compare or Field.</li>
     </ul>
     <h3>Moving Sky demo</h3>
     <p><a class="sheet-link" id="moving-sky-sheet-link" href="../artifacts/moving-sky/index.html">Open SPHEREx Moving Sky</a>: the flagging pipeline step by step on one simulated field, with blink, difference and track views and a vetting panel for each flag.</p>
-    <h3>Simulated or live</h3>
-    <p>The badge in the top bar says where the data comes from. <b>Simulated data</b> means placeholder scans and movers made up for the demo; <b>Live · SPHEREx</b> means real SPHEREx images fetched from IRSA through the local server, cross‑matched against JPL’s small‑body catalogue.</p>
+    <h3>Simulated, saved or live</h3>
+    <p>The badge in the top bar says where the data comes from. <b>Simulated data</b> means placeholder scans and movers made up for the demo; <b>Saved SPHEREx data</b> means real SPHEREx images, JPL known objects and Gaia stars for the six example targets, saved from IRSA on the date in the badge’s tooltip and analysed in your browser (no server, so only those targets); <b>Live · SPHEREx</b> means real SPHEREx images fetched from IRSA through the local server for any position, cross‑matched against JPL’s small‑body catalogue.</p>
     <h3>Shortcuts</h3>
     <div class="keys">
       <kbd>drag</kbd><span>look around (pinch to zoom on touch)</span>
@@ -101,14 +102,15 @@
     </div>
     <h3>Imagery</h3>
     <p class="credit">Sky: NASA/Goddard Space Flight Center Scientific Visualization Studio (Deep Star Maps 2020). Gaia DR2: ESA/Gaia/DPAC. Not endorsed by NASA.</p>
-    <p class="credit">Deep zoom: DSS2 colour tiles (CDS HiPS, via the IRSA mirror), drawn with Aladin Lite (CDS, Strasbourg), loaded from jsDelivr when you zoom in.</p>
+    <p class="credit">Other telescopes: Aladin Lite (CDS, Strasbourg), loaded from jsDelivr; DSS2, 2MASS and AllWISE HiPS (CDS) via the IRSA mirror; names from SIMBAD (CDS). <!-- aladin-credit --></p>
+    <p class="credit">Optional survey layer for deep zoom (<code>?sky=</code>): DSS2 / 2MASS tiles (CDS HiPS, via the IRSA mirror), drawn with Aladin Lite (CDS, Strasbourg), loaded from jsDelivr.</p>
   </div>
 </div>
 
 <div id="toast" class="glass" aria-hidden="true"></div>
 <div id="announce" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

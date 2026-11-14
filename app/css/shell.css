@@ -33,6 +33,7 @@
 #source-badge { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 10px; border-radius: 7px; font-size: 12px; color: var(--ink); white-space: nowrap; }
 #source-badge i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--ink-2); display: block; flex: none; }
 #source-badge[data-mode="live"] i { background: var(--ink); border-color: var(--ink); }
+#source-badge[data-mode="snapshot"] i { background: linear-gradient(90deg, var(--ink) 50%, transparent 50%); border-color: var(--ink); } /* half dot: real data, not live */
 
 /* readout sits in a glass pill so it reads in both themes over the (always dark) sky */
 #readout { font-variant-numeric: tabular-nums; color: var(--ink-2); display: flex; gap: 8px; align-items: center; white-space: nowrap; border-radius: 8px; padding: 2px 2px 2px 10px; }

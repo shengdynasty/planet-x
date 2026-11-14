@@ -9,9 +9,8 @@
  */
 
 /**
- * @typedef {'Candidate'|'Matched'|'Likely'|'Rejected'|'Follow-up'} CandidateStatus
- *   Candidate = unmatched mover; Matched = known object; Likely = probable non-planet (e.g. brown dwarf);
- *   Rejected / Follow-up = set by a human reviewer in the workflow.
+ * @typedef {'Candidate'|'Matched'|'Likely'} CandidateStatus
+ *   Candidate = unmatched mover; Matched = known object; Likely = probable non-planet (e.g. brown dwarf).
  */
 
 /**
@@ -24,7 +23,7 @@
  * @property {Array<[number, number]>} pos   [raHours, decDeg] per available scan, in scan order
  * @property {string} note
  * @property {boolean} simulated       true for placeholder data — UI must say so
- * @property {CandidateStatus} [pipelineStatus]  status as set by the pipeline/data source, before human review (lets a reviewer revert)
+ * @property {CandidateStatus} [pipelineStatus]  status as set by the pipeline/data source
  * @property {string} [match]          known-object designation if cross-matched
  */
 

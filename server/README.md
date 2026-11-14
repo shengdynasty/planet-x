@@ -9,8 +9,9 @@ node --test tests/data.test.mjs  # client + server tests; hits IRSA for real (PL
 ```
 
 With the server running, the app (`http://localhost:8000/app/`) detects it via `/api/health` within 1.5 s and
-switches to **Live · SPHEREx via IRSA**. Without it (or on claude.ai, where outside requests are blocked) the
-app silently uses simulated data. `app/dev/data.html` shows what the data module produces.
+switches to **Live · SPHEREx**. Without it the app falls back to the saved example fields in `app/data/snapshots/`
+(badge *Saved SPHEREx data*) and otherwise to simulated data, labelled as such (always on claude.ai, where outside
+requests are blocked). `app/dev/data.html` shows what the data module produces.
 
 ## Running with live data
 
@@ -22,8 +23,9 @@ open http://localhost:8000/app/               # badge top right: "Live · SPHERE
 
 What to expect:
 
-- **Badge** reads *Live · SPHEREx* within ~1.5 s of loading. If the server isn't running (or the page is hosted
-  on claude.ai) it reads *Simulated data* and everything is the Moving Sky simulation, labelled as such.
+- **Badge** reads *Live · SPHEREx* within ~1.5 s of loading. If the server isn't running it reads *Saved SPHEREx
+  data* (the six example targets from `app/data/snapshots/`) or *Simulated data* (the Moving Sky simulation,
+  labelled as such; always the case on claude.ai).
 - **Review panel** lists only the known objects JPL predicts in the home patch (RA 70.42°, Dec 19.18°, 2′).
   Often there are none; the panel then says so and offers **Open Field on the home patch**. The server does not
   run detection. The app does, in the browser, on the real frames.
@@ -55,6 +57,9 @@ Time costs (home connection, Oct 2026; everything after the first time comes fro
 Cache: `server/.cache/` (or `PLANETX_CACHE`): `sia/` searches (7 days), `hdr/` header range reads, `cutout/`
 cutouts, `jpl/` sb_ident answers, `horizons/` Horizons answers, `field/` finished fields, `cands/` panel lists. Roughly 5 MB per
 cutout, so a few hundred MB after a dozen fields. Delete the folder to start fresh.
+
+Snapshots: `node scripts/save-snapshots.mjs` (with this server running) saves `/api/field` for the six example targets into
+`app/data/snapshots/`, which the app shows as **Saved SPHEREx data** when no server answers (the hosted copy).
 
 Run `node tests/live.test.mjs` with the server up for the browser end-to-end check (home field, 16 Psyche,
 loading + Cancel). `PLANETX_SERVER=http://localhost:8788` points it, and the app, at another port.

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Planet X UI demo S.Y.</title>
+<link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -341,14 +342,14 @@
       <kbd>Esc</kbd><span>back / close</span>
     </div>
     <h3>Imagery</h3>
-    <p>Procedural until a real map is dropped into <code>assets/sky_4k.jpg</code> (NASA SVS Deep Star Maps 2020, equirectangular, celestial coordinates). The loader picks it up automatically.</p>
+    <p>Sky: NASA/Goddard Space Flight Center Scientific Visualization Studio (Deep Star Maps 2020), loaded from the repo's <code>app/assets/sky_4k.jpg</code>; procedural until it arrives or when the file is absent. Gaia DR2: ESA/Gaia/DPAC. Not endorsed by NASA.</p>
   </div>
 </div>
 
 <div id="toast" class="glass" role="status" aria-live="polite"></div>
 <div id="sr-live" class="sr-only" aria-live="polite"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
 <script>
 (function () {
   // =====================================================================
@@ -396,7 +397,7 @@
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 2000);
   let yaw = 0.6, pitch = 0.15, tYaw = yaw, tPitch = pitch, tFov = 60;
 
-  // --- backdrop: colourful procedural all-sky, replaced by assets/sky_4k.jpg when available ---
+  // --- backdrop: colourful procedural all-sky, replaced by ../../app/assets/sky_4k.jpg when available ---
   let backdrop;
   function proceduralSky() {
     // Perf: the soft glow layers (bulge, blue halo, mid nebulosity) are drawn at 1/4 resolution and upscaled; they are
@@ -455,13 +456,15 @@
   }
   function setBackdrop(tex) {
     tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); tex.encoding = THREE.sRGBEncoding;
-    if (!backdrop) { backdrop = new THREE.Mesh(new THREE.SphereGeometry(800, 64, 48), new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide })); backdrop.rotation.y = Math.PI; scene.add(backdrop); }
+    // rotation.y = PI plus scale.x = -1 maps the equirectangular image onto toVec() the right way round (app/assets/README.md)
+    if (!backdrop) { backdrop = new THREE.Mesh(new THREE.SphereGeometry(800, 64, 48), new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide })); backdrop.rotation.y = Math.PI; backdrop.scale.x = -1; scene.add(backdrop); }
     else { backdrop.material.map.dispose(); backdrop.material.map = tex; backdrop.material.needsUpdate = true; }
   }
   renderer.outputEncoding = THREE.sRGBEncoding;
   const sky = proceduralSky(); setBackdrop(new THREE.CanvasTexture(sky.glow)); skyDetail(sky);
-  // real imagery, if the repo's assets folder is present (silently ignored on the hosted single-file demo)
-  new THREE.TextureLoader().load('assets/sky_4k.jpg', tex => { setBackdrop(tex); toast('Loaded assets/sky_4k.jpg'); }, undefined, () => {});
+  // real imagery from the repo's app/assets (relative, so it also resolves on GitHub Pages under /planet-x/artifacts/ui-demo/;
+  // silently ignored on the hosted single-file artifact, which has no such folder)
+  new THREE.TextureLoader().load('../../app/assets/sky_4k.jpg', tex => { setBackdrop(tex); toast('Loaded app/assets/sky_4k.jpg'); }, undefined, () => {});
 
   // --- resolved stars: colour by temperature ---
   const starVert = `attribute float aSize; varying float vA; varying vec3 vC; uniform float uPR;

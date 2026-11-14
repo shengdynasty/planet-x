@@ -52,8 +52,9 @@ const hookField = ctx => ctx.addInitScript(() => {
   const { ctx, p, errs } = await open({}, hookField);
   ok((await p.textContent('#source-text')) === 'Live · SPHEREx', 'badge reads Live · SPHEREx');
   const cands = await p.evaluate(() => window.__px.get('candidates'));
-  ok(cands.every(c => c.simulated === false), `live candidates are not simulated (${cands.length})`);
-  ok(cands.every(c => !c.pos || c.pos.length === window.__px?.get?.length || true), 'candidates load');
+  // Candidate shape (core/types.js): pos has one [raHours, decDeg] per survey scan, null where the object was not in the field
+  const livePos = p => p === null || (Array.isArray(p) && p.length === 2 && p.every(Number.isFinite));
+  ok(cands.every(c => c.simulated === false && Array.isArray(c.pos) && c.pos.every(livePos)), `live candidates are real and well-formed: simulated false, pos = [[ra, dec] | null, …] (${cands.length})`);
   let opened = false;
   if (!cands.length) {
     const btn = p.locator('#panel .cx-openfield');

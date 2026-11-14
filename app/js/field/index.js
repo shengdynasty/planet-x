@@ -5,6 +5,8 @@ import { simulateField, analyse, diff, maxStack, radec, fmtDt, fmtRA, fmtDec, sp
 import { drawImage, drawStamp, drawOverlay, glyph, KIND_NAME } from './render.js';
 import { parseCentre } from '../sky/coords.js';
 import { clampFieldSize } from '../core/limits.js';
+import { EXAMPLES } from './examples.js';
+export { EXAMPLES }; // the built-in targets (also what scripts/save-snapshots.mjs saves for the hosted copy)
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const spokenT = l => l.replace(/(\d+) (d|h|min)$/, (_, n, u) => `${n} ${{ d: 'day', h: 'hour', min: 'minute' }[u]}${n === '1' ? '' : 's'}`);
@@ -18,24 +20,6 @@ const epName = (E, e) => {
 const epSub = e => String(e.sub || e.band + ' µm').split(' · ')[0]; // the wavelength only
 const epTitle = e => `${e.label}${e.date ? ` · ${String(e.date).slice(0, 10)}` : ''}${e.obsId ? ` · ${e.obsId}` : ''}`;
 const DETECTORS = [[1, '0.75–1.09 µm'], [2, '1.10–1.62 µm'], [3, '1.63–2.41 µm'], [4, '2.42–3.82 µm'], [5, '3.83–4.41 µm'], [6, '4.42–5.00 µm']];
-/**
- * Built-in targets: 16 Psyche (the server's real-data test case) and the five test objects named in the challenge
- * brief. Coordinates are for epoch 2026.0 (proper motions applied; the brief quotes WISE 0855 at its 2010 position).
- */
-export const EXAMPLES = [
-  { id: 'psyche', label: '16 Psyche · asteroid crossing, 16 Feb 2026', ra: 70.2635, dec: 19.0558, sizeArcsec: 300, det: 3, t: 61087.1294,
-    note: 'Main-belt asteroid. Expect one Known object within ~2″ of the JPL ephemeris in the Feb 2026 frame, and nothing there in the other passes.' },
-  { id: 'barnard', label: "Barnard's Star · fastest proper motion", ra: 269.4463, dec: 4.7682, sizeArcsec: 300, det: 1,
-    note: "10.4″/yr, about 1.7 px per year here. Gaia DR3 knows it, so it is a Known star; Play shows the drift between passes." },
-  { id: 'epsindi', label: 'Epsilon Indi Ba/Bb · brown-dwarf pair', ra: 331.0960, dec: -56.8010, sizeArcsec: 300, det: 2,
-    note: 'Two T dwarfs moving 4.7″/yr, bright near 1.25 µm and absent from Gaia. Under a pixel between adjacent passes, so compare the first and last.' },
-  { id: 'wise0855', label: 'WISE 0855−0714 · coldest brown dwarf', ra: 133.7599, dec: -7.2422, sizeArcsec: 300, det: 6,
-    note: '8″/yr but extremely faint even at 4.5 µm. SPHEREx may not detect it at all; an honest null result is the expected answer.' },
-  { id: 'rwaur', label: 'RW Aurigae · variable young star', ra: 76.9565, dec: 30.4014, sizeArcsec: 300, det: 1,
-    note: 'Brightness changes at a fixed position: expect Variable flags on the Gaia star, not motion.' },
-  { id: 'rdra', label: 'R Draconis · Mira variable', ra: 248.1673, dec: 66.7550, sizeArcsec: 300, det: 1,
-    note: 'Mira-type pulsator with magnitudes of change over a year: a textbook Variable, not a mover.' },
-];
 const exampleFor = r => r && Number.isFinite(r.ra) ? EXAMPLES.find(e => Math.abs(e.ra - r.ra) < 1e-4 && Math.abs(e.dec - r.dec) < 1e-4) : null;
 const isoToMJD = ms => ms / 86400000 + 40587;
 /** "61087.13" (MJD) or an ISO date/time ("2026-02-15", "2026-02-15T03:06Z") → MJD; '' → null; junk → NaN. */
@@ -45,6 +29,8 @@ export function parseAnchor(v) {
   const ms = Date.parse(/^\d{4}-\d\d-\d\d$/.test(v) ? v + 'T00:00:00Z' : v); return Number.isFinite(ms) ? isoToMJD(ms) : NaN;
 }
 const fmtSecs = ms => { const s = Math.round(ms / 1000); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`; };
+/** ISO timestamp → "14 Nov 2026" (UTC), for the saved-snapshot labels; anything unparsable comes back as given. */
+const fmtSaved = iso => { const ms = Date.parse(iso || ''); return Number.isFinite(ms) ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : String(iso || 'an earlier date'); };
 const VERDICT = {
   cand: 'Worth a follow-up: not in catalogue, PSF-shaped, consistent two-epoch motion. Needs a third epoch and an orbit fit before it is anything.',
   known: 'Identified. Position agrees with the ephemeris.', var: 'Photometric variable, not a mover.',
@@ -106,7 +92,7 @@ const TEMPLATE = `
       <div role="status" class="fv-status"><div class="fv-warn" data-ref="warn" hidden></div><p class="fv-note" data-ref="knownnote" hidden></p></div>
     </section>
     <section class="fv-live" data-ref="live" hidden>
-      <h3>Live request</h3>
+      <h3 data-ref="livehead">Live request</h3>
       <form data-ref="liveform" class="fv-liveform">
         <label class="fv-wide">Centre, RA and Dec (degrees, or h m s / d m s) <input data-ref="lpos" type="text" inputmode="text" placeholder="70.2635, 19.0558  or  08h55m10.8s −07d14m42.5s" autocomplete="off" spellcheck="false"></label>
         <label>Size <select data-ref="lsize"><option value="120">120″ (20 px)</option><option value="300">300″ (49 px)</option><option value="600">600″ (98 px)</option></select></label>
@@ -130,6 +116,7 @@ const TEMPLATE = `
       </div>
       <dl data-ref="kv"></dl>
       <svg class="fv-spec" data-ref="spec" viewBox="0 0 340 120" role="img" aria-label="Spectrum across the 102 SPHEREx bands"></svg>
+      <div class="fv-other" data-ref="other"></div> <!-- aladin: Other telescopes chips (app/js/aladin) -->
       <div class="fv-actions">
         <button data-act="add" data-ref="add">Add to review list</button>
         <button data-act="sky" class="ghost">Show on sky</button>
@@ -168,6 +155,8 @@ export function mountField(el, store) {
   // known objects are filled in when JPL answers. Everything is cached by the server afterwards.
   let ctl = null, loading = false, tickT = null, pollT = null, loadStart = 0, knownState = null, req = null, dataMod = null;
   const liveSource = () => { const s = store.get('source'); return !!(s && s.mode === 'live' && s.live !== false); };
+  // saved snapshots of the example fields (app/data/snapshots/): real frames, but only for those targets and no server to ask
+  const snapshotSource = () => { const s = store.get('source'); return !!(s && s.mode === 'snapshot'); };
   /** The size the data module will actually request (its liveSize rule), or the shared clamp if the module is missing. */
   const liveSizeOf = s => dataMod && typeof dataMod.liveSize === 'function' ? dataMod.liveSize(s) : clampFieldSize(s);
   async function load() {
@@ -177,6 +166,15 @@ export function mountField(el, store) {
     try { data = await import('../data/index.js'); } catch { data = null; }
     dataMod = data;
     if (seq !== loadSeq) return;
+    // no position (store.field null; the UI always sets one, the store need not — ISS-25): real data needs a patch to
+    // fetch, so open on the source's home patch instead of requesting ra=undefined. loadedFor keeps the store's value.
+    if ((liveSource() || snapshotSource()) && !(req && Number.isFinite(req.ra) && Number.isFinite(req.dec))) {
+      const s = store.get('source') || {};
+      // snapshot mode: the home patch has no saved field (it would show the simulation), so open the first saved target as itself
+      const saved = snapshotSource() && Array.isArray(s.targets) ? s.targets[0] : null, home = s.home || (data && data.HOME);
+      if (saved) req = { ...(req || {}), ra: saved.ra, dec: saved.dec, sizeArcsec: saved.sizeArcsec, det: saved.det, t: saved.t };
+      else if (home) req = { ...(req || {}), ra: home.ra, dec: home.dec, sizeArcsec: Number.isFinite(req?.sizeArcsec) ? req.sizeArcsec : home.sizeArcsec };
+    }
     const live = liveSource() && data && typeof data.isLive === 'function' && data.isLive();
     if (!live) {
       let f = null;
@@ -263,21 +261,27 @@ export function mountField(el, store) {
   }
   function renderLive() {
     // shown while loading too, so a slow request can be changed without waiting for it
-    const sec = $('live'), on = liveSource() && (loading || (!!field && (!field.simulated || !!field.fallbackReason)));
+    const snap = snapshotSource();
+    const sec = $('live'), on = (liveSource() || snap) && (loading || (!!field && (!field.simulated || !!field.fallbackReason)));
     sec.hidden = !on; if (!on) return;
+    // snapshot mode: the free-form request makes no sense (no server to ask), so the section keeps only the Examples menu
+    if (snap) sec.setAttribute('data-snapshot', ''); else sec.removeAttribute('data-snapshot');
+    $('livehead').textContent = snap ? 'Saved SPHEREx fields' : 'Live request';
     const r = req || {}, size = loading || !field ? liveSizeOf(r.sizeArcsec) : field.request?.sizeArcsec ?? (field.sizeArcsec ? Math.round(field.sizeArcsec) : 300);
     const sz = $('lsize'); if (![...sz.options].some(o => +o.value === size)) sz.add(new Option(`${size}″`, String(size)));
     sz.value = String(size); $('ldet').value = String(r.det || (field && !loading && field.detector) || 1);
     $('lt').value = Number.isFinite(r.t) ? String(r.t) : '';
     $('lpos').value = Number.isFinite(r.ra) ? `${+r.ra.toFixed(5)}, ${+r.dec.toFixed(5)}` : '';
-    const ex = exampleFor(r); $('lex').value = ex ? ex.id : '';
+    // a saved field answers for any request inside it, so name the example by what was loaded, not what was asked
+    const ex = exampleFor(field && !loading && field.request ? field.request : r); $('lex').value = ex ? ex.id : '';
     const note = $('exnote'); note.hidden = !ex; note.textContent = ex ? ex.note : '';
     let extra = '';
     if (field && !loading && !field.simulated) {
       const n = field.stars ? field.stars.length : 0, fl = field.epochs.some(e => Number.isFinite(e.flagged));
       extra = ` ${n ? `${n} Gaia DR3 stars overlaid (G < 19)` : field.starsStatus && field.starsStatus.startsWith('failed') ? 'Gaia lookup failed' : 'No Gaia stars'}${fl ? `; ${(Math.max(...field.epochs.map(e => e.flagged || 0)) * 100).toFixed(0)}% of pixels carry a pipeline flag in the worst frame` : ''}.`;
     }
-    $('livenote').textContent = loading || !field || field.simulated ? '' : `Real SPHEREx frames on detector D${field.detector} at ${field.band} µm. The artifact test uses a PSF width of ${psfModel(field).sigma.toFixed(2)} px ${psfModel(field).from === 'stars' ? `measured from ${psfModel(field).nStars} stars in these frames` : '(typical value; too few stars to measure)'}.` + extra;
+    const snapNote = snap ? `Saved data covers these ${EXAMPLES.length} targets. Run the local server to request any position. ` : '';
+    $('livenote').textContent = loading || !field || field.simulated ? snapNote.trim() : snapNote + `Real SPHEREx frames on detector D${field.detector} at ${field.band} µm${field.snapshot ? `, saved ${fmtSaved(field.snapshot.savedAt)}` : ''}. The artifact test uses a PSF width of ${psfModel(field).sigma.toFixed(2)} px ${psfModel(field).from === 'stars' ? `measured from ${psfModel(field).nStars} stars in these frames` : '(typical value; too few stars to measure)'}.` + extra;
   }
   function submitLive(e) {
     e.preventDefault();
@@ -325,11 +329,13 @@ export function mountField(el, store) {
     const [ra, dec] = radec(f, f.N / 2, f.N / 2), size = f.N * f.scale / 60;
     $('pos').textContent = `RA ${fmtRA(ra)}, Dec ${fmtDec(dec)} · ${size.toFixed(1)}′ × ${size.toFixed(1)}′${f.simulated ? '' : ` · ${f.N}×${f.N} px`}`;
     const src = $('source');
-    src.textContent = f.simulated ? (f.fallbackReason ? `Simulated field · ${f.fallbackReason}` : 'Simulated field') : `Live · SPHEREx D${f.detector ?? '?'} · ${f.band} µm`;
+    src.textContent = f.simulated ? (f.fallbackReason ? `Simulated field · ${f.fallbackReason}` : 'Simulated field') : `${f.snapshot ? 'Saved' : 'Live'} · SPHEREx D${f.detector ?? '?'} · ${f.band} µm`;
     src.classList.toggle('fv-pill-warn', !!f.fallbackReason);
-    src.title = f.simulated ? 'Simulated star field and planted movers. Nothing here is a real detection.' : 'Real SPHEREx images from NASA/IPAC IRSA, analysed in your browser. Flags are candidates, not detections.';
+    src.title = f.simulated ? 'Simulated star field and planted movers. Nothing here is a real detection.'
+      : f.snapshot ? `Real SPHEREx images from NASA/IPAC IRSA, saved ${fmtSaved(f.snapshot.savedAt)} and analysed in your browser. Flags are candidates, not detections.`
+      : 'Real SPHEREx images from NASA/IPAC IRSA, analysed in your browser. Flags are candidates, not detections.';
     syncOverlayButtons(); update(); renderKnownNote(); renderLive(); if (visible()) syncUrl(true);
-    if (visible() && !same) announce(`Field loaded${f.simulated ? ', simulated' : ', live SPHEREx data'}. ${results.length} flagged source${results.length === 1 ? '' : 's'}.`);
+    if (visible() && !same) announce(`Field loaded${f.simulated ? ', simulated' : f.snapshot ? ', saved SPHEREx data' : ', live SPHEREx data'}. ${results.length} flagged source${results.length === 1 ? '' : 's'}.`);
     else if (visible() && same) announce(`Known objects checked. ${results.length} flagged source${results.length === 1 ? '' : 's'}.`);
   }
 
@@ -402,6 +408,15 @@ export function mountField(el, store) {
     const [ra, dec] = candFor(r).at(-1);
     return (store.get('candidates') || []).find(c => c.pos?.length && c.pos.some(p => p && Math.hypot((p[0] - ra) * 15 * 3600 * Math.cos(dec * Math.PI / 180), (p[1] - dec) * 3600) < ON_LIST_TOL));
   }
+  // Other telescopes (DSS2, 2MASS, AllWISE, SIMBAD) for the selected source. app/js/aladin is loaded on first use, and
+  // Aladin Lite itself only when a chip is pressed; if either fails, the Field view carries on without it. // aladin
+  let other = null, otherLoad = null, otherTarget = null; // aladin
+  function updateOther(ra, dec) { // aladin
+    otherTarget = { ra, dec, stampArcsec: 15 * (field.scale || 6.2) };
+    if (other) { other.setTarget(otherTarget); return; }
+    otherLoad ||= import('../aladin/index.js').then(m => { other = m.mountOtherTelescopes($('other')); other.setTarget(otherTarget); })
+      .catch(e => { console.warn('[planet-x] field: other telescopes unavailable', e); $('other').hidden = true; });
+  } // aladin
   function renderVet() {
     const p = $('vet'); if (!selected) { p.hidden = true; return; } p.hidden = false; const r = selected, E = field.epochs;
     const [ra, dec] = radec(field, r.x, r.y);
@@ -419,6 +434,7 @@ export function mountField(el, store) {
     if (r.kind === 'cand' && field.simulated) rows.push(['Spectrum', 'Water-ice absorption at 1.5, 2.0 and 3 µm, which is why it fades at 3.29 µm']);
     rows.push(['Verdict', VERDICT[r.kind]]);
     $('vethead').textContent = `Vetting: ${r.title}`;
+    updateOther(ra, dec); // aladin
     $('kv').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
     drawStamp($('stA'), field.frame(A), field.N, r.from ? r.from.x : r.x, r.from ? r.from.y : r.y);
     drawStamp($('stB'), field.frame(B), field.N, r.to ? r.to.x : r.x, r.to ? r.to.y : r.y);
