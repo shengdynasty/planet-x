@@ -130,7 +130,7 @@ export function vanishedSources(F, a, b) {
 
 // ---------- CLI ----------
 function parseArgs(argv) { const o = {}; for (let i = 0; i < argv.length; i++) if (argv[i].startsWith('--')) { const k = argv[i].slice(2); o[k] = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : true; } return o; }
-const fmt = r => `${String(r.distAU).padStart(5)} AU  predicted ${r.ra.toFixed(4)}° ${r.dec >= 0 ? '+' : ''}${r.dec.toFixed(4)}°  shift ${r.shiftArcsec.toFixed(0).padStart(4)}″ PA ${r.pa.toFixed(0).padStart(3)}°  ` +
+export const formatRow = r => `${String(r.distAU).padStart(5)} AU  predicted ${r.ra.toFixed(4)}° ${r.dec >= 0 ? '+' : ''}${r.dec.toFixed(4)}°  shift ${r.shiftArcsec.toFixed(0).padStart(4)}″ PA ${r.pa.toFixed(0).padStart(3)}°  ` +
   (r.error === 'predict-only' ? 'prediction only (no field built)' : r.hit === null ? `FIELD UNAVAILABLE (${String(r.error).slice(0, 90)})` : r.hit ? `HIT  ${r.hitAt.offsetArcsec.toFixed(0)}″ from centre, flux ×${r.hitAt.fluxRatio.toFixed(2)}, flagged "${r.hitAt.flaggedAs}" (${r.nNew} new source${r.nNew === 1 ? '' : 's'} in field)${r.sameSourceAs.length ? `  ← SAME source as the hit at ${r.sameSourceAs.join(', ')} AU: the distance is not fixed by this` : ''}` : `no hit (${r.nNew} new source${r.nNew === 1 ? '' : 's'} in field, none with a similar flux)`) +
   (r.overlaps && r.overlaps.length ? `  [field overlaps the ${r.overlaps.join(', ')} AU field${r.overlaps.length > 1 ? 's' : ''}]` : '');
 
@@ -158,7 +158,7 @@ async function main() {
     const rows = o['predict-only'] ? distances.map(d => ({ distAU: d, ...predictAtB({ ...j.source, mjdB: j.mjdB, distAU: d }), nNew: 0, hit: null, error: 'predict-only' }))
       : await linkFields({ ...j, getField, distances, sizeArcsec: size, fluxTol: tol });
     out.push({ source: j.source, mjdB: j.mjdB, rows });
-    if (!o.json) { console.log(`\nSource at ${j.source.ra.toFixed(4)}°, ${j.source.dec.toFixed(4)}° (pass A MJD ${j.source.mjdA.toFixed(1)}, flux ${Number.isFinite(j.source.flux) ? j.source.flux.toFixed(2) : 'n/a'}) → pass B MJD ${j.mjdB.toFixed(1)}`); for (const r of rows) console.log('  ' + fmt(r)); }
+    if (!o.json) { console.log(`\nSource at ${j.source.ra.toFixed(4)}°, ${j.source.dec.toFixed(4)}° (pass A MJD ${j.source.mjdA.toFixed(1)}, flux ${Number.isFinite(j.source.flux) ? j.source.flux.toFixed(2) : 'n/a'}) → pass B MJD ${j.mjdB.toFixed(1)}`); for (const r of rows) console.log("  " + formatRow(r)); }
   }
   if (o.json) console.log(JSON.stringify({ note: NOTE, results: out }, null, 1)); else console.log('\n' + NOTE);
 }
