@@ -64,9 +64,21 @@ if (!src) process.exit(1);
 const mjdB = FA.epochs[b].mjd, pt = predictAtB({ ...src, mjdB, distAU: TRUE_AU });
 console.log(`Body assumed at ${TRUE_AU} AU: parallax puts it ${pt.shiftArcsec.toFixed(0)}″ away at ${pt.ra.toFixed(4)}°, ${pt.dec.toFixed(4)}°. Fetching the real pass-B field there …`);
 const Fp = await get(pt.ra, pt.dec, mjdB), ibp = nearest(Fp, mjdB);
-let qb = null; for (const minRoom of [6, 5, 4, 3]) { qb = quietSpot(Fp, [ibp], minRoom); if (qb.x != null) break; }
-if (qb.x == null) { console.error(`no quiet pixel in the pass-B field to plant the counterpart in (${qb.nDet} real sources in it)`); process.exit(1); }
-const spotB = [qb.x, qb.y];
+// Pick the counterpart's pixel: quiet pixels nearest the centre first, but keep the first one where the pipeline actually reports a
+// new source after planting (a spot next to a flagged pixel or a faint neighbour is classed "Next to an artifact" and could never be
+// linked). This tests the LINKER, not the pipeline's sensitivity, so a spot the pipeline cannot see is not a fair test.
+const iaP = Fp.epochs.reduce((bi, e, i) => i === ibp ? bi : (bi < 0 || Math.abs(e.mjd - src.mjdA) < Math.abs(Fp.epochs[bi].mjd - src.mjdA) ? i : bi), -1);
+const detsB = [ibp].flatMap(e => detect(Fp.frame(e))), cands = [];
+for (let y = 12; y <= N - 13; y++) for (let x = 12; x <= N - 13; x++) { const rm = room(detsB, x, y); if (rm >= 3) cands.push({ x, y, c: Math.hypot(x - N / 2, y - N / 2) }); }
+cands.sort((p, q) => p.c - q.c);
+let spotB = null, tried = 0;
+for (const c of cands.slice(0, 80)) {
+  tried++; const B = Float32Array.from(Fp.frame(ibp)); plant(B, N, c.x, c.y, AMP * stats(B).sig);
+  const r = analyse({ ...Fp, frame: i => i === ibp ? B : Fp.frame(i) }, iaP, ibp).filter(q => q.kind === 'cand' && Math.hypot(((q.to || q).x ?? q.x) - c.x, ((q.to || q).y ?? q.y) - c.y) < 1.5);
+  if (r.length) { spotB = [c.x, c.y]; break; }
+}
+if (!spotB) { console.error(`no pixel in the pass-B field where the pipeline reports a planted source as new (${tried} tried of ${cands.length})`); process.exit(1); }
+if (tried > 1) console.log(`  (${tried - 1} nearer pixel(s) skipped: the pipeline did not report a planted source there as new)`);
 const [tra, tdec] = radec(Fp, ...spotB), truth = { ra: tra, dec: tdec };
 console.log(`Counterpart planted ${sepArcsec(pt.ra, pt.dec, tra, tdec).toFixed(0)}″ from the parallax-only prediction (its own motion).\n`);
 const wrap = plantIt => async (ra, dec, q) => { const F = await get(ra, dec, q.mjd), e = nearest(F, q.mjd), B = Float32Array.from(F.frame(e)), [x, y] = pixel(F, truth.ra, truth.dec);
