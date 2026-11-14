@@ -63,6 +63,24 @@ ok(wrongFlux.every(r => !r.hit), 'a counterpart 8× too bright is rejected by th
 const broken = await linkFields({ source: src, mjdB, distances: [500], getField: async () => { throw new Error('HTTP 502'); } });
 ok(broken[0].hit === null && /502/.test(broken[0].error), 'a field that cannot be built is reported as unavailable, not as "no hit"');
 
+
+// 5. neighbouring distances: a body between 1500 and 2000 AU is inside both fields; the linker must say it is ONE source
+{ const mid = predictAtB({ ...src, mjdB, distAU: 1750 }), want = [1500, 2000];
+  const Cs = want.map(d => { const p = predictAtB({ ...src, mjdB, distAU: d }); return { ...fx, ra0: p.ra, dec0: p.dec }; });
+  let spot = null;   // an own-motion offset for which the body lands on a quiet pixel in BOTH fields
+  for (let dx = -100; dx <= 100 && !spot; dx += 6) for (let dy = -100; dy <= 100 && !spot; dy += 6) {
+    const ra = mid.ra + dx / 3600 / Math.cos(mid.dec * Math.PI / 180), dec = mid.dec + dy / 3600;
+    const px = Cs.map(C => pixel(C, ra, dec));
+    if (px.every(([x, y]) => x > 8 && y > 8 && x < N - 9 && y < N - 9 && real.every(d => Math.hypot(d.x - x, d.y - y) > (d.peak > 20 * d.sig ? 7 : 3.5)))) spot = { ra, dec }; }
+  ok(!!spot, 'found an own-motion offset that is quiet in both fields');
+  if (spot) {
+    const stand = async (ra, dec) => { const F = { ...fx, ra0: ra, dec0: dec, stars: [], known: [] }, B = Float32Array.from(fx.frame(1)), [x, y] = pixel(F, spot.ra, spot.dec); if (x > 5 && y > 5 && x < N - 6 && y < N - 6) plant(B, N, x, y, AMP * sigB); F.frame = i => i === 1 ? B : fx.frame(i); return F; };
+    const r2 = await linkFields({ source: src, mjdB, getField: stand }), q = Object.fromEntries(r2.map(r => [r.distAU, r]));
+    console.log(r2.map(r => `   ${r.distAU} AU: ${r.hit ? 'HIT' : 'no hit'}${r.sameSourceAs.length ? ' (same source as ' + r.sameSourceAs + ' AU)' : ''}${r.overlaps.length ? ' overlaps ' + r.overlaps : ''}`).join('\n'));
+    ok(q[1500].hit && q[2000].hit, 'both the 1500 and the 2000 AU fields hit the same body');
+    ok(q[1500].sameSourceAs.includes(2000) && q[2000].sameSourceAs.includes(1500), 'and they are reported as the SAME source (the distance is not fixed)');
+    ok(q[1500].overlaps.includes(2000) && !q[300].overlaps.includes(2000), 'overlapping fields are flagged; distant ones are not'); } }
+
 // 4. the CLI, without network
 const out = execFileSync('node', [path.join(here, '../scripts/link-fields.mjs'), '--ra', '70.26', '--dec', '19.06', '--mjdA', '60923.7', '--mjdB', '61086.6', '--predict-only'], { encoding: 'utf8' });
 ok(/300 AU/.test(out) && /2000 AU/.test(out) && /own motion/.test(out), 'CLI --predict-only prints every distance and the simplification note');
