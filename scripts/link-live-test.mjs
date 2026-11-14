@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Live injection test of the cross-field linker, through the REAL data server (needs `node server/index.mjs` running).
-//   1. fetch a real pass-A field, plant a source in it (it "vanishes" in pass B), read it back as a "Source vanished"
+//   1. fetch a real pass-A field and plant a source in it (it is absent in pass B, i.e. it "vanished")
 //   2. predict where a body at --true-au would reappear, fetch the REAL pass-B field there, plant the counterpart in it
 //      (at a quiet pixel, with some motion of its own), and let linkFields() look at every distance
 //   3. control: the same real fields with nothing planted must give no hit
@@ -8,36 +8,52 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { toField } from '../app/js/data/index.js';
-import { detect, stats } from '../app/js/pipeline/index.js';
+import { detect, stats, analyse } from '../app/js/pipeline/index.js';
 import { radec, pixel } from '../app/js/pipeline/format.js';
-import { linkFields, vanishedSources, predictAtB, formatRow, sepArcsec, NOTE } from './link-fields.mjs';
+import { linkFields, apertureFlux, predictAtB, formatRow, sepArcsec, NOTE } from './link-fields.mjs';
 
 const o = {}; const av = process.argv.slice(2); for (let i = 0; i < av.length; i++) if (av[i].startsWith('--')) o[av[i].slice(2)] = av[i + 1] && !av[i + 1].startsWith('--') ? av[++i] : true;
 const server = o.server || 'http://localhost:8787', ra0 = +(o.ra ?? 76.9565), dec0 = +(o.dec ?? 30.4014), [ia, ib] = String(o.pair || '0,1').split(',').map(Number);
 const TRUE_AU = +(o['true-au'] || 750), AMP = +(o.amp || 30), distances = o.distances ? String(o.distances).split(',').map(Number) : [500, 750, 1000, 1500];
-const SIGMA = 0.5;
+const SIGMA = 0.8;   // px. Sharper than this is classed "Single-pixel spike" (an artifact) when it lands on a pixel centre
 const get = async (ra, dec, mjd) => { const u = `${server}/api/field?ra=${ra.toFixed(5)}&dec=${dec.toFixed(5)}&size=300&known=0${mjd ? '&mjd=' + mjd : ''}`;
   const r = await fetch(u, { signal: AbortSignal.timeout(10 * 60 * 1000) }); if (!r.ok) throw new Error(`server answered HTTP ${r.status} for ${u}`); return toField(await r.json()); };
 function plant(img, N, x, y, amp) { for (let j = Math.max(0, Math.floor(y - 4)); j <= Math.min(N - 1, Math.ceil(y + 4)); j++) for (let i = Math.max(0, Math.floor(x - 4)); i <= Math.min(N - 1, Math.ceil(x + 4)); i++) img[j * N + i] += amp * Math.exp(-((i - x) ** 2 + (j - y) ** 2) / (2 * SIGMA ** 2)); }
 const nearest = (F, mjd) => F.epochs.reduce((b, e, i) => Math.abs(e.mjd - mjd) < Math.abs(F.epochs[b].mjd - mjd) ? i : b, 0);
-const quiet = (F, e, x, y) => { const N = F.N; return x > 8 && y > 8 && x < N - 9 && y < N - 9 && detect(F.frame(e)).every(d => Math.hypot(d.x - x, d.y - y) > (d.peak > 20 * d.sig ? 8 : 3.5)); };
+// How far a pixel is from every real source (bright ones count double, their wings reach far). Higher = quieter.
+const room = (dets, x, y) => dets.reduce((m, d) => Math.min(m, Math.hypot(d.x - x, d.y - y) / (d.peak > 20 * d.sig ? 2 : 1)), 99);
+/** The quietest usable pixel (≥ 12 px from the edge, `room` ≥ minRoom in every given frame), nearest the centre first. */
+function quietSpot(F, epochs, minRoom) {
+  const N = F.N, dets = epochs.flatMap(e => detect(F.frame(e))); let best = null;
+  for (let y = 12; y <= N - 13; y++) for (let x = 12; x <= N - 13; x++) { const rm = room(dets, x, y); if (rm < minRoom) continue; const c = Math.hypot(x - N / 2, y - N / 2); if (!best || c < best.c) best = { x, y, c, rm }; }
+  return best ? { ...best, nDet: dets.length } : { x: null, nDet: dets.length };
+}
 let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log(c ? 'ok  ' : 'FAIL', m); };
 
 console.log(`Fetching the real pass-A field at ${ra0}°, ${dec0}° from ${server} …`);
 const FA = await get(ra0, dec0), N = FA.N, a = ia, b = ib;
 console.log(`  ${FA.epochs.length} passes, pair ${a}→${b}: MJD ${FA.epochs[a].mjd.toFixed(1)} → ${FA.epochs[b].mjd.toFixed(1)}`);
-let spotA = null; for (let r = 4; r <= 14 && !spotA; r += 1) for (let t = 0; t < 360 && !spotA; t += 20) { const x = N / 2 + r * Math.cos(t * Math.PI / 180), y = N / 2 + r * Math.sin(t * Math.PI / 180); if (quiet(FA, a, x, y) && quiet(FA, b, x, y)) spotA = [x, y]; }
-if (!spotA) { console.error('no quiet pixel in the pass-A field to plant in'); process.exit(1); }
+let qa = null; for (const minRoom of [6, 5, 4, 3]) { qa = quietSpot(FA, [a, b], minRoom); if (qa.x != null) break; }
+if (qa.x == null) { console.error(`no quiet pixel in the pass-A field to plant in (${qa.nDet} real sources in it)`); process.exit(1); }
+const spotA = [qa.x, qa.y]; if (process.env.DEBUG_LINK) console.log('  planting at', spotA, 'room', qa.rm.toFixed(1), 'of', qa.nDet, 'sources');
 const A = Float32Array.from(FA.frame(a)); plant(A, N, spotA[0], spotA[1], AMP * stats(A).sig);
 const planted = { ...FA, frame: i => i === a ? A : FA.frame(i) };
-const src = vanishedSources(planted, a, b).sort((p, q) => Math.hypot(p.pixel[0] - spotA[0], p.pixel[1] - spotA[1]) - Math.hypot(q.pixel[0] - spotA[0], q.pixel[1] - spotA[1]))[0];
-ok(src && Math.hypot(src.pixel[0] - spotA[0], src.pixel[1] - spotA[1]) < 1.5, `the planted source is read back as "Source vanished" at ${src ? src.pixel.map(v => v.toFixed(1)).join(', ') : 'nowhere'}`);
+// The source as the linker needs it. analyse() may call the planted source "Source vanished" or, when the field also holds an
+// unrelated appearing source of similar brightness, pair the two as an "Uncatalogued mover" (both are legitimate), so it is
+// read straight from the frame: the nearest detection to where it was planted.
+const seen = detect(A).sort((p, q) => Math.hypot(p.x - spotA[0], p.y - spotA[1]) - Math.hypot(q.x - spotA[0], q.y - spotA[1]))[0];
+const [sra, sdec] = seen ? radec(FA, seen.x, seen.y) : [null, null];
+const src = seen && Math.hypot(seen.x - spotA[0], seen.y - spotA[1]) < 1.5 ? { ra: sra, dec: sdec, mjdA: FA.epochs[a].mjd, flux: apertureFlux(A, N, seen.x, seen.y), pixel: [seen.x, seen.y] } : null;
+ok(!!src, `the planted source is detected in pass A at ${src ? src.pixel.map(v => v.toFixed(1)).join(', ') : 'nowhere'}`);
+const how = analyse(planted, a, b).filter(r => Math.hypot(((r.from || r).x ?? r.x) - spotA[0], ((r.from || r).y ?? r.y) - spotA[1]) < 2);
+console.log(`  (the pipeline calls it: ${how.length ? how.map(r => r.title).join(', ') : 'nothing'})`);
 if (!src) process.exit(1);
 const mjdB = FA.epochs[b].mjd, pt = predictAtB({ ...src, mjdB, distAU: TRUE_AU });
 console.log(`Body assumed at ${TRUE_AU} AU: parallax puts it ${pt.shiftArcsec.toFixed(0)}″ away at ${pt.ra.toFixed(4)}°, ${pt.dec.toFixed(4)}°. Fetching the real pass-B field there …`);
 const Fp = await get(pt.ra, pt.dec, mjdB), ibp = nearest(Fp, mjdB);
-let spotB = null; for (let r = 3; r <= 12 && !spotB; r += 0.5) for (let t = 0; t < 360 && !spotB; t += 15) { const x = Fp.N / 2 + r * Math.cos(t * Math.PI / 180), y = Fp.N / 2 + r * Math.sin(t * Math.PI / 180); if (quiet(Fp, ibp, x, y)) spotB = [x, y]; }
-if (!spotB) { console.error('no quiet pixel in the pass-B field to plant the counterpart in'); process.exit(1); }
+let qb = null; for (const minRoom of [6, 5, 4, 3]) { qb = quietSpot(Fp, [ibp], minRoom); if (qb.x != null) break; }
+if (qb.x == null) { console.error(`no quiet pixel in the pass-B field to plant the counterpart in (${qb.nDet} real sources in it)`); process.exit(1); }
+const spotB = [qb.x, qb.y];
 const [tra, tdec] = radec(Fp, ...spotB), truth = { ra: tra, dec: tdec };
 console.log(`Counterpart planted ${sepArcsec(pt.ra, pt.dec, tra, tdec).toFixed(0)}″ from the parallax-only prediction (its own motion).\n`);
 const wrap = plantIt => async (ra, dec, q) => { const F = await get(ra, dec, q.mjd), e = nearest(F, q.mjd), B = Float32Array.from(F.frame(e)), [x, y] = pixel(F, truth.ra, truth.dec);
