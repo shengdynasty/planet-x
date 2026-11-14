@@ -147,6 +147,8 @@ node --test tests/injection.test.mjs                # injection-recovery on the 
 node scripts/injection-recovery.mjs [--clear-gaia]  # the full recovery tables behind docs/WRITEUP.md
 node tests/link.test.mjs                            # cross-field linker: parallax prediction + planted counterpart (Node, offline)
 node tests/parallax.test.mjs                        # parallax-distance estimator: distance with an error bar from a measured shift (Node, offline)
+node --test tests/stack.test.mjs                    # shift-and-stack on the saved real fields (Node, seconds)
+node scripts/shift-and-stack.mjs                    # the full stacking tables behind docs/WRITEUP.md (--trials, --true-au)
 node scripts/link-fields.mjs --field app/data/snapshots/psyche.json --pair 0,1   # link that pair's vanished sources (needs the server; --predict-only does not)
 node tests/shell.test.mjs                           # app shell, top bar, badge         (browser)
 node tests/review.test.mjs                          # review panel + sky markers        (browser)
