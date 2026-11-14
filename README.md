@@ -1,8 +1,8 @@
 # Planet X
 
-A NASA Space Apps Challenge 2026 project: search NASA's **SPHEREx** all-sky infrared survey for slow-moving objects, the kind of signal a distant "Planet X" would leave, and help people review what's found.
+A NASA Space Apps Challenge 2026 project: search NASA's **SPHEREx** all-sky infrared survey for the parallax a distant "Planet X" cannot hide, and help people review what's found.
 
-SPHEREx re-maps the whole sky every six months. A far-off planet barely shifts between those passes, so the app compares the same patch of sky across epochs, flags what moved, appeared, vanished or brightened, and checks each one against JPL's catalogue of known asteroids and comets and Gaia DR3's catalogue of stars. Whatever is left is a **candidate for human review, never a detection**.
+SPHEREx looks about 90° from the Sun and re-maps the whole sky every six months, so its two passes over any patch see it from opposite sides of Earth's orbit. A body at 500 AU jumps 825″ between them (134 pixels, out of a 300″ cutout and into another) and drifts 7″ a day between the re-visits within one pass. The app compares the same patch of sky across epochs, flags what moved, appeared, vanished or brightened, and checks each one against JPL's catalogue of known asteroids and comets and Gaia DR3's catalogue of stars. Whatever is left is a **candidate for human review, never a detection**. What it can and cannot find was measured by planting synthetic movers into real frames (`docs/WRITEUP.md`).
 
 Enter a position (or pick one of the built-in targets), and the app loads every SPHEREx pass of that patch at a matching wavelength, plays them like a little video, blinks or subtracts any two, overlays Gaia stars and the SPHEREx pipeline's own bad-pixel flags, and names what it recognises.
 
