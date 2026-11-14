@@ -129,6 +129,7 @@ A deployed API must be on HTTPS (the app on GitHub Pages is HTTPS) and must list
 | Field view (frames, flags, blink, live request box) | `app/js/field/` |
 | 3D sky, markers, fly-to | `app/js/sky/` |
 | Candidate review panel, export | `app/js/candidates/` |
+| Candidate report (shareable link, PDF, ADES/CSV/JSON) | `app/js/report/`, `app/report.html`; contracts in `app/ARCHITECTURE.md` |
 | Data loading, server contract, sim fallback | `app/js/data/index.js`; contract in `app/ARCHITECTURE.md` |
 | Real-data server (IRSA, JPL, FITS, WCS) | `server/lib/`; explained in `server/README.md` |
 | Write-up and pitch | `docs/WRITEUP.md`, `docs/PITCH-OUTLINE.md` |
@@ -138,7 +139,7 @@ Rules of thumb: anything simulated must say so in the UI (`simulated: true` flow
 
 ### 5. Tests
 
-Run the relevant suite before you push. Node-only suites take seconds; browser suites need Chrome and take a minute or two each (longer on a machine without a GPU: Chrome renders the sky in software). Don't run two browser suites at the same time. Each browser suite serves the repo itself on a port in 8101–8108 and refuses to reuse a server there that serves different files, so a forgotten `http.server` from another checkout can't make it test the wrong code. The server is python's `http.server`: on Windows the suites start it with `py -3` or `python` (the `python3` there is the Store stub); `PLANETX_PYTHON="py -3"` (or a path to `python.exe`) picks the interpreter on any platform.
+Run the relevant suite before you push. Node-only suites take seconds; browser suites need Chrome and take a minute or two each (longer on a machine without a GPU: Chrome renders the sky in software). Don't run two browser suites at the same time. Each browser suite serves the repo itself on a port in 8101–8109 and refuses to reuse a server there that serves different files, so a forgotten `http.server` from another checkout can't make it test the wrong code. The server is python's `http.server`: on Windows the suites start it with `py -3` or `python` (the `python3` there is the Store stub); `PLANETX_PYTHON="py -3"` (or a path to `python.exe`) picks the interpreter on any platform.
 
 ```sh
 node tests/pipeline.test.mjs                        # detection pipeline (also checks parity with Moving Sky)
@@ -154,6 +155,8 @@ node tests/shell.test.mjs                           # app shell, top bar, badge 
 node tests/review.test.mjs                          # review panel + sky markers        (browser)
 node tests/workflow.test.mjs                        # end-to-end sim workflow           (browser)
 node tests/field.test.mjs                           # Field view                        (browser)
+node tests/report.test.mjs                          # candidate report: model, link, fit, exports (Node)
+node tests/report-browser.test.mjs                  # candidate report end to end       (browser)
 node tests/live.test.mjs                            # live mode against :8787          (browser, needs a data server)
 node qa/moving-sky.test.mjs                         # Moving Sky demo                   (browser)
 ```

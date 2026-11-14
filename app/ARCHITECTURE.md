@@ -18,9 +18,10 @@ No build step. Plain ES modules loaded by `app/index.html`; three.js r128 stays 
 | Data sources (sim + live client) + server | agent **data** | `app/js/data/*`, `server/*`, `tests/data.test.mjs` |
 | Candidate workflow (panel) | agent **workflow** | `app/js/candidates/*`, `app/css/candidates.css` |
 | Real sky imagery | agent **assets** | `app/assets/*` (+ `app/assets/README.md` with source, licence, orientation) |
+| Candidate report (link + PDF + data files) | agent **report** | `app/report.html`, `app/js/report/*`, `app/css/report.css`, `tests/report.test.mjs`, `tests/report-browser.test.mjs` (+ one tagged button in `app/js/field/index.js`) |
 
 Each agent may also add a standalone dev page `app/dev/<module>.html` that mounts only its module with simulated data.
-Dev-server ports (avoid clashes): shell 8101, field 8102, data 8103, workflow 8104, assets 8105.
+Dev-server ports (avoid clashes): shell 8101, field 8102, data 8103, workflow 8104, assets 8105, report 8109.
 
 ## Mount contract (shell provides, modules fill)
 
@@ -119,3 +120,31 @@ Chips: DSS2 (1980s–90s), 2MASS (1997–2001), AllWISE (2010–2011) and SIMBAD
 Aladin Lite (GPL-3.0) is never copied into the repo: it is loaded from the CDS CDN only when a chip is pressed. Surveys and
 dates live in `app/js/aladin/geom.js`. Dev page `app/dev/aladin.html`; test `node tests/aladin.test.mjs`.
 <!-- /aladin:doc -->
+
+<!-- report:doc -->
+## Candidate report (report)
+
+The Field view's **Report ↗** button (vetting actions, the only `// report` lines in `app/js/field/index.js`) lazy-loads
+`report/model.js` and `report/encode.js` and opens `app/report.html#v=1&c=…` in a new tab. Static hosting only: the
+report lives in the URL hash (deflate-raw + base64url, ~0.7–1.5 KB), which is never sent to a server.
+
+- `model.js` `buildReport(result, field, {A, B, mode})` → the core object `schema.js` describes (v1): per-epoch MJD,
+  RA/Dec (6 decimals), centroid error (σ_PSF / SNR, floor 0.1 px), 5×5 aperture flux (Jy on real MJy/sr frames), band,
+  SPHEREx image id and flag names, plus the Gaia DR3 / known-object cross-match within 30″. It reads one `analyse()`
+  result as the Field view lists it and never re-runs detection. `derive(core)` computes motion, predictions, the
+  follow-up box and the exports; it is deterministic ("now" is the report's generation time).
+- `schema.js` `validate()` checks every field (types, ranges, lengths) and throws `ReportError`; `migrate()` reads v1.
+  Decoded values are untrusted and the page uses `textContent` only.
+- `predict.js`: weighted linear fit on the tangent plane (RA wrap and high Dec safe; σ grows linearly with time from the
+  fit covariance), a low-precision Sun for elongation, and an **illustrative** distance fan (circular prograde orbit at
+  2/5/40/300 AU, seen from Earth's centre). No orbit fit: the page says "Arc too short for an orbit fit".
+- `export.js`: ADES PSV (headed "For follow-up use; not an MPC submission"; stn XXX, no spacecraft position), astrometry
+  CSV, 30-night ephemeris CSV, JSON. Every file starts with SIMULATED DATA when the field was simulated.
+- `stamps.js` rebuilds the field (`simulateField` for sim; `data/initData` + `getField` for saved or live frames), checks
+  its epochs match the report's, and draws per-epoch stamps plus the difference on one stretch, with an N/E compass and
+  a scale bar. If the frames are unreachable the page says "Stamps unavailable offline" and shows the rest.
+- Simulated dates: the simulation has no calendar, so its epochs sit on a nominal date (`SIM_T0_MJD`, 2025-05-15) and
+  the page and files say so.
+- QR code: `qrcode-generator` 1.4.4 from cdnjs, on `report.html` only; without it the link text stands alone.
+- Tests: `node tests/report.test.mjs` (Node), `node tests/report-browser.test.mjs` (browser, port 8109).
+<!-- /report:doc -->
