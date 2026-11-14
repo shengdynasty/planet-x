@@ -3,3 +3,9 @@
 #stage:focus-visible { outline: 2px solid rgba(255,255,255,.7); outline-offset: -4px; }
 #stage > p { margin: 0; font-size: 13px; }
 body:not([data-view="sky"]) #stage { visibility: hidden; }
+
+/* Deep zoom: survey tiles behind the (transparent) three.js canvas */
+#stage canvas { position: relative; z-index: 1; }
+.sky-deep { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: #02030a; visibility: hidden; overflow: hidden; }
+.sky-deep .aladin-box, .sky-deep .aladin-logo-container, .sky-deep .aladin-popup-container, .sky-deep .aladin-reticle,
+.sky-deep .aladin-location, .sky-deep .aladin-fov, .sky-deep .aladin-status-bar { display: none !important; }

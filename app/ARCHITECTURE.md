@@ -108,3 +108,12 @@ SwiftShader elsewhere; `CHROME_GL=swiftshader|metal|gl` overrides. `serve(port, 
 refuses a stale one that serves other files. ES modules need http, not file:// — start your own
 `python3 -m http.server <port> --bind 127.0.0.1` from your worktree root on a free port (8100–8199). Never npm install into the repo.
 Put tests under `tests/`; screenshots in the scratchpad, never in git.
+
+## Sky deep zoom
+
+The NASA backdrop (`sky_4k.jpg`) is about 11 px per degree, so it blurs long before the 6° zoom limit. `app/js/sky/deepzoom.js`
+cross-fades (28° → 16° field of view) to survey tiles (DSS2 colour HiPS from IRSA's mirror of CDS), drawn by Aladin Lite in an
+element *behind* the three.js canvas. The canvas is transparent (`alpha: true`), so the grid, markers and tracks stay ours and stay
+on top; `sky/index.js` drives Aladin's centre and width from the camera every frame (both are gnomonic, so they line up to
+< 0.1 px). Aladin Lite (GPL-3.0) is not in the repo: it is imported from jsDelivr on first zoom-in, with usage logging off. If it
+cannot load (offline, blocked) the NASA picture simply stays. Pure helpers are tested by `node tests/deepzoom.test.mjs`.
