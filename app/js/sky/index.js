@@ -6,7 +6,7 @@
 import { toXYZ, yawPitchFor, raDecOf, unwrap } from './coords.js';
 import { shortId, designation, matches, posAt, observed, hasPos } from '../candidates/format.js';
 import { createBackdrop, isLowEnd } from './backdrop.js';
-import { VIEW } from './config.js';
+import { VIEW, SKY_TILES } from './config.js';
 import { createDeepZoom } from './deepzoom.js';
 import { createHdTiles } from './hdtiles.js';
 
@@ -60,7 +60,7 @@ export function mountSky(el, store, opts = {}) {
   backdrop.mesh.renderOrder = -101;
   // HD tiles: only what is on screen, at the detail the screen can show (hdtiles.js); the backdrop stays underneath.
   const hdq = new URLSearchParams(location.search);
-  const hd = createHdTiles({ low, onChange: () => kick(), enabled: hdq.get('hd') !== '0', maxLevel: +hdq.get('hdmax') || 99 });
+  const hd = createHdTiles({ low, bases: [hdq.get('tiles'), SKY_TILES.local, SKY_TILES.remote].filter(Boolean), onChange: () => kick(), enabled: hdq.get('hd') !== '0', maxLevel: +hdq.get('hdmax') || 99 });
   scene.add(hd.group);
 
   // Every star on screen comes from the backdrop image (NASA SVS Deep Star Maps, built from Gaia DR2). The UI demo

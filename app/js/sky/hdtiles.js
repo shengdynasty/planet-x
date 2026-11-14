@@ -6,6 +6,7 @@
 //   - a small LRU cache: textures that have not been seen for a while are disposed.
 // The 4k backdrop (backdrop.js) stays underneath as the base, so nothing is ever blank. If assets/skytiles is absent
 // (it is not in git; see scripts/make-sky-tiles.py) this module turns itself off and the sky is as before.
+// Tiles may live on another site: `bases` is tried in order for a manifest.json, and images are loaded with CORS so WebGL accepts them.
 /* global THREE */
 import { levelFor, visibleTiles, parentOf, tileKey, gridOf } from './tilemath.js';
 import { orient } from './backdrop.js';
@@ -13,10 +14,10 @@ import { SKY_IMAGE } from './config.js';
 
 const R = 800, FADE_MS = 220;
 
-export function createHdTiles({ onChange = () => {}, low = false, base = 'assets/skytiles', maxCache = low ? 90 : 280, maxVisible = low ? 40 : 110, maxLoads = 6, maxLevel = 99, enabled = true } = {}) {
+export function createHdTiles({ onChange = () => {}, low = false, bases = ['assets/skytiles'], maxCache = low ? 90 : 280, maxVisible = low ? 40 : 110, maxLoads = 6, maxLevel = 99, enabled = true } = {}) {
   const group = new THREE.Group();
   orient(group, SKY_IMAGE);
-  let state = enabled ? 'idle' : 'off', manifest = null, frame = 0, lastT = 0;
+  let state = enabled ? 'idle' : 'off', manifest = null, base = '', frame = 0, lastT = 0;
   const tiles = new Map();           // key -> {key, level, col, row, status: 'new'|'loading'|'ready'|'missing', tex, mesh, used}
   let inflight = 0, wanted = [];
   const stat = { level: 0, visible: 0, drawn: 0, loading: 0, cached: 0 };
@@ -25,18 +26,21 @@ export function createHdTiles({ onChange = () => {}, low = false, base = 'assets
 
   async function start() {
     state = 'loading';
-    try {
-      const r = await fetch(`${base}/manifest.json`, { cache: 'no-store' });
-      if (!r.ok) throw new Error(`manifest ${r.status}`);
-      manifest = await r.json(); state = 'ready'; onChange();
-    } catch (e) { state = 'off'; }   // no tiles here: the 4k sky stays, silently
+    for (const b of bases) {
+      try {
+        const r = await fetch(`${b.replace(/\/$/, '')}/manifest.json`);
+        if (!r.ok) continue;
+        manifest = await r.json(); base = b.replace(/\/$/, ''); state = 'ready'; onChange(); return;
+      } catch (e) { /* unreachable: try the next place */ }
+    }
+    state = 'off';   // no tiles anywhere: the 4k sky stays, silently
   }
 
   function pump() {
     while (inflight < maxLoads && wanted.length) {
       const e = wanted.shift(); if (e.status !== 'new') continue;
       e.status = 'loading'; inflight++;
-      const img = new Image(); img.decoding = 'async';
+      const img = new Image(); img.decoding = 'async'; img.crossOrigin = 'anonymous';
       img.onload = () => {
         const tex = new THREE.Texture(img);
         tex.encoding = THREE.sRGBEncoding; tex.minFilter = tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false; tex.needsUpdate = true;
@@ -66,7 +70,7 @@ export function createHdTiles({ onChange = () => {}, low = false, base = 'assets
   return {
     group,
     get state() { return state; },
-    stats: () => ({ ...stat, state }),
+    stats: () => ({ ...stat, state, base }),
     /**
      * Call every frame with the camera. Returns true while something is still loading or fading in (keep rendering).
      * @param {{yaw:number, pitch:number, fovV:number, aspect:number, heightPx:number}} cam  heightPx = drawing-buffer height

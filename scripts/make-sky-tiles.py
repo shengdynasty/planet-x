@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Cut NASA's Deep Star Maps 2020 (equirectangular OpenEXR) into a pyramid of 512x512 JPEG tiles for the Sky view.
+"""Cut NASA's Deep Star Maps 2020 (equirectangular OpenEXR) into a pyramid of 512x512 WebP (or JPEG) tiles for the Sky view.
 
     python scripts/make-sky-tiles.py starmap_2020_64k.exr app/assets/skytiles
 
 Level l is the whole map at 1024 * 2^l px wide: 2^(l+1) columns x 2^l rows of tiles (see app/js/sky/tilemath.js). A 64k
-map gives levels 3..6 (level 6 = 65,536 px wide). Tiles are written to <out>/<level>/<col>_<row>.jpg plus <out>/manifest.json.
+map gives levels 3..6 (level 6 = 65,536 px wide). Tiles are written to <out>/<level>/<col>_<row>.webp plus <out>/manifest.json.
+WebP (quality 70) is both smaller and closer to the source than JPEG (quality 80): about 55 KB vs 85 KB per dense tile,
+34.8 vs 32.1 dB PSNR, so the whole pyramid is roughly 500 MB instead of 780 MB (GitHub Pages sites are limited to 1 GB).
 
-The EXR is read one tile-row strip (512 scanlines) at a time, so memory stays around 1 GB for the 64k file. Coarser
+The EXR is read one tile-row strip (512 scanlines) at a time, so memory stays under ~0.6 GB for the 64k file. Coarser
 levels are made by averaging 2x2 in *linear* light, then every level is converted linear -> sRGB (the same conversion
 as app/assets/README.md) and clipped to 0..1.
 
@@ -14,6 +16,7 @@ Needs: pip install OpenEXR Imath numpy pillow
 Source: NASA SVS 4851, https://svs.gsfc.nasa.gov/4851/  (NASA/GSFC Scientific Visualization Studio; Gaia DR2: ESA/Gaia/DPAC)
 """
 import argparse
+import gc
 import json
 import os
 import sys
@@ -49,9 +52,11 @@ def main():
     ap.add_argument("exr")
     ap.add_argument("out")
     ap.add_argument("--min-level", type=int, default=3, help="coarsest level to write (default 3 = 8192 px wide)")
-    ap.add_argument("--quality", type=int, default=88)
+    ap.add_argument("--format", choices=["webp", "jpg"], default="webp")
+    ap.add_argument("--quality", type=int, default=70)
     ap.add_argument("--subsampling", type=int, default=0, help="PIL JPEG subsampling: 0 = 4:4:4, 2 = 4:2:0")
     ap.add_argument("--gain", type=float, default=GAIN, help="exposure multiplier (default %(default)s; see GAIN)")
+    ap.add_argument("--resume", action="store_true", help="skip tiles that already exist (a run that stopped part-way can be continued)")
     ap.add_argument("--rows", default="", help="debug: only these level-max tile rows, e.g. 40:44 (coarser levels are then partial)")
     a = ap.parse_args()
 
@@ -68,10 +73,16 @@ def main():
 
     def write_level_row(level, row, lin):
         os.makedirs(os.path.join(a.out, str(level)), exist_ok=True)
-        u8 = srgb8(lin, a.gain)
-        for col in range(u8.shape[1] // TILE):
-            p = os.path.join(a.out, str(level), f"{col}_{row}.jpg")
-            Image.fromarray(u8[:, col * TILE:(col + 1) * TILE]).save(p, "JPEG", quality=a.quality, subsampling=a.subsampling, optimize=True)
+        for col in range(lin.shape[1] // TILE):
+            p = os.path.join(a.out, str(level), f"{col}_{row}.{a.format}")
+            if a.resume and os.path.exists(p):
+                sizes[level][0] += os.path.getsize(p); sizes[level][1] += 1
+                continue
+            im = Image.fromarray(srgb8(lin[:, col * TILE:(col + 1) * TILE].astype(np.float32), a.gain))  # one tile at a time: keeps peak memory low
+            if a.format == "webp":
+                im.save(p, "WEBP", quality=a.quality, method=4)
+            else:
+                im.save(p, "JPEG", quality=a.quality, subsampling=a.subsampling, optimize=True)
             sizes[level][0] += os.path.getsize(p); sizes[level][1] += 1
 
     def emit(level, row, lin):
@@ -79,18 +90,36 @@ def main():
             write_level_row(level, row, lin)
         if level > a.min_level:
             h, w, _ = lin.shape
-            down = lin.reshape(h // 2, 2, w // 2, 2, 3).mean(axis=(1, 3), dtype=np.float32)
+            down = np.empty((h // 2, w // 2, 3), dtype=np.float16)   # half precision keeps memory low (values are 0..1)
+            for c0 in range(0, w, 8192):                              # in column chunks: no full-size float32 temporaries
+                blk = lin[:, c0:c0 + 8192].astype(np.float32)
+                down[:, c0 // 2:(c0 + 8192) // 2] = blk.reshape(h // 2, 2, blk.shape[1] // 2, 2, 3).mean(axis=(1, 3))
             pend = pending[level - 1]
             pend.append(down)
             if len(pend) == 2:
                 merged = np.concatenate(pend, axis=0); pend.clear()
                 emit(level - 1, row // 2, merged)
 
+    def read_strip(row):
+        """One tile-row strip as float16 (512, W, 3); retried a few times, so a short memory shortage does not end a long run."""
+        for attempt in range(8):
+            try:
+                lin = np.empty((TILE, W, 3), dtype=np.float16)
+                for k in range(0, TILE, 128):          # 128 scanlines at a time: ~50 MB of raw data instead of ~200 MB
+                    y = row * TILE + k
+                    ch = f.channels(["R", "G", "B"], half, y, y + 127)
+                    for i, c in enumerate(ch):
+                        lin[k:k + 128, :, i] = np.frombuffer(c, dtype=np.float16).reshape(128, W)
+                    del ch
+                return lin
+            except MemoryError:
+                print(f"row {row + 1}: out of memory, retrying ({attempt + 1}/8)", flush=True)
+                gc.collect(); time.sleep(10)
+        raise MemoryError("not enough free memory; close other programs and rerun with --resume")
+
     t0 = time.time()
     for row in range(r0, r1):
-        ch = f.channels(["R", "G", "B"], half, row * TILE, row * TILE + TILE - 1)
-        lin = np.stack([np.frombuffer(c, dtype=np.float16).reshape(TILE, W) for c in ch], axis=-1).astype(np.float32)
-        emit(max_level, row, lin)
+        emit(max_level, row, read_strip(row))
         done = row - r0 + 1
         print(f"row {row + 1}/{r1}  {time.time() - t0:5.0f}s", flush=True) if done % 4 == 0 or done == r1 - r0 else None
     # a partial --rows run leaves unmatched half-rows pending; that is expected
@@ -100,7 +129,7 @@ def main():
     print(f"total {total / 1e6:.1f} MB")
     if not a.rows:
         with open(os.path.join(a.out, "manifest.json"), "w") as m:
-            json.dump({"tileSize": TILE, "minLevel": a.min_level, "maxLevel": max_level, "ext": "jpg", "width": W, "height": H,
+            json.dump({"tileSize": TILE, "minLevel": a.min_level, "maxLevel": max_level, "ext": a.format, "width": W, "height": H,
                        "source": "NASA SVS 4851, Deep Star Maps 2020 (starmap_2020_%dk.exr)" % (W // 1024),
                        "gain": a.gain, "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio. Gaia DR2: ESA/Gaia/DPAC."}, m, indent=1)
 

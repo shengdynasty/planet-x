@@ -122,8 +122,9 @@ cannot load (offline, blocked) the NASA picture simply stays. Pure helpers are t
 
 The 4k backdrop is ~11 px/deg, so it blurs when zoomed. NASA publishes the same Deep Star Map at up to 65,536 × 32,768 px
 (182 px/deg, one image pixel per screen pixel at the 6° zoom limit). `scripts/make-sky-tiles.py` cuts it into a pyramid of
-512 px JPEG tiles (`app/assets/skytiles/<level>/<col>_<row>.jpg`, levels 3–6, about 10,900 tiles; **not in git**, regenerate with
-the script from `starmap_2020_64k.exr`). `sky/hdtiles.js` streams only what is needed, like culling and LOD in a game:
+512 px WebP tiles (`<level>/<col>_<row>.webp`, levels 3–6, 10,880 tiles, about 525 MB). **The tiles are not in this repo** (GitHub Pages
+sites are limited to 1 GB and the repo should stay small): regenerate them with the script from `starmap_2020_64k.exr`, or host them
+separately and point `SKY_TILES.remote` in `sky/config.js` (or `?tiles=<url>`) at them; the host must send `Access-Control-Allow-Origin`. `sky/hdtiles.js` streams only what is needed, like culling and LOD in a game:
 
 - **LOD:** `tilemath.levelFor` picks the level whose texels are about as dense as the screen's pixels.
 - **Visibility:** `tilemath.visibleTiles` walks the tile quadtree from level 3 and skips every off-screen branch (≈12 of 8,192 tiles at 6°).
@@ -131,4 +132,4 @@ the script from `starmap_2020_64k.exr`). `sky/hdtiles.js` streams only what is n
 - **Budget:** at most 6 requests in flight, an LRU texture cache (280 tiles, 90 on phones), a cap on tiles per frame near the poles.
 - If `assets/skytiles/manifest.json` is missing the module turns itself off and the sky is the 4k backdrop as before.
 
-URL switches while testing: `?hd=0` (off), `?hdmax=5` (cap the level). The Aladin survey layer (`deepzoom.js`) is now opt-in (`?sky=`, `?deep=`).
+URL switches while testing: `?hd=0` (off), `?hdmax=5` (cap the level), `?tiles=<url>` (tile location). The Aladin survey layer (`deepzoom.js`) is now opt-in (`?sky=`, `?deep=`).
