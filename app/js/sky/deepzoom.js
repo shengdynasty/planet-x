@@ -28,12 +28,14 @@ export const SURVEYS = {
  * Settings from the page URL, so the looks can be compared without editing code:
  *   ?sky=dss2|2mass   which survey (default dss2)
  *   ?deep=<degrees>   the field of view below which tiles start to fade in (default 28; 130 = tiles at every zoom)
+ * Off unless one of the two is given: the streamed NASA tiles (hdtiles.js) are the default deep zoom now; this layer is
+ * kept for comparison.
  */
 export function deepConfig(search = '') {
   const q = new URLSearchParams(search), d = parseFloat(q.get('deep'));
   const enterFov = Number.isFinite(d) ? Math.min(130, Math.max(10, d)) : DEEP.enterFov;
   const fullFov = Math.max(6, Math.min(DEEP.fullFov, enterFov - 12));
-  return { enterFov, fullFov: Number.isFinite(d) ? Math.max(6, enterFov - 12) : fullFov, hips: SURVEYS[q.get('sky')] || DEEP.hips };
+  return { enabled: q.has('sky') || q.has('deep'), enterFov, fullFov: Number.isFinite(d) ? Math.max(6, enterFov - 12) : fullFov, hips: SURVEYS[q.get('sky')] || DEEP.hips };
 }
 
 export const ALADIN_ESM = `https://cdn.jsdelivr.net/npm/aladin-lite@${DEEP.version}/dist/aladin.js`;
@@ -103,7 +105,7 @@ export function createDeepZoom(host, { onReady = () => {}, load = loadAladin, co
      * picture is never taken away before something sharper is behind it).
      */
     update({ raDeg, decDeg, fovV, aspect }) {
-      const want = deepMix(fovV, config.enterFov, config.fullFov);
+      const want = config.enabled ? deepMix(fovV, config.enterFov, config.fullFov) : 0;
       if (want <= 0) { host.style.visibility = 'hidden'; return 0; }
       const fovH = horizontalFov(fovV, aspect || 1);
       if (state === 'idle') start({ raDeg, decDeg, fovH });

@@ -8,6 +8,8 @@ import { shortId, designation, matches, posAt, observed, hasPos } from '../candi
 import { createBackdrop, isLowEnd } from './backdrop.js';
 import { VIEW } from './config.js';
 import { createDeepZoom } from './deepzoom.js';
+import { createHdTiles } from './hdtiles.js';
+import { createZoomDebug } from './zoomdebug.js'; // DEBUG (this branch only)
 
 const R_MARK = 500, R_GRID = 700;
 const v3 = (raH, decD, r) => new THREE.Vector3(...toXYZ(raH, decD, r));
@@ -48,6 +50,7 @@ export function mountSky(el, store, opts = {}) {
   const deepHost = document.createElement('div'); deepHost.className = 'sky-deep'; deepHost.setAttribute('aria-hidden', 'true');
   el.insertBefore(deepHost, renderer.domElement);
   const deep = createDeepZoom(deepHost, { onReady: () => kick() });
+  const zoomDebug = createZoomDebug(el); // DEBUG (this branch only)
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(VIEW.home.fov, 1, 0.1, 2000);
   const home = yawPitchFor(VIEW.home.raH, VIEW.home.decD);
@@ -56,6 +59,11 @@ export function mountSky(el, store, opts = {}) {
   // --- backdrop ---
   const backdrop = createBackdrop(renderer, { low, onChange: () => kick() });
   scene.add(backdrop.mesh);
+  backdrop.mesh.renderOrder = -101;
+  // HD tiles: only what is on screen, at the detail the screen can show (hdtiles.js); the backdrop stays underneath.
+  const hdq = new URLSearchParams(location.search);
+  const hd = createHdTiles({ low, onChange: () => kick(), enabled: hdq.get('hd') !== '0', maxLevel: +hdq.get('hdmax') || 99 });
+  scene.add(hd.group);
 
   // Every star on screen comes from the backdrop image (NASA SVS Deep Star Maps, built from Gaia DR2). The UI demo
   // used to draw three random point layers on top of it (26,000 faint dots, 280 haloed bright stars); 92% of those
@@ -262,6 +270,8 @@ export function mountSky(el, store, opts = {}) {
     const { raH, decD } = raDecOf([dir.x, dir.y, dir.z]);
     onView({ raH, decD, fov: camera.fov });
     const mix = deep.update({ raDeg: raH * 15, decDeg: decD, fovV: camera.fov, aspect: camera.aspect });
+    if (hd.update({ yaw, pitch, fovV: camera.fov, aspect: camera.aspect, heightPx: renderer.domElement.height })) moving = true;
+    zoomDebug.update({ fovV: camera.fov, aspect: camera.aspect, heightPx: el.clientHeight, mix, state: deep.state, hd: hd.stats() }); // DEBUG
     backdrop.mesh.material.transparent = true; backdrop.mesh.material.opacity = 1 - mix; backdrop.mesh.visible = mix < 0.999;
     const sc = camera.fov / 60;
     markerGroup.children.forEach(s => s.scale.set(36 * (TEX_W / 128) * sc, 36 * sc, 1)); // same aspect as the texture; 36 units tall ≈ 25 px type on an 800 px view
@@ -290,6 +300,7 @@ export function mountSky(el, store, opts = {}) {
     markerShown(id) { const m = markers.get(id); return !!(m && m.sprite.visible); },
     ready: backdrop.ready,
     /** The deep-zoom tiles: {state: 'idle'|'loading'|'ready'|'failed', error}. */
+    hd: () => hd.stats(),
     deep: () => ({ state: deep.state, error: deep.error, viewer: deep.viewer }),
     get backdrop() { return backdrop.kind; },
     /** Direct children of the scene by three.js type, e.g. {Mesh: 1, Group: 3}: the backdrop, grid, markers, tracks and nothing else. */
