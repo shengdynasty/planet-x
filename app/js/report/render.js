@@ -88,7 +88,7 @@ function sepArcsecLocal(r1, d1, r2, d2) { const R = Math.PI / 180, a = Math.sin(
 
 function drawQR(text, tries = 0) {
   const lib = globalThis.qrcode, cv = $('qr');
-  if (typeof lib !== 'function') { if (tries < 40) setTimeout(() => drawQR(text, tries + 1), 100); return; } // the script is async; give it 4 s, then leave the link text alone
+  if (typeof lib !== 'function') { if (tries < 150) setTimeout(() => drawQR(text, tries + 1), 100); return; } // the script is async and may come from a cold CDN; give it 15 s, then leave the link text alone
   try {
     const qr = lib(0, 'L'); qr.addData(text); qr.make();
     const n = qr.getModuleCount(), q = 2, px = Math.max(2, Math.floor(264 / (n + 2 * q)));
