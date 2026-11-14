@@ -11,3 +11,5 @@
 *.ico binary
 *.woff binary
 *.woff2 binary
+# HD sky tiles are binary data: never convert line endings
+app/assets/skytiles/** -text

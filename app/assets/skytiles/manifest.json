@@ -1,0 +1,12 @@
+{
+ "tileSize": 512,
+ "minLevel": 3,
+ "maxLevel": 5,
+ "ext": "webp",
+ "width": 65536,
+ "height": 32768,
+ "source": "NASA SVS 4851, Deep Star Maps 2020 (starmap_2020_64k.exr)",
+ "gain": 15.75,
+ "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio. Gaia DR2: ESA/Gaia/DPAC.",
+ "note": "Levels 3-5 only (up to 91 px/deg). All four levels (to 182 px/deg) are on the branch feat/sky-tiles-all."
+}
