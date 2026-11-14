@@ -111,6 +111,35 @@ refuses a stale one that serves other files. ES modules need http, not file:// �
 `python3 -m http.server <port> --bind 127.0.0.1` from your worktree root on a free port (8100–8199). Never npm install into the repo.
 Put tests under `tests/`; screenshots in the scratchpad, never in git.
 
+## Sky deep zoom
+
+The NASA backdrop (`sky_4k.jpg`) is about 11 px per degree, so it blurs long before the 6° zoom limit. `app/js/sky/deepzoom.js`
+cross-fades (28° → 16° field of view) to survey tiles (DSS2 colour HiPS from IRSA's mirror of CDS), drawn by Aladin Lite in an
+element *behind* the three.js canvas. The canvas is transparent (`alpha: true`), so the grid, markers and tracks stay ours and stay
+on top; `sky/index.js` drives Aladin's centre and width from the camera every frame (both are gnomonic, so they line up to
+< 0.1 px). Aladin Lite (GPL-3.0) is not in the repo: it is imported from jsDelivr on first zoom-in, with usage logging off. If it
+cannot load (offline, blocked) the NASA picture simply stays. Pure helpers are tested by `node tests/deepzoom.test.mjs`.
+
+## Sky HD tiles (streamed)
+
+The 4k backdrop is ~11 px/deg, so it blurs when zoomed. NASA publishes the same Deep Star Map at up to 65,536 × 32,768 px
+(182 px/deg, one image pixel per screen pixel at the 6° zoom limit). `scripts/make-sky-tiles.py` cuts it into a pyramid of
+512 px tiles (`app/assets/skytiles/<level>/<col>_<row>.<ext>`; `manifest.json` gives the levels and the format). **Levels 3–5 are on `main`**
+as WebP q70 (32,768 px wide, up to 91 px/deg, 2,688 tiles, about 153 MB; merged in #7). They are committed once, not per code change: each
+regeneration would add its size to the repo history. Two alternatives are kept on branches, not merged: `feat/sky-tiles-avif` (the same
+levels as AVIF q50, 93 MB) and `feat/sky-tiles-all` (all four levels as WebP, up to 182 px/deg, 525 MB). In side-by-side tests 32k looked far sharper than 16k, while 64k was not visibly different from 32k. AVIF needs
+Chrome 85+, Firefox 93+ or Safari 16.4+; on anything older the tiles fail quietly and the 4k sky stays.
+To make them yourself, run the script on `starmap_2020_64k.exr`. They can also be hosted elsewhere: point `SKY_TILES.remote` in
+`sky/config.js` (or `?tiles=<url>`) at them; that host must send `Access-Control-Allow-Origin`. `manifest.json` says which levels exist. `sky/hdtiles.js` streams only what is needed, like culling and LOD in a game:
+
+- **LOD:** `tilemath.levelFor` picks the level whose texels are about as dense as the screen's pixels.
+- **Visibility:** `tilemath.visibleTiles` walks the tile quadtree from level 3 and skips every off-screen branch (≈12 of 8,192 tiles at 6°).
+- **Progressive:** coarse tiles load first and stay under the fine ones; new tiles fade in; the 4k backdrop is the always-present base.
+- **Budget:** at most 6 requests in flight, an LRU texture cache (280 tiles, 90 on phones), a cap on tiles per frame near the poles.
+- If `assets/skytiles/manifest.json` is missing the module turns itself off and the sky is the 4k backdrop as before.
+
+URL switches while testing: `?hd=0` (off), `?hdmax=5` (cap the level), `?tiles=<url>` (tile location). The Aladin survey layer (`deepzoom.js`) is now opt-in (`?sky=`, `?deep=`).
+
 <!-- aladin:doc -->
 ## Other telescopes (aladin)
 

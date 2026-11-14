@@ -11,6 +11,15 @@ export const SKY_IMAGE = {
   decTop: 90,                        // +90 if north is at the top of the image, -90 if south is
 };
 
+// Where the streamed HD sky tiles (scripts/make-sky-tiles.py) are looked for, in order; the first with a manifest.json wins.
+// They are ~500 MB, too big for the repo or a Pages site, so they live outside it: `local` is for development (gitignored),
+// `remote` is the hosted copy (any static host that sends Access-Control-Allow-Origin, e.g. GitHub Pages). `?tiles=<url>` overrides.
+// If none is reachable the sky is the 4k backdrop, silently.
+export const SKY_TILES = {
+  local: 'assets/skytiles',
+  remote: null, // e.g. 'https://<user>.github.io/planet-x-sky'
+};
+
 // Orientation of the procedural sky drawn by backdrop.js (only used if the real image is slow or fails to load).
 export const PROCEDURAL = { raAtLeftEdgeH: 0, raIncreases: 'right', decTop: 90 };
 

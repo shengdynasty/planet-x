@@ -6,7 +6,9 @@
 import { toXYZ, yawPitchFor, raDecOf, unwrap } from './coords.js';
 import { shortId, designation, matches, posAt, observed, hasPos } from '../candidates/format.js';
 import { createBackdrop, isLowEnd } from './backdrop.js';
-import { VIEW } from './config.js';
+import { VIEW, SKY_TILES } from './config.js';
+import { createDeepZoom } from './deepzoom.js';
+import { createHdTiles } from './hdtiles.js';
 
 const R_MARK = 500, R_GRID = 700;
 const v3 = (raH, decD, r) => new THREE.Vector3(...toXYZ(raH, decD, r));
@@ -33,7 +35,7 @@ export function mountSky(el, store, opts = {}) {
 
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ antialias: !low, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({ antialias: !low, alpha: true, powerPreference: 'high-performance' }); // alpha: the deep-zoom tiles sit behind the canvas
   } catch (e) {
     el.innerHTML = '<p style="color:#9a9a9a;padding:80px 20px;text-align:center">This browser could not start WebGL, so the 3D sky is unavailable.</p>';
     return null;
@@ -41,7 +43,12 @@ export function mountSky(el, store, opts = {}) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, low ? 1.5 : 2));
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.domElement.setAttribute('aria-hidden', 'true');
+  renderer.setClearColor(0x000000, 0);
   el.appendChild(renderer.domElement);
+  // Deep zoom: survey tiles (deepzoom.js) behind the canvas, faded in as the NASA picture runs out of detail.
+  const deepHost = document.createElement('div'); deepHost.className = 'sky-deep'; deepHost.setAttribute('aria-hidden', 'true');
+  el.insertBefore(deepHost, renderer.domElement);
+  const deep = createDeepZoom(deepHost, { onReady: () => kick() });
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(VIEW.home.fov, 1, 0.1, 2000);
   const home = yawPitchFor(VIEW.home.raH, VIEW.home.decD);
@@ -50,6 +57,11 @@ export function mountSky(el, store, opts = {}) {
   // --- backdrop ---
   const backdrop = createBackdrop(renderer, { low, onChange: () => kick() });
   scene.add(backdrop.mesh);
+  backdrop.mesh.renderOrder = -101;
+  // HD tiles: only what is on screen, at the detail the screen can show (hdtiles.js); the backdrop stays underneath.
+  const hdq = new URLSearchParams(location.search);
+  const hd = createHdTiles({ low, bases: [hdq.get('tiles'), SKY_TILES.local, SKY_TILES.remote].filter(Boolean), onChange: () => kick(), enabled: hdq.get('hd') !== '0', maxLevel: +hdq.get('hdmax') || 99 });
+  scene.add(hd.group);
 
   // Every star on screen comes from the backdrop image (NASA SVS Deep Star Maps, built from Gaia DR2). The UI demo
   // used to draw three random point layers on top of it (26,000 faint dots, 280 haloed bright stars); 92% of those
@@ -255,6 +267,9 @@ export function mountSky(el, store, opts = {}) {
     camera.getWorldDirection(dir);
     const { raH, decD } = raDecOf([dir.x, dir.y, dir.z]);
     onView({ raH, decD, fov: camera.fov });
+    const mix = deep.update({ raDeg: raH * 15, decDeg: decD, fovV: camera.fov, aspect: camera.aspect });
+    if (hd.update({ yaw, pitch, fovV: camera.fov, aspect: camera.aspect, heightPx: renderer.domElement.height })) moving = true;
+    backdrop.mesh.material.transparent = true; backdrop.mesh.material.opacity = 1 - mix; backdrop.mesh.visible = mix < 0.999;
     const sc = camera.fov / 60;
     markerGroup.children.forEach(s => s.scale.set(36 * (TEX_W / 128) * sc, 36 * sc, 1)); // same aspect as the texture; 36 units tall ≈ 25 px type on an 800 px view
     renderer.render(scene, camera); frames++;
@@ -281,6 +296,9 @@ export function mountSky(el, store, opts = {}) {
     /** Whether a candidate's marker is shown (filter + search + observed in the current scan), wherever the camera is. */
     markerShown(id) { const m = markers.get(id); return !!(m && m.sprite.visible); },
     ready: backdrop.ready,
+    /** The deep-zoom tiles: {state: 'idle'|'loading'|'ready'|'failed', error}. */
+    hd: () => hd.stats(),
+    deep: () => ({ state: deep.state, error: deep.error, viewer: deep.viewer }),
     get backdrop() { return backdrop.kind; },
     /** Direct children of the scene by three.js type, e.g. {Mesh: 1, Group: 3}: the backdrop, grid, markers, tracks and nothing else. */
     sceneTypes() { const c = {}; for (const o of scene.children) c[o.type] = (c[o.type] || 0) + 1; return c; },
