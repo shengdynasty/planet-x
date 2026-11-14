@@ -3,8 +3,9 @@
 
     python scripts/make-sky-tiles.py starmap_2020_64k.exr app/assets/skytiles --format avif --quality 50 --top-level 5
 
-That command makes the set that is committed: levels 3-5 (32,768 px wide, 91 px per degree) as AVIF, about 93 MB. Encoding runs in
-parallel (--workers) and --resume continues an interrupted run. --top-level 6 adds the full 64k level (WebP q70: 372 MB more).
+That command makes levels 3-5 (32,768 px wide, 91 px per degree) as AVIF, about 93 MB: a smaller equivalent of the WebP q70 set that is on
+main (153 MB; branch feat/sky-tiles-avif has the AVIF files). Encoding runs in parallel (--workers) and --resume continues an interrupted
+run. --top-level 6 adds the full 64k level (WebP q70: 372 MB more; branch feat/sky-tiles-all).
 
 Level l is the whole map at 1024 * 2^l px wide: 2^(l+1) columns x 2^l rows of tiles (see app/js/sky/tilemath.js). A 64k
 map gives levels 3..6 (level 6 = 65,536 px wide). Tiles are written to <out>/<level>/<col>_<row>.webp plus <out>/manifest.json.

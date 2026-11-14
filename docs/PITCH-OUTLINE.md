@@ -66,6 +66,7 @@ Nine slides, drawn from `docs/WRITEUP.md`. Every number and claim here comes fro
   - 300″ field, 15 February 2026: 16 Psyche labelled *Known object*, within 2″ of its Horizons position; absent from the same field in September 2025 and September 2026
   - Injection test on six real fields, 720 trials per cell: 80–91% of movers at 12σ+ shifting 18–92″ recovered with both positions (0.9″ median error); a vanished source 91–97%, a new source with no counterpart 76–93%; zero false movers on the un-injected pairs
   - Nothing below 7σ, nothing under a 13″ shift, worse next to bright stars; the test found and fixed two detector bugs
+  - A Planet Nine-class body would not reach 7σ in one exposure: our limit is AB 16.3–17.5 in clean fields; the nominal 10 Earth-mass model is AB 22.8–23.4 at 3–5 µm (5–6.5 mag short) and even the most optimistic published model (AB 18.8) is 1.3–2 mag short; we reach such a body only inside about 250–340 AU, or by stacking four passes (SPHEREx 5σ AB 19.5–19.9) once its orbit is known
   - One test field and six injection fields: not a survey and not a discovery
 - **Visual:** Field view on the Psyche example with the Known-objects overlay on, and the recovery table.
 
@@ -84,6 +85,6 @@ Nine slides, drawn from `docs/WRITEUP.md`. Every number and claim here comes fro
 - **Key message:** The real-data path works end to end and its limits are measured. Next, join the two halves of a Planet X signature across cutouts.
 - **Supporting points:**
   - Risks: three epochs is the minimum for an orbit fit, false positives, nothing fainter than 7σ, a body inside 1,500 AU leaves the cutout between passes
-  - Next: cross-field linking, predict where a vanished source reappears for 300–2,000 AU and test those patches (prototype in progress); run across many real fields
+  - A first cross-field linker exists: it predicts where a vanished source reappears for 300–2,000 AU, builds those cutouts and found a planted counterpart at the true distance on real frames. Next: run it on every real vanished source, across many fields
   - Then: multi-epoch linking and orbit fits, real spectra, a hosted data server
 - **Visual:** Short roadmap line with three milestones. Close with team names `[Team member names]` and links: app https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW, Moving Sky https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b, `[Video link]`.
