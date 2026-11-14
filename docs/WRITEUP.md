@@ -61,9 +61,9 @@ It cannot find:
 
 A full-screen browser app on NASA's Deep Star Maps 2020 all-sky image, with a strictly black, white and grey interface so that only the imagery carries colour. It works on phones and in light and dark themes. A badge in the top bar always says where the data comes from: *Live · SPHEREx* (the local server), *Saved SPHEREx data* (real frames for the six example targets, saved in the repository; what the hosted copy shows) or *Simulated data*. A homepage at the repository root leads into the app and the Moving Sky demo.
 
-- **Sky view.** A 3D view of the whole sky. Drag to look around, scroll or pinch to zoom, toggle an RA/Dec grid, and turn on tracks that connect each mover's positions across scans. A "Go to" box accepts coordinates or a candidate number. A scan timeline shows four all-sky scans about six months apart (the fourth shown as scheduled); Blink cycles through them.
+- **Sky view.** A 3D view of the whole sky. Drag to look around, scroll or pinch to zoom, toggle an RA/Dec grid, and turn on tracks that connect each mover's positions across scans. Zoomed in, the sky stays sharp: NASA's Deep Star Map 2020 is streamed as 512-pixel tiles at up to 91 pixels per degree, only the tiles on screen, over the 4k base image. A "Go to" box accepts coordinates or a candidate number. A scan timeline shows four all-sky scans about six months apart (the fourth shown as scheduled); Blink cycles through them.
 - **Compare view.** Two scans of the selected mover with a draggable wipe, a Difference overlay (left subtracted from right, so a mover shows up twice) and Blink.
-- **Field view.** The detection pipeline on one patch of sky: Blink, Difference and Track views, Flags and Known-objects overlays, a list of flagged sources (uncatalogued mover, known object, variable, artifact, left the field), and a vetting panel with stamps and a spectrum. With the server running, a *Live request* box sets the centre, size, detector and an optional date, and a built-in example loads asteroid 16 Psyche.
+- **Field view.** The detection pipeline on one patch of sky: Blink, Difference and Track views, Flags and Known-objects overlays, a list of flagged sources (uncatalogued mover, known object, variable, artifact, left the field), and a vetting panel with stamps, a spectrum, the same spot in DSS2, 2MASS and AllWISE through Aladin Lite with SIMBAD names, and a **Report** button that opens a one-page follow-up report for the selected source (positions with uncertainties, motion, cross-matches, predictions, ADES/CSV/JSON files, a QR code to the field), the whole report carried in its link. With the server running, a *Live request* box sets the centre, size, detector and an optional date; the Examples menu loads asteroid 16 Psyche and the five objects the challenge brief names.
 - **Movers panel.** Every mover is *Candidate* (unmatched), *Matched* (known asteroid or comet) or *Likely* (for example, a probable brown dwarf). Selecting one opens its cutout and description in a window on the left of the sky, while the panel keeps its position, shift and band with buttons to compare its scans, analyse its field or centre the sky on it. The list can be filtered, sorted and searched, and exported as CSV or JSON. Sources flagged in the Field view can be added to the list.
 
 ### 2. Local data server (optional)
@@ -80,7 +80,7 @@ A standalone technical demo, now in the app's black, white and grey palette, tha
 
 ## What is real and what is simulated
 
-**Real, with the local server running:**
+**Real, with the local server running (and, for the six example targets, saved in the repository so the hosted copy shows it too):**
 
 - Gaia DR3 stars over every live field (ESA archive), with proper motions propagated to each frame time: stars moving faster than 1″/yr (Barnard's Star) are recognised as known movers, and brightness changes at catalogued stars are reported as variability rather than motion
 - The SPHEREx pipeline's own per-pixel FLAGS plane, carried with every frame and shown as a *Bad pixels* overlay; a source on a flagged pixel is rejected as an artifact with the flag names (TRANSIENT, OUTLIER, …)
@@ -89,7 +89,7 @@ A standalone technical demo, now in the app's black, white and grey palette, tha
 - The detection, artifact rejection and cross-matching, run on those real frames
 - The sky backdrop: NASA/Goddard SVS Deep Star Maps 2020 (built from Gaia DR2), checked for orientation against known stars and the Large Magellanic Cloud
 
-**End-to-end test on real data.** On a 300″ SPHEREx field observed on 15 February 2026, the pipeline flags asteroid 16 Psyche and labels it *Known object*, within 2″ of its JPL Horizons position; it is absent from the September 2025 and September 2026 frames of the same field. In that field, cosmic rays and bad pixels are labelled as artifacts, and one variable and one faint candidate remain. We have not vetted that candidate, and it is not a discovery. This is one test field, not a survey.
+**End-to-end test on real data.** On a 300″ SPHEREx field observed on 15 February 2026, the pipeline flags asteroid 16 Psyche and labels it *Known object*, 1.3″ from its JPL Horizons position; it is absent from the September 2025 and September 2026 frames of the same field. The ten other flags in that pair are all artifacts, cosmic rays and bad pixels that the SPHEREx flag plane marks, so nothing in it is left unexplained. Earlier in the week the same pair also produced one false variable and one faint candidate; both went away when the brightness test moved from peak to aperture flux (issues.md ISS-01) and the catalogued-star rule was fixed (ISS-28). This is one test field, not a survey, and it is not a discovery.
 
 **Injection-recovery test on real frames.** To measure what the detector can and cannot find, we planted synthetic movers into the six saved real fields (point-sampled Gaussians at each field's own measured PSF width, 0.59–0.74 px, at random sub-pixel positions clear of existing sources and bad pixels) and asked the pipeline what it reported. Brightness is the peak SNR a pixel-centred source would have; the real sub-pixel phase lowers the peak by up to 40%, which is what the detector sees. `scripts/injection-recovery.mjs` reproduces every number (720 trials per cell, fixed seed) and `tests/injection.test.mjs` guards them. Recovered means reported as *Uncatalogued mover* with both positions within 1.5 px of where it was planted (entering: *New source, no counterpart*; leaving: *Source vanished*), planted at least 1.5 px from any Gaia star:
 
@@ -129,7 +129,7 @@ What this says. Nothing below the 7σ bar is reported, by design, and a nominal 
 3. Run the cross-field linker on every real *Source vanished* flag, not just planted ones; add the body's own motion and a colour correction between passes; then multi-epoch linking and a basic orbit fit once three or more matched-wavelength epochs are available.
 4. Extract real spectra from the SPHEREx frames for vetting.
 5. Proper PSF photometry and flux calibration, so brightness changes can be measured, not just flagged.
-6. Host the data server so the public demo can show live data, not just the simulation.
+6. Host the data server so the public demo can show live data for any position, beyond the six saved fields.
 
 ## Team
 
@@ -137,6 +137,8 @@ What this says. Nothing below the 7σ bar is reported, by design, and a nominal 
 
 ## Links
 
-- App: https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW
+- App (real saved SPHEREx data for six targets, no install): https://shengdynasty.github.io/planet-x/
+- Source, MIT licence: https://github.com/shengdynasty/planet-x
 - Moving Sky demo: https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b
+- Earlier hosted copy of the app on claude.ai (simulation only; outside requests are blocked there): https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW
 - Video: [Video link]

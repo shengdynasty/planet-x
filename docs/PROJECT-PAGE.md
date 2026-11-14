@@ -37,7 +37,8 @@ below SPHEREx's single-exposure depth, which is the honest answer the challenge 
 ## Detailed project description
 
 **What it does.** Planet X is one browser app with three views and a review panel, set on NASA's Deep Star Maps 2020
-all-sky image. *Sky* shows the whole sky with every flagged mover. *Compare* blinks, wipes or subtracts two passes of a
+all-sky image. *Sky* shows the whole sky with every flagged mover, and stays sharp when zoomed in by streaming NASA's
+star map as tiles at up to 91 pixels per degree. *Compare* blinks, wipes or subtracts two passes of a
 mover. *Field* runs the detection pipeline on one patch: it aligns the SPHEREx passes, subtracts them, lists what
 changed (uncatalogued mover, known object, variable star, artifact, vanished source) and opens a vetting panel with
 stamps, the catalogue checks, DSS2, 2MASS and AllWISE images of the same spot, and a one-page follow-up report that an
