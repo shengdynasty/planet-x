@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Candidate report · Planet X</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="One-page follow-up report for a Planet X candidate: stamps, astrometry, motion, cross-matches, predictions and data files.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/report.css">
+</head>
+<body class="rp">
+<!-- Candidate report. Everything shown is decoded from the URL hash (js/report/encode.js) and validated (schema.js);
+     nothing is sent to a server. Stamps are rebuilt from the field request (js/report/stamps.js). -->
+<div class="rp-bar" role="toolbar" aria-label="Report actions">
+  <a class="rp-back" href="./" title="Open the Planet X app">← Planet X</a>
+  <span class="rp-gap"></span>
+  <button type="button" data-act="print" disabled>Save as PDF</button>
+  <span class="rp-dl" role="group" aria-label="Download data">
+    <button type="button" data-act="ades" disabled title="ADES PSV astrometry, one row per epoch (follow-up use; not an MPC submission)">ADES</button>
+    <button type="button" data-act="csv" disabled title="Astrometry table, CSV">CSV</button>
+    <button type="button" data-act="eph" disabled title="Linear-motion ephemeris for the next 30 nights, CSV">Ephemeris</button>
+    <button type="button" data-act="json" disabled title="The full report, JSON">JSON</button>
+  </span>
+  <button type="button" data-act="copy" disabled>Copy link</button>
+</div>
+
+<main class="rp-page" aria-live="polite">
+  <div class="rp-error" data-r="error" hidden role="alert"></div>
+  <article data-r="report" hidden>
+    <div class="rp-sim" data-r="sim" hidden>SIMULATED DATA · planted test objects in a simulated star field · not a real observation</div>
+
+    <header class="rp-head">
+      <div>
+        <p class="rp-eyebrow">Planet X · candidate report</p>
+        <h1 data-r="id"></h1>
+        <p class="rp-title" data-r="title"></p>
+      </div>
+      <dl class="rp-meta" data-r="meta"></dl>
+    </header>
+
+    <section class="rp-row">
+      <div class="rp-stamps">
+        <h2>Stamps</h2>
+        <div class="rp-figs" data-r="stamps"></div>
+        <p class="rp-note" data-r="stampnote"></p>
+      </div>
+      <div class="rp-side">
+        <h2>Motion</h2>
+        <dl class="rp-kv" data-r="motion"></dl>
+        <h2>Cross-match</h2>
+        <dl class="rp-kv" data-r="xm"></dl>
+      </div>
+    </section>
+
+    <section>
+      <h2>Astrometry <span class="rp-sub">ICRS · 1σ per axis</span></h2>
+      <div class="rp-scroll"><table class="rp-table" data-r="astro"></table></div>
+    </section>
+
+    <section class="rp-row">
+      <div>
+        <h2>Prediction</h2>
+        <h3>Linear motion <span class="rp-sub">assumes a straight line on the sky; 1σ from the fit</span></h3>
+        <div class="rp-scroll"><table class="rp-table" data-r="linear"></table></div>
+        <h3>Distance range <span class="rp-sub">illustrative · circular prograde orbit at an assumed distance, seen from Earth</span></h3>
+        <div class="rp-scroll"><table class="rp-table" data-r="fan"></table></div>
+        <h3>Full orbit</h3>
+        <p class="rp-note" data-r="orbit"></p>
+      </div>
+      <div class="rp-follow">
+        <h2>Follow-up request</h2>
+        <dl class="rp-kv" data-r="follow"></dl>
+      </div>
+    </section>
+
+    <footer class="rp-foot">
+      <canvas class="rp-qr" data-r="qr" width="132" height="132" role="img" aria-label="QR code of this report's link" hidden></canvas>
+      <div>
+        <p class="rp-linkhead">Permanent link <span class="rp-sub">(the report is stored in the link itself)</span></p>
+        <p class="rp-link" data-r="link"></p>
+        <p class="rp-credits">Data: SPHEREx (NASA/JPL-Caltech) via NASA/IPAC Infrared Science Archive (IRSA) · Gaia DR3 (ESA/Gaia/DPAC) · CDS/SIMBAD (Strasbourg) · JPL Small-Body Identification and Horizons. Generated with Planet X.</p>
+      </div>
+    </footer>
+  </article>
+</main>
+
+<!-- QR code (MIT, pinned); if it fails to load, the link text stands alone -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" async></script>
+<script type="module" src="js/report/render.js"></script>
+</body>
+</html>
