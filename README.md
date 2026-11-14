@@ -165,6 +165,8 @@ node qa/moving-sky.test.mjs                         # Moving Sky demo           
 ## Credits
 
 - Sky imagery: NASA/Goddard Space Flight Center Scientific Visualization Studio, *Deep Star Maps 2020*. Gaia DR2: ESA/Gaia/DPAC.
-- Data: SPHEREx via NASA/IPAC Infrared Science Archive (IRSA); JPL Small-Body Identification and Horizons.
+- Data: SPHEREx via NASA/IPAC Infrared Science Archive (IRSA); JPL Small-Body Identification and Horizons; Gaia DR3 via the ESA Gaia archive.
+- Other telescopes panel: Aladin Lite (CDS, Strasbourg) loaded from jsDelivr at run time, never bundled; DSS2, 2MASS and AllWISE HiPS (CDS) via the IRSA mirror; names from SIMBAD (CDS).
+- Licence: the team's code, tests and documentation are released under the MIT License (see `LICENSE`). The data and imagery above keep their own terms and credits.
 - AI assistance: the code, tests and documentation in this repository were written with Claude (Anthropic) as a coding assistant, working from the team's direction and reviewed, run and verified by the team. The science choices, data sources, test results and conclusions are the team's.
 - Team: [Team member names]

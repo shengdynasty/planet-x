@@ -1,0 +1,37 @@
+MIT License
+
+Copyright (c) 2026 Sheng Yan and the NASA Planet X team (NASA Space Apps Challenge 2026)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+This licence covers the code, tests and documentation written by the team.
+It does not cover the data and third-party works the software uses, which keep
+their own terms and credits (see README.md "Credits"):
+
+- SPHEREx images and flag planes from NASA/IPAC IRSA; known-object positions
+  from JPL Small-Body Identification and Horizons; Gaia DR3 from ESA/Gaia/DPAC.
+- The all-sky backdrop: NASA/Goddard Space Flight Center Scientific
+  Visualization Studio, Deep Star Maps 2020 (Gaia DR2: ESA/Gaia/DPAC), used
+  under NASA's media usage guidelines, with no NASA endorsement implied.
+- The saved SPHEREx fields in app/data/snapshots/ are derived from the IRSA
+  and JPL data above and carry the same provenance.
+- three.js (MIT) and Aladin Lite (CDS, GPL/LGPL) are loaded from public CDNs
+  at run time and are not part of this repository.
