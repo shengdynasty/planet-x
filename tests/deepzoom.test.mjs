@@ -1,5 +1,5 @@
 // Deep-zoom layer logic (no browser):  node tests/deepzoom.test.mjs   (from the repo root)
-import { deepMix, horizontalFov, createDeepZoom, DEEP, ALADIN_ESM } from '../app/js/sky/deepzoom.js';
+import { deepMix, horizontalFov, createDeepZoom, deepConfig, SURVEYS, DEEP, ALADIN_ESM } from '../app/js/sky/deepzoom.js';
 
 let fails = 0, passes = 0;
 const ok = (c, m) => { if (c) passes++; else { fails++; console.log('FAIL ' + m); } };
@@ -21,6 +21,12 @@ ok(horizontalFov(10, 0.5) < 10, 'portrait view is narrower than tall');
 
 // the package is pinned and comes from the official npm package, not copied into the repo
 ok(/aladin-lite@\d+\.\d+\.\d+\/dist\/aladin\.js$/.test(ALADIN_ESM), 'Aladin Lite is pinned');
+
+// URL settings
+ok(deepConfig('').enterFov === 28 && deepConfig('').hips === DEEP.hips, 'defaults');
+ok(deepConfig('?sky=2mass').hips === SURVEYS['2mass'] && deepConfig('?sky=nonsense').hips === DEEP.hips, '?sky= picks a survey, junk is ignored');
+ok(deepConfig('?deep=130').enterFov === 130 && deepConfig('?deep=130').fullFov === 118 && deepConfig('?deep=999').enterFov === 130 && deepConfig('?deep=1').enterFov === 10, '?deep= is clamped and sets the fade range');
+ok(deepMix(100, 130, 118) === 1 && deepMix(60, 130, 118) === 1, 'deep=130 means tiles at every zoom the app allows');
 
 // createDeepZoom with a fake Aladin
 globalThis.document = { createElement: () => ({ style: {}, appendChild() {} }) };

@@ -18,6 +18,24 @@ export const DEEP = {
   hips: 'https://irsa.ipac.caltech.edu/data/hips/CDS/DSS2/color',
   loadTimeoutMs: 20000,
 };
+/** Tile surveys on IRSA's mirror of the CDS HiPS (all-sky). */
+export const SURVEYS = {
+  dss2: 'https://irsa.ipac.caltech.edu/data/hips/CDS/DSS2/color',   // visible light, photographic plates; seams at wide views
+  '2mass': 'https://irsa.ipac.caltech.edu/data/hips/CDS/2MASS/Color', // near infrared: clean, dramatic dust lane, some green speckle
+};
+
+/**
+ * Settings from the page URL, so the looks can be compared without editing code:
+ *   ?sky=dss2|2mass   which survey (default dss2)
+ *   ?deep=<degrees>   the field of view below which tiles start to fade in (default 28; 130 = tiles at every zoom)
+ */
+export function deepConfig(search = '') {
+  const q = new URLSearchParams(search), d = parseFloat(q.get('deep'));
+  const enterFov = Number.isFinite(d) ? Math.min(130, Math.max(10, d)) : DEEP.enterFov;
+  const fullFov = Math.max(6, Math.min(DEEP.fullFov, enterFov - 12));
+  return { enterFov, fullFov: Number.isFinite(d) ? Math.max(6, enterFov - 12) : fullFov, hips: SURVEYS[q.get('sky')] || DEEP.hips };
+}
+
 export const ALADIN_ESM = `https://cdn.jsdelivr.net/npm/aladin-lite@${DEEP.version}/dist/aladin.js`;
 
 /** How much of the tiles to show for a camera field of view: 0 = NASA picture only, 1 = tiles only (smooth in between). */
@@ -53,7 +71,7 @@ export function loadAladin() {
  * @param {HTMLElement} host  empty element sitting behind the three.js canvas (position: absolute; inset: 0)
  * @param {{onReady?: () => void}} [opts]
  */
-export function createDeepZoom(host, { onReady = () => {}, load = loadAladin } = {}) {
+export function createDeepZoom(host, { onReady = () => {}, load = loadAladin, config = deepConfig(typeof location !== 'undefined' ? location.search : '') } = {}) {
   let state = 'idle', viewer = null, last = {}, lastError = '';
 
   async function start(first) {
@@ -66,7 +84,7 @@ export function createDeepZoom(host, { onReady = () => {}, load = loadAladin } =
       mount.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden';
       host.appendChild(mount);
       viewer = A.aladin(mount, {
-        survey: DEEP.hips, target: `${first.raDeg} ${first.decDeg}`, fov: Math.max(0.01, first.fovH),
+        survey: config.hips, target: `${first.raDeg} ${first.decDeg}`, fov: Math.max(0.01, first.fovH),
         cooFrame: 'ICRSd', projection: 'TAN', log: false,
         showReticle: false, showZoomControl: false, showFullscreenControl: false, showLayersControl: false,
         showGotoControl: false, showFrame: false, showCooGridControl: false, showProjectionControl: false,
@@ -85,7 +103,7 @@ export function createDeepZoom(host, { onReady = () => {}, load = loadAladin } =
      * picture is never taken away before something sharper is behind it).
      */
     update({ raDeg, decDeg, fovV, aspect }) {
-      const want = deepMix(fovV);
+      const want = deepMix(fovV, config.enterFov, config.fullFov);
       if (want <= 0) { host.style.visibility = 'hidden'; return 0; }
       const fovH = horizontalFov(fovV, aspect || 1);
       if (state === 'idle') start({ raDeg, decDeg, fovH });
