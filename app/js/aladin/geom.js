@@ -1,10 +1,15 @@
 // Pure helpers for the "Other telescopes" chips (no DOM), importable from Node for tests.
 
-/** Image surveys. `hips` is the CDS HiPS ID passed to Aladin Lite; `dates` are the years the images were taken. */
+/** IRSA's mirror of the CDS HiPS (the same tiles); the app already depends on IRSA for SPHEREx, and CDS's tile servers
+ *  are not always reachable. */
+export const IRSA_HIPS = 'https://irsa.ipac.caltech.edu/data/hips/CDS';
+
+/** Image surveys. `hips` is the HiPS URL passed to Aladin Lite (IRSA mirror); `cds` is the CDS ID, used only for the
+ *  "Open in Aladin" link; `dates` are the years the images were taken. */
 export const SURVEYS = [
-  { id: 'dss2',   hips: 'P/DSS2/color',              label: 'DSS2',   dates: '1980s–90s', note: 'Digitized Sky Survey 2: visible-light photographic plates, 1980s–90s. The oldest images here, so the best for showing motion.' },
-  { id: '2mass',  hips: 'P/2MASS/color',             label: '2MASS',  dates: '1997–2001', note: 'Two Micron All Sky Survey: sharp near-infrared images, 1997–2001, at wavelengths overlapping SPHEREx.' },
-  { id: 'unwise', hips: 'P/unWISE/color-W2-W1W2-W1', label: 'unWISE', dates: '2010–2020', note: 'unWISE: mid-infrared WISE/NEOWISE coadds, 2010–2020. Best for cold brown dwarfs.' },
+  { id: 'dss2',    hips: `${IRSA_HIPS}/DSS2/color`,   cds: 'P/DSS2/color',    label: 'DSS2',    dates: '1980s–90s', note: 'Digitized Sky Survey 2: visible-light photographic plates, 1980s–90s. The oldest images here, so the best for showing motion.' },
+  { id: '2mass',   hips: `${IRSA_HIPS}/2MASS/Color`,  cds: 'P/2MASS/color',   label: '2MASS',   dates: '1997–2001', note: 'Two Micron All Sky Survey: sharp near-infrared images, 1997–2001, at wavelengths overlapping SPHEREx.' },
+  { id: 'allwise', hips: `${IRSA_HIPS}/AllWISE/color`, cds: 'P/allWISE/color', label: 'AllWISE', dates: '2010–2011', note: 'AllWISE: mid-infrared WISE images, 2010–2011. Best for cold brown dwarfs.' },
 ];
 
 /** SIMBAD name labels drawn on top of whichever survey is shown. */
@@ -40,7 +45,7 @@ export function aladinUrl(t, surveyId) {
   const u = new URL('https://aladin.cds.unistra.fr/AladinLite/');
   u.searchParams.set('target', `${normRa(t.ra).toFixed(5)} ${t.dec.toFixed(5)}`);
   u.searchParams.set('fov', fovDeg(t.stampArcsec).toFixed(4));
-  u.searchParams.set('survey', surveyById(surveyId).hips);
+  u.searchParams.set('survey', surveyById(surveyId).cds);
   return u.toString();
 }
 

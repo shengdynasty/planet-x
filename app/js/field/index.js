@@ -403,7 +403,7 @@ export function mountField(el, store) {
     const [ra, dec] = candFor(r).at(-1);
     return (store.get('candidates') || []).find(c => c.pos?.length && c.pos.some(p => p && Math.hypot((p[0] - ra) * 15 * 3600 * Math.cos(dec * Math.PI / 180), (p[1] - dec) * 3600) < ON_LIST_TOL));
   }
-  // Other telescopes (DSS2, 2MASS, unWISE, SIMBAD) for the selected source. app/js/aladin is loaded on first use, and
+  // Other telescopes (DSS2, 2MASS, AllWISE, SIMBAD) for the selected source. app/js/aladin is loaded on first use, and
   // Aladin Lite itself only when a chip is pressed; if either fails, the Field view carries on without it. // aladin
   let other = null, otherLoad = null, otherTarget = null; // aladin
   function updateOther(ra, dec) { // aladin

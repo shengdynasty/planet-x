@@ -1,4 +1,4 @@
-// "Other telescopes" chips for the Field view's vetting section: DSS2, 2MASS and unWISE images of the selected
+// "Other telescopes" chips for the Field view's vetting section: DSS2, 2MASS and AllWISE images of the selected
 // source through Aladin Lite (CDS), plus SIMBAD name labels.
 //
 // Aladin Lite (GPL-3.0) is NOT bundled in this repo: it is fetched at runtime the first time a chip is pressed,

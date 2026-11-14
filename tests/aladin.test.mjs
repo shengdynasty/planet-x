@@ -8,10 +8,10 @@ import { SURVEYS, SIMBAD, fovDeg, footprint, normRa, isTarget, aladinUrl, descri
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 let n = 0; const t = (name, fn) => { fn(); n++; };
 
-t('surveys: DSS2, 2MASS, unWISE with HiPS ids and dates', () => {
-  assert.deepEqual(SURVEYS.map(s => s.label), ['DSS2', '2MASS', 'unWISE']);
-  assert.deepEqual(SURVEYS.map(s => s.dates), ['1980s–90s', '1997–2001', '2010–2020']);
-  for (const s of SURVEYS) assert.match(s.hips, /^P\//);
+t('surveys: DSS2, 2MASS, AllWISE from the IRSA mirror, with CDS ids for links and dates', () => {
+  assert.deepEqual(SURVEYS.map(s => s.label), ['DSS2', '2MASS', 'AllWISE']);
+  assert.deepEqual(SURVEYS.map(s => s.dates), ['1980s–90s', '1997–2001', '2010–2011']);
+  for (const s of SURVEYS) { assert.match(s.hips, /^https:\/\/irsa\.ipac\.caltech\.edu\/data\/hips\/CDS\//); assert.match(s.cds, /^P\//); }
   assert.equal(SIMBAD.label, 'SIMBAD');
   assert.equal(surveyById('nope').id, SURVEYS[0].id);
 });
@@ -66,7 +66,7 @@ t('viewer host has an explicit size (Aladin forces position:relative, which void
 t('Aladin Lite (GPL-3.0) is not vendored: only loaded from the CDS CDN', () => {
   const files = []; const walk = d => { for (const f of readdirSync(d)) { if (['node_modules', '.git', '.cache'].includes(f)) continue; const p = join(d, f); statSync(p).isDirectory() ? walk(p) : files.push(p); } };
   walk(ROOT);
-  const named = files.filter(p => /aladin/i.test(p.split('/').pop()) && /\.(js|mjs|wasm)$/.test(p) && !/app\/js\/aladin\/(index|geom)\.js$|tests\/aladin\.test\.mjs$|scripts\/setup-aladin\.mjs$/.test(p));
+  const named = files.filter(p => /aladin/i.test(p.split('/').pop()) && /\.(js|mjs|wasm)$/.test(p) && !/app\/js\/aladin\/(index|geom)\.js$|tests\/aladin\.test\.mjs$/.test(p));
   assert.deepEqual(named.map(p => relative(ROOT, p)), [], 'no Aladin library files in the repo');
   const src = readFileSync(join(ROOT, 'app/js/aladin/index.js'), 'utf8');
   assert.ok(src.includes("'https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js'"), 'CDS script as fallback');

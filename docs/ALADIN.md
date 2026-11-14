@@ -6,7 +6,7 @@ When you select a flagged source in the **Field** view, its **Vetting** section 
 |---|---|---|
 | **DSS2** | Visible-light photographic plates (Digitized Sky Survey 2). Oldest images here, best for showing motion | 1980s–90s |
 | **2MASS** | Sharp near-infrared images at wavelengths overlapping SPHEREx | 1997–2001 |
-| **unWISE** | Mid-infrared WISE/NEOWISE coadds. Best for cold brown dwarfs | 2010–2020 |
+| **AllWISE** | Mid-infrared WISE images. Best for cold brown dwarfs | 2010–2011 |
 | **SIMBAD** | Labels known objects with their names and types (drawn on whichever image is shown) | names |
 
 Press a survey chip to open a small viewer centred on the selected source, with the 15-pixel SPHEREx vetting stamp outlined
@@ -36,7 +36,7 @@ python3 -m http.server 8000 --bind 127.0.0.1
 
 Demo idea: on Barnard's Star, press **DSS2** and zoom out (scroll) a little. The star moves about 10″ a year, so in plates
 from the 1980s–90s it sits roughly 5–6′ from today's position, well outside the white SPHEREx stamp. **2MASS** (~1999) puts it
-about 4–5′ away and **unWISE** (2010s) about 2′: the star walking towards the stamp across three decades.
+about 4–5′ away and **AllWISE** (2010) about 2′: the star walking towards the stamp across three decades.
 
 ## Files
 
@@ -46,7 +46,3 @@ about 4–5′ away and **unWISE** (2010s) about 2′: the star walking towards 
 - `app/js/field/index.js`: a mount point in the vetting template and an `updateOther(ra, dec)` call in `renderVet` (tagged `aladin`).
 - `app/index.html`: the stylesheet, a help-sheet sentence and a credit line (tagged `aladin`).
 
-## Setup script
-
-`node scripts/setup-aladin.mjs` wires the files into a checkout (safe to run again). `--check` reports what is installed,
-runs the tests and tests the CDN; `--dry-run` shows changes; `--uninstall [--remove-files]` takes it all out.
