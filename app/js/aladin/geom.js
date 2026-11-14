@@ -9,7 +9,7 @@ export const IRSA_HIPS = 'https://irsa.ipac.caltech.edu/data/hips/CDS';
 export const SURVEYS = [
   { id: 'dss2',    hips: `${IRSA_HIPS}/DSS2/color`,   cds: 'P/DSS2/color',    label: 'DSS2',    dates: '1980s–90s', note: 'Digitized Sky Survey 2: visible-light photographic plates, 1980s–90s. The oldest images here, so the best for showing motion.' },
   { id: '2mass',   hips: `${IRSA_HIPS}/2MASS/Color`,  cds: 'P/2MASS/color',   label: '2MASS',   dates: '1997–2001', note: 'Two Micron All Sky Survey: sharp near-infrared images, 1997–2001, at wavelengths overlapping SPHEREx.' },
-  { id: 'allwise', hips: `${IRSA_HIPS}/AllWISE/color`, cds: 'P/allWISE/color', label: 'AllWISE', dates: '2010–2011', note: 'AllWISE: mid-infrared WISE images, 2010–2011. Best for cold brown dwarfs.' },
+  { id: 'allwise', hips: `${IRSA_HIPS}/AllWISE/RGB-W4-W2-W1`, cds: 'P/allWISE/color', label: 'AllWISE', dates: '2010–2011', note: 'AllWISE: mid-infrared WISE images, 2010–2011. Best for cold brown dwarfs.' },
 ];
 
 /** SIMBAD name labels drawn on top of whichever survey is shown. */

@@ -12,6 +12,7 @@ t('surveys: DSS2, 2MASS, AllWISE from the IRSA mirror, with CDS ids for links an
   assert.deepEqual(SURVEYS.map(s => s.label), ['DSS2', '2MASS', 'AllWISE']);
   assert.deepEqual(SURVEYS.map(s => s.dates), ['1980s–90s', '1997–2001', '2010–2011']);
   for (const s of SURVEYS) { assert.match(s.hips, /^https:\/\/irsa\.ipac\.caltech\.edu\/data\/hips\/CDS\//); assert.match(s.cds, /^P\//); }
+  assert.match(surveyById('allwise').hips, /\/AllWISE\/RGB-W4-W2-W1$/); // IRSA mirrors AllWISE under this name only; CDS/AllWISE/color is a 404 there (checked 2026-11-14)
   assert.equal(SIMBAD.label, 'SIMBAD');
   assert.equal(surveyById('nope').id, SURVEYS[0].id);
 });
