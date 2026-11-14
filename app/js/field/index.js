@@ -130,6 +130,7 @@ const TEMPLATE = `
       </div>
       <dl data-ref="kv"></dl>
       <svg class="fv-spec" data-ref="spec" viewBox="0 0 340 120" role="img" aria-label="Spectrum across the 102 SPHEREx bands"></svg>
+      <div class="fv-other" data-ref="other"></div> <!-- aladin: Other telescopes chips (app/js/aladin) -->
       <div class="fv-actions">
         <button data-act="add" data-ref="add">Add to review list</button>
         <button data-act="sky" class="ghost">Show on sky</button>
@@ -402,6 +403,15 @@ export function mountField(el, store) {
     const [ra, dec] = candFor(r).at(-1);
     return (store.get('candidates') || []).find(c => c.pos?.length && c.pos.some(p => p && Math.hypot((p[0] - ra) * 15 * 3600 * Math.cos(dec * Math.PI / 180), (p[1] - dec) * 3600) < ON_LIST_TOL));
   }
+  // Other telescopes (DSS2, 2MASS, unWISE, SIMBAD) for the selected source. app/js/aladin is loaded on first use, and
+  // Aladin Lite itself only when a chip is pressed; if either fails, the Field view carries on without it. // aladin
+  let other = null, otherLoad = null, otherTarget = null; // aladin
+  function updateOther(ra, dec) { // aladin
+    otherTarget = { ra, dec, stampArcsec: 15 * (field.scale || 6.2) };
+    if (other) { other.setTarget(otherTarget); return; }
+    otherLoad ||= import('../aladin/index.js').then(m => { other = m.mountOtherTelescopes($('other')); other.setTarget(otherTarget); })
+      .catch(e => { console.warn('[planet-x] field: other telescopes unavailable', e); $('other').hidden = true; });
+  } // aladin
   function renderVet() {
     const p = $('vet'); if (!selected) { p.hidden = true; return; } p.hidden = false; const r = selected, E = field.epochs;
     const [ra, dec] = radec(field, r.x, r.y);
@@ -419,6 +429,7 @@ export function mountField(el, store) {
     if (r.kind === 'cand' && field.simulated) rows.push(['Spectrum', 'Water-ice absorption at 1.5, 2.0 and 3 µm, which is why it fades at 3.29 µm']);
     rows.push(['Verdict', VERDICT[r.kind]]);
     $('vethead').textContent = `Vetting: ${r.title}`;
+    updateOther(ra, dec); // aladin
     $('kv').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
     drawStamp($('stA'), field.frame(A), field.N, r.from ? r.from.x : r.x, r.from ? r.from.y : r.y);
     drawStamp($('stB'), field.frame(B), field.N, r.to ? r.to.x : r.x, r.to ? r.to.y : r.y);

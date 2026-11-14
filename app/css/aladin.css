@@ -1,0 +1,20 @@
+/* "Other telescopes" chips in the Field view's vetting section (app/js/aladin). Uses base.css tokens; only imagery has colour. */
+.ot { margin-top: 12px; display: grid; gap: 8px; }
+.ot[hidden] { display: none; }
+.ot-head { display: flex; align-items: baseline; gap: 8px; color: var(--ink-3); }
+.ot-head span { flex: 1; }
+.ot-ext { font-size: 11px; color: var(--ink-2); text-decoration: none; }
+.ot-ext:hover { color: var(--ink); }
+.ot-ext[hidden] { display: none; }
+.ot-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ot-chips button { display: inline-flex; align-items: baseline; gap: 5px; border-radius: 999px; padding: 5px 10px; font-size: 11.5px; }
+.ot-chips small { font-size: 10.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.ot-chips button[aria-pressed="true"] small { color: inherit; opacity: .7; }
+.ot-view { position: relative; width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 1px solid var(--edge); background: #000; }
+.ot-view[hidden] { display: none; }
+.ot-aladin { position: absolute; inset: 0; }
+.ot-msg { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 16px; text-align: center; color: #9a9a9a; font-size: 12px; line-height: 1.5; background: #000; }
+.ot-msg[hidden] { display: none; }
+.ot-msg button { color: #f2f2f2; border-color: rgba(255,255,255,.25); }
+.ot-pos { margin: 0; font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.ot-pos[hidden] { display: none; }

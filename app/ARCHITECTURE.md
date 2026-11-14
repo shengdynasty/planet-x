@@ -108,3 +108,13 @@ SwiftShader elsewhere; `CHROME_GL=swiftshader|metal|gl` overrides. `serve(port, 
 refuses a stale one that serves other files. ES modules need http, not file:// — start your own
 `python3 -m http.server <port> --bind 127.0.0.1` from your worktree root on a free port (8100–8199). Never npm install into the repo.
 Put tests under `tests/`; screenshots in the scratchpad, never in git.
+
+<!-- aladin:doc -->
+## Other telescopes (aladin)
+
+`app/js/aladin/index.js` exports `mountOtherTelescopes(el)`. The Field view mounts it into `[data-ref="other"]` in the vetting
+section (lazy `import()`, first time a source is selected) and calls `setTarget({ra, dec, stampArcsec})` from `renderVet`.
+Chips: DSS2 (1980s–90s), 2MASS (1997–2001), unWISE (2010–2020) and SIMBAD names; pressing a lit chip closes the viewer.
+Aladin Lite (GPL-3.0) is never copied into the repo: it is loaded from the CDS CDN only when a chip is pressed. Surveys and
+dates live in `app/js/aladin/geom.js`. Dev page `app/dev/aladin.html`; test `node tests/aladin.test.mjs`.
+<!-- /aladin:doc -->
