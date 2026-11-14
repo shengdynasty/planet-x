@@ -26,6 +26,21 @@ function quietSpot(F, epochs, minRoom) {
   for (let y = 12; y <= N - 13; y++) for (let x = 12; x <= N - 13; x++) { const rm = room(dets, x, y); if (rm < minRoom) continue; const c = Math.hypot(x - N / 2, y - N / 2); if (!best || c < best.c) best = { x, y, c, rm }; }
   return best ? { ...best, nDet: dets.length } : { x: null, nDet: dets.length };
 }
+/** Printed when the true distance is not a hit: what is in the 750 AU field at the planted pixel, and what the pipeline makes of it. */
+async function diagnose(row) {
+  if (!row || row.hit === null) return;
+  console.log('DIAGNOSIS of the ' + TRUE_AU + ' AU field (planted counterpart not found):');
+  const F = await wrap(true)(row.ra, row.dec, { mjd: mjdB }), [x, y] = pixel(F, truth.ra, truth.dec), ibd = nearest(F, mjdB);
+  let iad = F.epochs.reduce((bi, e, i) => i === ibd ? bi : (bi < 0 || Math.abs(e.mjd - src.mjdA) < Math.abs(F.epochs[bi].mjd - src.mjdA) ? i : bi), -1);
+  const B = F.frame(ibd), st = stats(B), cx = Math.round(x), cy = Math.round(y);
+  console.log(`  field centre ${row.ra.toFixed(5)}, ${row.dec.toFixed(5)}; planted at pixel ${x.toFixed(1)}, ${y.toFixed(1)} of ${F.N}; passes used: A=${iad} (MJD ${F.epochs[iad].mjd.toFixed(1)}), B=${ibd} (MJD ${F.epochs[ibd].mjd.toFixed(1)})`);
+  console.log(`  pass-B noise sigma ${st.sig.toExponential(2)}; pixel value there ${B[cy * F.N + cx].toExponential(2)} (${((B[cy * F.N + cx] - st.med) / st.sig).toFixed(1)} sigma above median); the plant was ${AMP} sigma`);
+  const dB = detect(B).sort((p, q) => Math.hypot(p.x - x, p.y - y) - Math.hypot(q.x - x, q.y - y)).slice(0, 3);
+  console.log('  nearest detections in pass B:', dB.map(d => `(${d.x.toFixed(1)}, ${d.y.toFixed(1)}) ${Math.hypot(d.x - x, d.y - y).toFixed(1)} px away`).join('; ') || 'none');
+  const all = analyse(F, iad, ibd).map(r => ({ r, d: Math.hypot(((r.to || r).x ?? r.x) - x, ((r.to || r).y ?? r.y) - y) })).sort((p, q) => p.d - q.d).slice(0, 5);
+  console.log('  analyse() results nearest the planted pixel:', all.length ? all.map(o => `${o.r.kind}/"${o.r.title}" ${o.d.toFixed(1)} px`).join('; ') : 'none');
+  console.log('  (all ' + analyse(F, iad, ibd).length + ' results in this field: ' + [...new Set(analyse(F, iad, ibd).map(r => r.kind + '/' + r.title))].join(', ') + ')\n');
+}
 let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log(c ? 'ok  ' : 'FAIL', m); };
 
 console.log(`Fetching the real pass-A field at ${ra0}°, ${dec0}° from ${server} …`);
@@ -59,6 +74,7 @@ const wrap = plantIt => async (ra, dec, q) => { const F = await get(ra, dec, q.m
 const run = async (title, plantIt) => { console.log(title); const rows = await linkFields({ source: src, mjdB, getField: wrap(plantIt), distances }); for (const r of rows) console.log('  ' + formatRow(r) + `   [${sepArcsec(r.ra, r.dec, truth.ra, truth.dec).toFixed(0)}″ from the planted body]`); return Object.fromEntries(rows.map(r => [r.distAU, r])); };
 const hit = await run('WITH the counterpart planted:', true), none = await run('\nCONTROL, nothing planted:', false);
 console.log();
+if (process.env.LINK_DIAG || !(hit[TRUE_AU] && hit[TRUE_AU].hit)) await diagnose(hit[TRUE_AU]);
 ok(hit[TRUE_AU] && hit[TRUE_AU].hit === true, `the true distance (${TRUE_AU} AU) is a hit`);
 ok(Object.values(hit).every(r => r.hit !== null) && Object.values(none).every(r => r.hit !== null), 'every field was built (no "field unavailable")');
 ok(Object.values(none).every(r => r.hit === false), 'control: no distance is a hit when nothing is planted');
