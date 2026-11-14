@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Other telescopes (dev)</title>
+<link rel="icon" href="data:,">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/aladin.css">
+<style>
+  /* dev-only stand-in for the Field view's vetting column */
+  body { overflow: auto; padding: 24px; }
+  main { max-width: 340px; display: grid; gap: 14px; }
+  h1 { margin: 0; font-size: 15px; font-weight: 600; }
+  p { margin: 0; color: var(--ink-2); line-height: 1.5; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; }
+</style>
+</head>
+<body>
+<!-- Dev page: mounts only the Other telescopes chips, as the Field view's vetting section does. ?theme=dark|light -->
+<main>
+  <h1>Other telescopes · dev page</h1>
+  <p>Pick a challenge target (stands in for selecting a flagged source in the Field view), then press a chip.</p>
+  <div class="row" id="targets"></div>
+  <div id="other"></div>
+</main>
+<script type="module">
+  import { mountOtherTelescopes } from '../js/aladin/index.js';
+  import { EXAMPLES } from '../js/field/index.js';
+  const q = new URLSearchParams(location.search);
+  if (q.get('theme')) document.documentElement.setAttribute('data-theme', q.get('theme'));
+  const ot = mountOtherTelescopes(document.getElementById('other'));
+  const row = document.getElementById('targets');
+  for (const ex of EXAMPLES) {
+    const b = document.createElement('button'); b.textContent = ex.label.split(' · ')[0];
+    b.addEventListener('click', () => ot.setTarget({ ra: ex.ra, dec: ex.dec, stampArcsec: 93 }));
+    row.append(b);
+  }
+  const first = EXAMPLES.find(e => e.id === 'barnard') || EXAMPLES[0];
+  ot.setTarget({ ra: first.ra, dec: first.dec, stampArcsec: 93 });
+</script>
+</body>
+</html>
