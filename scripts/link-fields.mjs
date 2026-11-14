@@ -30,6 +30,7 @@ import { fileURLToPath } from 'node:url';
 import { analyse } from '../app/js/pipeline/index.js';
 import { radec } from '../app/js/pipeline/format.js';
 import { toField } from '../app/js/data/index.js';
+import { estimateDistance } from './parallax-distance.mjs';   // (it imports predictAtB/sepArcsec back from this file; both are only called after loading)
 
 export const DISTANCES = [300, 500, 750, 1000, 1500, 2000];
 const D2R = Math.PI / 180, AS = 3600 / D2R;       // radians → arcsec
@@ -80,7 +81,7 @@ export function apertureFlux(img, N, x, y) {
 }
 const nearestEpoch = (F, mjd, not = -1) => { let b = -1; F.epochs.forEach((e, i) => { if (i !== not && (b < 0 || Math.abs(e.mjd - mjd) < Math.abs(F.epochs[b].mjd - mjd))) b = i; }); return b; };
 
-export const NOTE = 'Predictions ignore the body\'s own motion (a few percent of the parallax at 300–2000 AU, i.e. tens of arcsec at most), so a counterpart may sit off the predicted centre; any new source inside the field counts. Neighbouring distances can overlap within one 300″ field, so a hit does not by itself fix the distance. Flux is not colour-corrected between passes.';
+export const NOTE = 'Predictions ignore the body\'s own motion (a few percent of the parallax at 300–2000 AU, i.e. tens of arcsec at most), so a counterpart may sit off the predicted centre; any new source inside the field counts. Neighbouring distances can overlap within one 300″ field, so a hit alone does not fix the distance; the parallax distance printed after a hit does, from the measured shift (scripts/parallax-distance.mjs). Flux is not colour-corrected between passes.';
 
 /**
  * @param {{source:{ra:number,dec:number,mjdA:number,flux:number}, mjdB:number,
@@ -109,6 +110,8 @@ export async function linkFields({ source, mjdB, getField, distances = DISTANCES
         if (ratio >= 1 / fluxTol && ratio <= fluxTol && (!row.hitAt || off < row.hitAt.offsetArcsec)) row.hitAt = { x: r.x, y: r.y, ra, dec, offsetArcsec: off, fluxRatio: ratio, flaggedAs: r.title };
       }
       row.hit = !!row.hitAt;
+      // The distance the MEASURED shift implies (not the assumed one): the hit's own position against the source's, with an error bar.
+      if (row.hitAt) row.distance = estimateDistance({ A: { ra: source.ra, dec: source.dec, mjd: source.mjdA }, B: { ra: row.hitAt.ra, dec: row.hitAt.dec, mjd: mjdB } });
     } catch (e) { row.hit = null; row.error = e.message; }
     rows.push(row);
   }

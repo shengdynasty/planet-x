@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { toField } from '../app/js/data/index.js';
 import { pixel, radec } from '../app/js/pipeline/format.js';
 import { stats, detect } from '../app/js/pipeline/index.js';
+import { ownMotionMax } from '../scripts/parallax-distance.mjs';
 import { earthHelio, predictAtB, sepArcsec, linkFields, vanishedSources, DISTANCES } from '../scripts/link-fields.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -53,6 +54,10 @@ const rows = await linkFields({ source: src, mjdB, getField: standIn(true) });
 console.log(rows.map(r => `   ${r.distAU} AU: sep from truth ${sepArcsec(r.ra, r.dec, truth.ra, truth.dec).toFixed(0)}″, ${r.hit ? 'HIT at ' + r.hitAt.offsetArcsec.toFixed(0) + '″, flux ×' + r.hitAt.fluxRatio.toFixed(2) + ' (' + r.hitAt.flaggedAs + ')' : 'no hit'} (${r.nNew} new)`).join('\n'));
 const by = Object.fromEntries(rows.map(r => [r.distAU, r]));
 ok(by[TRUE_AU].hit && by[TRUE_AU].hitAt.offsetArcsec < 80, `the true distance (${TRUE_AU} AU) is a hit, ${by[TRUE_AU].hitAt && by[TRUE_AU].hitAt.offsetArcsec.toFixed(0)}″ from the predicted centre`);
+{ const own = sepArcsec(pt.ra, pt.dec, truth.ra, truth.dec), d = by[TRUE_AU].distance;   // the distance the hit's OWN position implies
+  ok(d && d.verdict === 'trans-neptunian', `the hit carries a parallax distance: ${d && d.text}`);
+  const lim = ownMotionMax(TRUE_AU, mjdB - src.mjdA);   // the error bar is only promised for a body whose own motion is within the bound-orbit limit
+  ok(own > lim + 4 || (d && d.loAU <= TRUE_AU && TRUE_AU <= d.hiAU), own > lim + 4 ? `the planted own motion (${own.toFixed(0)}″) is above the bound-orbit limit (${lim.toFixed(0)}″), so the bar need not hold ${TRUE_AU} AU: ${d.loAU.toFixed(0)}–${d.hiAU.toFixed(0)} AU` : `its error bar holds the true ${TRUE_AU} AU (own motion ${own.toFixed(0)}″, limit ${lim.toFixed(0)}″)`); }
 ok(rows.every(r => !(r.hit && sepArcsec(r.ra, r.dec, truth.ra, truth.dec) > 200)), 'no distance whose field cannot contain the body (> 200″ away) reports a hit');
 ok(rows.some(r => !r.hit && sepArcsec(r.ra, r.dec, truth.ra, truth.dec) > 200), 'at least one other distance is correctly reported as no hit');
 // controls
