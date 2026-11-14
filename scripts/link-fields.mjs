@@ -128,6 +128,25 @@ export function vanishedSources(F, a, b) {
   });
 }
 
+
+/** GET {server}/api/field with retries: IRSA answers 502/503 on a good share of cold requests, and the server passes that status on.
+ *  Retries 5xx up to `tries` times with a growing wait, prints each retry, and puts the server's own error text in the final error. */
+export async function fetchField(server, { ra, dec, size = 300, mjd, known = false }, { tries = 4, waitMs = 15000, log = m => console.error(m) } = {}) {
+  const u = `${server}/api/field?ra=${ra.toFixed(5)}&dec=${dec.toFixed(5)}&size=${size}&known=${known ? 1 : 0}${mjd ? '&mjd=' + mjd : ''}`;
+  let last;
+  for (let k = 1; k <= tries; k++) {
+    try {
+      const r = await fetch(u, { signal: AbortSignal.timeout(10 * 60 * 1000) });
+      if (r.ok) return toField(await r.json());
+      let msg = ''; try { msg = (await r.json()).error || ''; } catch { /* not JSON */ }
+      last = new Error(`server answered HTTP ${r.status}${msg ? ': ' + String(msg).replace(/\s+/g, ' ').slice(0, 160) : ''} (${u})`); last.status = r.status;
+      if (r.status < 500) break;
+    } catch (e) { last = e; }
+    if (k < tries) { log(`  … ${String(last.message).slice(0, 110)}; retrying in ${(waitMs * k / 1000).toFixed(0)} s (${k}/${tries - 1})`); await new Promise(res => setTimeout(res, waitMs * k)); }
+  }
+  throw last;
+}
+
 // ---------- CLI ----------
 function parseArgs(argv) { const o = {}; for (let i = 0; i < argv.length; i++) if (argv[i].startsWith('--')) { const k = argv[i].slice(2); o[k] = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : true; } return o; }
 export const formatRow = r => `${String(r.distAU).padStart(5)} AU  predicted ${r.ra.toFixed(4)}° ${r.dec >= 0 ? '+' : ''}${r.dec.toFixed(4)}°  shift ${r.shiftArcsec.toFixed(0).padStart(4)}″ PA ${r.pa.toFixed(0).padStart(3)}°  ` +
@@ -147,12 +166,7 @@ async function main() {
     if (!o['predict-only'] && !(+o.flux > 0)) { console.error('missing --flux (or use --predict-only)'); process.exit(2); }
     jobs.push({ source: { ra: +o.ra, dec: +o.dec, mjdA: +o.mjdA, flux: +o.flux }, mjdB: +o.mjdB });
   }
-  const getField = async (ra, dec, { mjd, sizeArcsec }) => {
-    const u = `${server}/api/field?ra=${ra.toFixed(5)}&dec=${dec.toFixed(5)}&size=${sizeArcsec}&mjd=${mjd}&known=0`;
-    const res = await fetch(u, { signal: AbortSignal.timeout(10 * 60 * 1000) });
-    if (!res.ok) throw new Error(`server answered HTTP ${res.status} for ${u}`);
-    return toField(await res.json());
-  };
+  const getField = (ra, dec, { mjd, sizeArcsec }) => fetchField(server, { ra, dec, size: sizeArcsec, mjd });
   const out = [];
   for (const j of jobs) {
     const rows = o['predict-only'] ? distances.map(d => ({ distAU: d, ...predictAtB({ ...j.source, mjdB: j.mjdB, distAU: d }), nNew: 0, hit: null, error: 'predict-only' }))

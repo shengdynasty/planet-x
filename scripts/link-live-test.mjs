@@ -7,17 +7,15 @@
 // Usage: node scripts/link-live-test.mjs [--ra 76.9565 --dec 30.4014 --pair 0,1 --true-au 750 --amp 30 --distances 500,750,1000,1500 --server http://localhost:8787]
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { toField } from '../app/js/data/index.js';
 import { detect, stats, analyse } from '../app/js/pipeline/index.js';
 import { radec, pixel } from '../app/js/pipeline/format.js';
-import { linkFields, apertureFlux, predictAtB, formatRow, sepArcsec, NOTE } from './link-fields.mjs';
+import { linkFields, fetchField, apertureFlux, predictAtB, formatRow, sepArcsec, NOTE } from './link-fields.mjs';
 
 const o = {}; const av = process.argv.slice(2); for (let i = 0; i < av.length; i++) if (av[i].startsWith('--')) o[av[i].slice(2)] = av[i + 1] && !av[i + 1].startsWith('--') ? av[++i] : true;
 const server = o.server || 'http://localhost:8787', ra0 = +(o.ra ?? 76.9565), dec0 = +(o.dec ?? 30.4014), [ia, ib] = String(o.pair || '0,1').split(',').map(Number);
 const TRUE_AU = +(o['true-au'] || 750), AMP = +(o.amp || 30), distances = o.distances ? String(o.distances).split(',').map(Number) : [500, 750, 1000, 1500];
 const SIGMA = 0.8;   // px. Sharper than this is classed "Single-pixel spike" (an artifact) when it lands on a pixel centre
-const get = async (ra, dec, mjd) => { const u = `${server}/api/field?ra=${ra.toFixed(5)}&dec=${dec.toFixed(5)}&size=300&known=0${mjd ? '&mjd=' + mjd : ''}`;
-  const r = await fetch(u, { signal: AbortSignal.timeout(10 * 60 * 1000) }); if (!r.ok) throw new Error(`server answered HTTP ${r.status} for ${u}`); return toField(await r.json()); };
+const get = (ra, dec, mjd) => fetchField(server, { ra, dec, size: 300, mjd });
 function plant(img, N, x, y, amp) { for (let j = Math.max(0, Math.floor(y - 4)); j <= Math.min(N - 1, Math.ceil(y + 4)); j++) for (let i = Math.max(0, Math.floor(x - 4)); i <= Math.min(N - 1, Math.ceil(x + 4)); i++) img[j * N + i] += amp * Math.exp(-((i - x) ** 2 + (j - y) ** 2) / (2 * SIGMA ** 2)); }
 const nearest = (F, mjd) => F.epochs.reduce((b, e, i) => Math.abs(e.mjd - mjd) < Math.abs(F.epochs[b].mjd - mjd) ? i : b, 0);
 // How far a pixel is from every real source (bright ones count double, their wings reach far). Higher = quieter.
