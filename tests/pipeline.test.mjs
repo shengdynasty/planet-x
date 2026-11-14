@@ -67,8 +67,11 @@ ok(CF.fmtDec(-0.04) === '+0.0°' && CF.fmtDec(-0.04) === CO.fmtDec(-0.04) && CF.
 const nearC = (a, b) => a && Math.abs(a[0] - b[0]) < 1e-6 && Math.abs(a[1] - b[1]) < 1e-6;
 ok(nearC(CO.parseCentre('12h +30d'), [180, 30]) && nearC(CO.parseCentre('12h, -30°'), [180, -30]), 'parseCentre accepts degrees with a d/° unit');
 ok(CO.parseCentre('08h 55m 60s, 0') === null && CO.parseCentre('12h60m, 0') === null && CO.parseCentre('12:60, 0') === null && CO.parseCentre('12 60 0, 0') === null, 'parseCentre rejects 60 minutes / 60 seconds');
-ok(CO.parseCentre('24h, 0') === null && CO.parseGoto('24, 0') === null && CO.parseRA('24h') === null && CO.parseRA('0h') === 0, 'RA 24h is rejected, 0h is fine');
+ok(CO.parseCentre('24h, 0') === null && CO.parseRA('24h') === null && CO.parseRA('24:00') === null && CO.parseRA('0h') === 0, 'RA 24h is rejected, 0h is fine');
 ok(CO.parseGoto('16h06m +41').raH === 16.1 && nearC(CO.parseCentre('23h59m59s, 0'), [(23 + 59 / 60 + 59 / 3600) * 15, 0]), 'valid RA still parses');
+// bare 24 means 24 degrees in both boxes; Dec minutes below 60 in the short parser too
+ok(Math.abs(CO.parseGoto('24, 0').raH * 15 - CO.parseCentre('24, 0')[0]) < 1e-9 && CO.parseGoto('23.9, 0').raH === 23.9 && CO.parseGoto('25h, +10') === null, 'bare 24 is degrees in Go-to and Field centre');
+ok(CO.parseDec('30d75m') === null && CO.parseGoto('12h, +30d75m') === null && CO.parseDec('30d59m') === 30 + 59 / 60 && CO.parseDec('+41') === 41, 'parseDec rejects 60+ minutes');
 // ISS-19: CSV formula injection
 ok(CF.csvField('=HYPERLINK("http://x")') === `"'=HYPERLINK(""http://x"")"` && CF.csvField('+1') === "'+1" && CF.csvField('-x') === "'-x" && CF.csvField('@a') === "'@a", 'csvField defuses = + - @');
 ok(CF.csvField(-7.25) === '-7.25' && CF.csvField('plain') === 'plain' && CF.csvField(null) === '', 'csvField leaves numbers and plain text alone');

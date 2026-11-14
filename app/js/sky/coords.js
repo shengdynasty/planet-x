@@ -68,7 +68,9 @@ export function shiftText(pos) {
 
 const SIGN = '[+\\-−–]'; // ASCII plus, ASCII hyphen-minus, Unicode minus, en dash (no range!)
 
-/** RA token → hours. Accepts "16h06m", "16h", "16:06", "16.1" (hours, ≤ 24) or "241.5" (degrees, > 24) or "241.5d". */
+/** RA token → hours. Accepts "16h06m", "16h", "16:06", "16.1" (a bare number below 24 is hours), "241.5" (a bare number of 24 or
+ * more is degrees, so "24" is 24°, the same as in the Field centre box, where bare numbers are always degrees) or "241.5d".
+ * Sexagesimal 24h is rejected. */
 export function parseRA(s) {
   s = s.trim();
   let m = s.match(/^(\d+(?:\.\d+)?)h(?:\s*(\d+(?:\.\d+)?)m?)?(?:\s*(\d+(?:\.\d+)?)s?)?$/i);
@@ -78,7 +80,7 @@ export function parseRA(s) {
   m = s.match(/^(\d+(?:\.\d+)?)(d|°)$/i);
   if (m) return norm(+m[1] / 15);
   m = s.match(/^\d+(?:\.\d+)?$/);
-  if (m) { const v = +s; return v > 24 ? norm(v / 15) : v === 24 ? null : v; }
+  if (m) { const v = +s; return v >= 24 ? norm(v / 15) : v; }
   return null;
   // h m s in range: minutes and seconds below 60, hours below 24 (24h is not a valid RA; 0h is)
   function sexa(h, mi, se) { return h < 24 && mi < 60 && se < 60 ? norm(h + mi / 60 + se / 3600) : null; }
@@ -91,7 +93,7 @@ export function parseDec(s) {
   const m = s.match(new RegExp(`^(${SIGN}?)\\s*(\\d+(?:\\.\\d+)?)(?:\\s*(?:d|°|:)\\s*(?:(\\d+(?:\\.\\d+)?)\\s*(?:m|′|')?)?)?$`, 'i'));
   if (!m) return null;
   const v = +m[2] + (+m[3] || 0) / 60;
-  if (v > 90) return null;
+  if (v > 90 || (+m[3] || 0) >= 60) return null;
   return m[1] && m[1] !== '+' ? -v : v;
 }
 
