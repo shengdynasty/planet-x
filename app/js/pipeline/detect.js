@@ -193,8 +193,10 @@ function analyseUncached(field, ia, ib) {
   const ART_TXT = { shape: ['Not PSF-shaped', 'Streak or blob that fails a PSF fit: cosmic ray or bad pixels'], cluster: ['Next to an artifact', 'Within a few pixels of a cosmic-ray / bad-pixel hit in the same frame'],
     masked: ['Counterpart covered by an artifact', 'The same spot in the other frame is hit by a cosmic ray or bad pixels, so this change is not trustworthy'] };
   const usedV = new Set();
-  // a vanished source sitting on a Gaia star is a star that faded, never the origin of a mover
-  const partner = b => { let best = null, bd = 1e9; for (const v of vanished) { if (usedV.has(v) || (STARS.length && starAt(ta, v))) continue; const r = b.peak / v.peak; if (r < 0.5 || r > 2) continue; const d = dist(v, b); if (d < bd) { bd = d; best = v; } } return [best, bd]; };
+  // a vanished source sitting on a Gaia star is a star that faded, never the origin of a mover; nor is a cosmic ray or
+  // bad pixel in the reference, or a source whose spot in the comparison frame is hidden under one (an injection test on
+  // the real example fields linked 45% of entering sources to such a "partner" across the field, see docs/WRITEUP.md)
+  const partner = b => { let best = null, bd = 1e9; for (const v of vanished) { if (usedV.has(v) || (STARS.length && starAt(ta, v)) || hardFlags(ia, v).length || artWhy(hardA, hardB, v)) continue; const r = b.peak / v.peak; if (r < 0.5 || r > 2) continue; const d = dist(v, b); if (d < bd) { bd = d; best = v; } } return [best, bd]; };
   for (const b of appeared) {
     const k = knownAt(tb, b), hf = k ? [] : hardFlags(ib, b);  // an ephemeris match wins over every artifact test
     if (hf.length) { res.push({ kind: 'art', title: 'Flagged by the SPHEREx pipeline', x: b.x, y: b.y, to: b, detail: `Pixel flags: ${hf.join(', ')}. The L2 pipeline marks this pixel as bad in this frame` }); continue; }

@@ -121,6 +121,11 @@ During testing, IRSA's `spherex_dr1` SIA endpoint answered **HTTP 502 on about h
 `getField` (`data/index.js:209`) drops `t` unless `t > 60000`, so a date before 25 Feb 2023 loads an *unanchored* field with no message (`t=2020-01-01` gave "Live · SPHEREx D3 · 1.66 µm"). A date past the survey (`t=69000`, 2050) is accepted and snaps to the last exposure (2.41 µm) without saying so. Only unparsable text is rejected.
 - Fix: validate against the survey's date range and say what the anchor resolved to.
 
+**ISS-28: A mover that lands within 1.5 px of a catalogued star is reported as that star brightening.**
+`detect.js` `starAt()` matches any appeared or vanished source to a Gaia DR3 star within 1.5 px and then judges it as variability, never motion. Found by the injection-recovery test (`scripts/injection-recovery.mjs`, 2026-11-14): planted anywhere, 12σ+ movers are recovered 66–81% of the time overall but only 28% in Barnard's Star's field (218 Gaia stars in 49×49 px, so ~60% of the area is within 1.5 px of a star); planted clear of stars the same field gives 74%.
+- Impact: in dense fields most real movers would be filed as *Brightened star* / *Faded star* and never reach the review list.
+- Fix: before calling it a brightening, require the star to be bright enough that the pipeline would have detected it (G limit per band), or compare the appeared source's flux with the star's catalogue magnitude; otherwise report both readings ("brightening of G 18.6 star, or a mover on top of it").
+
 ### Low
 
 | ID | Issue | Evidence |
@@ -140,6 +145,7 @@ During testing, IRSA's `spherex_dr1` SIA endpoint answered **HTTP 502 on about h
 | ISS-25 (fixed) | Opening Field in live mode with `store.field` null requests `ra=undefined` ("Live field failed (Bad parameter ra=undefined)") | Reachable only through the store, not the UI, because the Field tab always sets a field first |
 | ISS-27 (fixed) | On phones the "Planet X" title link is 51×16 px, below a comfortable touch target | Measured at 390 px |
 | ISS-26 | Live mode's panel is empty by default (0 movers in the home patch); the message is clear, but the demo opens with nothing to review. _Snapshot mode (no server; the hosted copy) opens with the known objects of the six saved example fields, 16 Psyche first (2026-11-14); live mode is unchanged._ | `/api/candidates` returns `[]` for the home patch |
+| ISS-29 | At ≥ 30σ, about 5% of PSF-shaped sources fail the PSF-fit artifact test at unlucky sub-pixel phases and are called *Not PSF-shaped* (`psfMisfit` evaluates the Gaussian at a 3×3 centroid that is biased towards the pixel centre on an under-sampled PSF); a bright real mover can be rejected for this | Injection-recovery test, 2026-11-14: 50 of 960 planted 40σ sources |
 
 ---
 

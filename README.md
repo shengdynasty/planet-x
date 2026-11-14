@@ -143,6 +143,8 @@ Run the relevant suite before you push. Node-only suites take seconds; browser s
 ```sh
 node tests/pipeline.test.mjs                        # detection pipeline (also checks parity with Moving Sky)
 PLANETX_OFFLINE=1 node --test tests/data.test.mjs   # data module; drop PLANETX_OFFLINE to hit IRSA for real
+node --test tests/injection.test.mjs                # injection-recovery on the saved real fields (Node, seconds)
+node scripts/injection-recovery.mjs [--clear-gaia]  # the full recovery tables behind docs/WRITEUP.md
 node tests/shell.test.mjs                           # app shell, top bar, badge         (browser)
 node tests/review.test.mjs                          # review panel + sky markers        (browser)
 node tests/workflow.test.mjs                        # end-to-end sim workflow           (browser)

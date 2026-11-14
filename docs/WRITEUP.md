@@ -62,6 +62,18 @@ A standalone technical demo, now in the app's black, white and grey palette, tha
 
 **End-to-end test on real data.** On a 300″ SPHEREx field observed on 15 February 2026, the pipeline flags asteroid 16 Psyche and labels it *Known object*, within 2″ of its JPL Horizons position; it is absent from the September 2025 and September 2026 frames of the same field. In that field, cosmic rays and bad pixels are labelled as artifacts, and one variable and one faint candidate remain. We have not vetted that candidate, and it is not a discovery. This is one test field, not a survey.
 
+**Injection-recovery test on real frames.** To measure what the detector can and cannot find, we planted synthetic movers into the six saved real fields (point-sampled Gaussians at each field's own measured PSF width, 0.59–0.74 px, at random sub-pixel positions clear of existing sources and bad pixels) and asked the pipeline what it reported. Brightness is the peak SNR a pixel-centred source would have; the real sub-pixel phase lowers the peak by up to 40%, which is what the detector sees. `scripts/injection-recovery.mjs` reproduces every number (720 trials per cell, fixed seed) and `tests/injection.test.mjs` guards them. Recovered means reported as *Uncatalogued mover* with both positions within 1.5 px of where it was planted (entering: *New source, no counterpart*; leaving: *Source vanished*), planted at least 1.5 px from any Gaia star:
+
+| Peak SNR | 1 px (6″) | 2 px (12″) | 3 px (18″) | 5 px (31″) | 8 px (49″) | 15 px (92″) | enters the field | leaves the field |
+|---|---|---|---|---|---|---|---|---|
+| 4 | 0% | 0% | 0% | 0% | 0% | 0% | 3% | 2% |
+| 8 | 0% | 7% | 16% | 19% | 18% | 18% | 42% | 34% |
+| 12 | 0% | 17% | 90% | 90% | 84% | 81% | 76% | 91% |
+| 20 | 0% | 14% | 89% | 91% | 88% | 79% | 93% | 97% |
+| 40 | 0% | 5% | 88% | 85% | 88% | 85% | 93% | 92% |
+
+What this says. Nothing below the 7σ bar is reported, by design, and a nominal 8σ source gets through only one time in five because its sub-pixel phase usually leaves its peak under the bar. From 12σ up, 80–91% of movers shifting 18–92″ between passes are reported with both positions, with a median position error of 0.15 px (0.9″). Shifts under the 2.2 px pairing threshold (13″) are never called motion: a two-pass comparison cannot resolve them. That limit does not bite Planet X: a body at 300–2,000 AU moves 200–1,300″ between passes six months apart, more than a 300″ field, so in one cutout it looks like *Source vanished*, and in another cutout like *New source, no counterpart*. Those two signatures are recovered at 91–97% and 76–93% from 12σ up; linking them across cutouts is next step 3. Planted anywhere, without avoiding catalogued stars, recovery falls to 66–81% overall and to 28% in Barnard's Star's field (218 Gaia stars in 49×49 px), because a mover landing within 1.5 px of a catalogued star is reported as that star brightening: with one band and no flux calibration the pipeline cannot tell the two apart (issues.md ISS-28). The test also found and fixed a linking bug: an entering source used to be paired with any vanished cosmic ray anywhere in the field (45% of entering sources at 12σ), which hid the *no counterpart* signal; the partner search now skips artifacts. At 30σ and above, about 5% of planted sources fail the PSF-shape test at unlucky sub-pixel phases and are called artifacts (ISS-29). The un-injected pairs produce no *Uncatalogued mover* in any of the six fields, so the false-positive rate for movers on these real pairs is zero.
+
 **Simulated or placeholder:**
 
 - Without the server, the app first looks for the **saved snapshots** in `app/data/snapshots/`: the server's real answer for the six example targets (SPHEREx frames and flag planes from IRSA, JPL's known objects, Gaia DR3 stars), saved on the date shown in the badge's tooltip. In that mode the badge reads *Saved SPHEREx data*, the scan timeline carries the home patch's real survey scans, the review panel lists the known objects JPL and Gaia put in those fields (16 Psyche among them), and the Examples menu and any position inside one of those fields show real data analysed in the browser; this is what the hosted copy on GitHub Pages shows. Any other position falls back to the simulation and says so in the Field header.
@@ -78,13 +90,13 @@ A standalone technical demo, now in the app's black, white and grey palette, tha
 - **Faint signals.** A distant planet would sit near the detection threshold. The 5σ cut trades sensitivity for reliability.
 - **Small fields.** Live fields are 120–600″ (20–98 pixels across), so fast movers leave the cutout between scans, and the search covers chosen patches, not the whole sky.
 - **Simplified measurements.** Frames are surface brightness after zodiacal-light subtraction, with no flux calibration and no PSF photometry; brightness changes are judged on 5×5 aperture flux relative to the field's other stars, because SPHEREx's one-pixel PSF makes peak values depend on sub-pixel position. Bilinear resampling is good enough for blinking and differencing, not for precise astrometry.
-- **Lightly tested on real data.** Thresholds were set on the simulated field and checked on two real fields: the app's home patch and the 16 Psyche test. They have not been validated at scale.
+- **Tested on real data by injection, not by discovery.** Thresholds were set on the simulated field; recovery on real frames is measured by planting synthetic movers (see the injection-recovery test above): 80–91% at ≥ 12σ for 18–92″ shifts, nothing below 7σ, nothing under a 13″ shift, and markedly worse in crowded fields. No real unknown mover has been found and confirmed.
 - **Slow first requests.** A new field takes about 10 seconds, or a few minutes when JPL is checked; everything is cached afterwards.
 
 ## Next steps
 
 1. Run the pipeline across many real fields, not just chosen patches, and feed unmatched movers into the review panel automatically.
-2. Measure the false-positive rate by injecting synthetic movers into real frames.
+2. Extend the injection test to later epoch pairs, blends and the catalogued-star coincidence (ISS-28), and set the detection bar against it instead of against the simulation.
 3. Add multi-epoch linking and a basic orbit fit once three or more matched-wavelength epochs are available.
 4. Extract real spectra from the SPHEREx frames for vetting.
 5. Proper PSF photometry and flux calibration, so brightness changes can be measured, not just flagged.
