@@ -132,7 +132,7 @@ A deployed API must be on HTTPS (the app on GitHub Pages is HTTPS) and must list
 | Candidate report (shareable link, PDF, ADES/CSV/JSON) | `app/js/report/`, `app/report.html`; contracts in `app/ARCHITECTURE.md` |
 | Data loading, server contract, sim fallback | `app/js/data/index.js`; contract in `app/ARCHITECTURE.md` |
 | Real-data server (IRSA, JPL, FITS, WCS) | `server/lib/`; explained in `server/README.md` |
-| Write-up and pitch | `docs/WRITEUP.md`, `docs/PITCH-OUTLINE.md` |
+| Write-up, pitch and the submission form text | `docs/WRITEUP.md`, `docs/PITCH-OUTLINE.md`, `docs/PROJECT-PAGE.md` |
 | What's done / in progress | `STATUS.md` |
 
 Rules of thumb: anything simulated must say so in the UI (`simulated: true` flows through to a *Simulated* tag); nothing is ever called a detection, only a candidate; coordinates are ICRS degrees everywhere except where a label says otherwise.
