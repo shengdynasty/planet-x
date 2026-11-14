@@ -12,7 +12,8 @@
 .ot-chips button[aria-pressed="true"] small { color: inherit; opacity: .7; }
 .ot-view { position: relative; width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 1px solid var(--edge); background: #000; }
 .ot-view[hidden] { display: none; }
-.ot-aladin { position: absolute; inset: 0; }
+/* Aladin Lite sets position:relative on its host, which voids inset:0; the explicit size keeps it filling .ot-view. */
+.ot-aladin { position: absolute; inset: 0; width: 100%; height: 100%; }
 .ot-msg { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 16px; text-align: center; color: #9a9a9a; font-size: 12px; line-height: 1.5; background: #000; }
 .ot-msg[hidden] { display: none; }
 .ot-msg button { color: #f2f2f2; border-color: rgba(255,255,255,.25); }

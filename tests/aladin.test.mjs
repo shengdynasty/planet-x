@@ -55,6 +55,14 @@ t('wired into the Field view vetting section, not a floating panel', () => {
   assert.ok(!html.includes('aladin-panel') && !main.includes('aladin'), 'no floating panel left over');
 });
 
+t('viewer host has an explicit size (Aladin forces position:relative, which voids inset:0)', () => {
+  const css = readFileSync(join(ROOT, 'app/css/aladin.css'), 'utf8');
+  const rule = (css.match(/\.ot-aladin\s*\{([^}]*)\}/) || [])[1] || '';
+  assert.match(rule, /(^|;)\s*width:\s*100%/, '.ot-aladin width: 100%');
+  assert.match(rule, /(^|;)\s*height:\s*100%/, '.ot-aladin height: 100%');
+  assert.match(css, /\.ot-view\s*\{[^}]*aspect-ratio/, '.ot-view keeps a definite height');
+});
+
 t('Aladin Lite (GPL-3.0) is not vendored: only loaded from the CDS CDN', () => {
   const files = []; const walk = d => { for (const f of readdirSync(d)) { if (['node_modules', '.git', '.cache'].includes(f)) continue; const p = join(d, f); statSync(p).isDirectory() ? walk(p) : files.push(p); } };
   walk(ROOT);
