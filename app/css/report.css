@@ -1,5 +1,6 @@
 /* Candidate report page (app/report.html). Screen: the app's tokens, a paper-like sheet. Print: black on white, one page. */
 body.rp { overflow: auto; height: auto; min-height: 100%; }
+.rp [hidden] { display: none !important; } /* the layout rules below set display, which would otherwise beat [hidden] */
 .rp-bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 16px;
   background: var(--panel); border-bottom: 1px solid var(--edge); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
 .rp-back { color: var(--ink-2); text-decoration: none; font-size: 12px; }

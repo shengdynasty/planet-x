@@ -166,6 +166,20 @@ t('CSV and ephemeris CSV: headers, units and simulated lines', () => {
   const j = JSON.parse(toJSON(v)); assert.equal(j.status, STATUS); assert.equal(j.simulated, true); assert.match(j.notice[0], /SIMULATED DATA/);
 });
 
+// ---------- Field view wiring ----------
+t('Field view: one Report button in the vetting actions, lazy-loading the report module', () => {
+  const field = readFileSync(join(ROOT, 'app/js/field/index.js'), 'utf8');
+  const actions = field.slice(field.indexOf('class="fv-actions"'), field.indexOf('</div>', field.indexOf('class="fv-actions"')));
+  assert.match(actions, /data-act="report"[^>]*>Report ↗</);
+  assert.ok(field.includes("import('../report/model.js')") && field.includes("import('../report/encode.js')"), 'lazy imports');
+  assert.ok(!/^import .*report\//m.test(field), 'no static import of the report module');
+  const tagged = field.split('\n').filter(l => /report/.test(l) && !/\/\/ report/.test(l) && !/<!-- report/.test(l));
+  assert.deepEqual(tagged.filter(l => /report\//.test(l) || /openReport/.test(l)), [], 'report lines are tagged // report');
+  const page = readFileSync(join(ROOT, 'app/report.html'), 'utf8');
+  assert.match(page, /https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/qrcode-generator\/\d+\.\d+\.\d+\/qrcode\.min\.js/, 'QR library pinned on cdnjs');
+  assert.ok(!/innerHTML/.test(readFileSync(join(ROOT, 'app/js/report/render.js'), 'utf8')), 'render.js never uses innerHTML');
+});
+
 for (const [name, fn] of tests) {
   try { await fn(); n++; }
   catch (e) { console.error(`FAIL ${name}\n`, e); process.exitCode = 1; }
