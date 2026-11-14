@@ -9,9 +9,3 @@ body:not([data-view="sky"]) #stage { visibility: hidden; }
 .sky-deep { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: #02030a; visibility: hidden; overflow: hidden; }
 .sky-deep .aladin-box, .sky-deep .aladin-logo-container, .sky-deep .aladin-popup-container, .sky-deep .aladin-reticle,
 .sky-deep .aladin-location, .sky-deep .aladin-fov, .sky-deep .aladin-status-bar { display: none !important; }
-
-/* DEBUG (this branch only): zoom readout at the centre of the screen */
-.sky-zoomdebug { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; pointer-events: none; text-align: center; font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #fff; text-shadow: 0 0 3px #000, 0 0 6px #000; }
-.sky-zoomdebug i { display: block; width: 14px; height: 14px; margin: 0 auto 6px; background: linear-gradient(#fff, #fff) center / 1px 100% no-repeat, linear-gradient(#fff, #fff) center / 100% 1px no-repeat; opacity: .8; }
-.sky-zoomdebug b { display: block; font-weight: 600; font-size: 14px; }
-.sky-zoomdebug small { display: block; opacity: .75; font-size: 11px; }

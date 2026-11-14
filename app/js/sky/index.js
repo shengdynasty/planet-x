@@ -9,7 +9,6 @@ import { createBackdrop, isLowEnd } from './backdrop.js';
 import { VIEW } from './config.js';
 import { createDeepZoom } from './deepzoom.js';
 import { createHdTiles } from './hdtiles.js';
-import { createZoomDebug } from './zoomdebug.js'; // DEBUG (this branch only)
 
 const R_MARK = 500, R_GRID = 700;
 const v3 = (raH, decD, r) => new THREE.Vector3(...toXYZ(raH, decD, r));
@@ -50,7 +49,6 @@ export function mountSky(el, store, opts = {}) {
   const deepHost = document.createElement('div'); deepHost.className = 'sky-deep'; deepHost.setAttribute('aria-hidden', 'true');
   el.insertBefore(deepHost, renderer.domElement);
   const deep = createDeepZoom(deepHost, { onReady: () => kick() });
-  const zoomDebug = createZoomDebug(el); // DEBUG (this branch only)
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(VIEW.home.fov, 1, 0.1, 2000);
   const home = yawPitchFor(VIEW.home.raH, VIEW.home.decD);
@@ -271,7 +269,6 @@ export function mountSky(el, store, opts = {}) {
     onView({ raH, decD, fov: camera.fov });
     const mix = deep.update({ raDeg: raH * 15, decDeg: decD, fovV: camera.fov, aspect: camera.aspect });
     if (hd.update({ yaw, pitch, fovV: camera.fov, aspect: camera.aspect, heightPx: renderer.domElement.height })) moving = true;
-    zoomDebug.update({ fovV: camera.fov, aspect: camera.aspect, heightPx: el.clientHeight, mix, state: deep.state, hd: hd.stats() }); // DEBUG
     backdrop.mesh.material.transparent = true; backdrop.mesh.material.opacity = 1 - mix; backdrop.mesh.visible = mix < 0.999;
     const sc = camera.fov / 60;
     markerGroup.children.forEach(s => s.scale.set(36 * (TEX_W / 128) * sc, 36 * sc, 1)); // same aspect as the texture; 36 units tall ≈ 25 px type on an 800 px view
