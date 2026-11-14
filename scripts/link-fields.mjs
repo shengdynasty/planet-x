@@ -132,7 +132,7 @@ export function vanishedSources(F, a, b) {
 /** GET {server}/api/field with retries: IRSA answers 502/503 on a good share of cold requests, and the server passes that status on.
  *  Retries 5xx up to `tries` times with a growing wait, prints each retry, and puts the server's own error text in the final error. */
 export async function fetchField(server, { ra, dec, size = 300, mjd, known = false }, { tries = 4, waitMs = 15000, log = m => console.error(m) } = {}) {
-  const u = `${server}/api/field?ra=${ra.toFixed(5)}&dec=${dec.toFixed(5)}&size=${size}&known=${known ? 1 : 0}${mjd ? '&mjd=' + mjd : ''}`;
+  const u = `${server}/api/field?ra=${ra.toFixed(5)}&dec=${dec.toFixed(5)}&size=${size}&known=${known ? 1 : 0}${mjd ? '&t=' + mjd : ''}`; // the server's anchor parameter is `t` (MJD or date), see server/README.md
   let last;
   for (let k = 1; k <= tries; k++) {
     try {

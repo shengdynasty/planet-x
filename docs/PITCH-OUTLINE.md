@@ -84,6 +84,6 @@ Nine slides, drawn from `docs/WRITEUP.md`. Every number and claim here comes fro
 - **Key message:** The real-data path works end to end and its limits are measured. Next, join the two halves of a Planet X signature across cutouts.
 - **Supporting points:**
   - Risks: three epochs is the minimum for an orbit fit, false positives, nothing fainter than 7σ, a body inside 1,500 AU leaves the cutout between passes
-  - Next: cross-field linking, predict where a vanished source reappears for 300–2,000 AU and test those patches (prototype in progress); run across many real fields
+  - A first cross-field linker exists: it predicts where a vanished source reappears for 300–2,000 AU, builds those cutouts and found a planted counterpart at the true distance on real frames. Next: run it on every real vanished source, across many fields
   - Then: multi-epoch linking and orbit fits, real spectra, a hosted data server
 - **Visual:** Short roadmap line with three milestones. Close with team names `[Team member names]` and links: app https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW, Moving Sky https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b, `[Video link]`.
