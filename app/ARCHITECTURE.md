@@ -122,9 +122,11 @@ cannot load (offline, blocked) the NASA picture simply stays. Pure helpers are t
 
 The 4k backdrop is ~11 px/deg, so it blurs when zoomed. NASA publishes the same Deep Star Map at up to 65,536 × 32,768 px
 (182 px/deg, one image pixel per screen pixel at the 6° zoom limit). `scripts/make-sky-tiles.py` cuts it into a pyramid of
-512 px WebP tiles (`<level>/<col>_<row>.webp`, levels 3–6, 10,880 tiles, about 525 MB). **The tiles are not in this repo** (GitHub Pages
-sites are limited to 1 GB and the repo should stay small): regenerate them with the script from `starmap_2020_64k.exr`, or host them
-separately and point `SKY_TILES.remote` in `sky/config.js` (or `?tiles=<url>`) at them; the host must send `Access-Control-Allow-Origin`. `sky/hdtiles.js` streams only what is needed, like culling and LOD in a game:
+512 px WebP tiles (`<level>/<col>_<row>.webp`, levels 3–6, 10,880 tiles, about 525 MB in all). **This PR is code only; the tiles are separate**
+(a Pages site is limited to 1 GB and each regeneration would add its size to the repo history, so they are committed once, not per code change):
+levels 3–5 (about 153 MB, up to 91 px/deg) in their own PR, and all four levels (up to 182 px/deg) on the branch `feat/sky-tiles-all`.
+To make them yourself, run the script on `starmap_2020_64k.exr`. They can also be hosted elsewhere: point `SKY_TILES.remote` in
+`sky/config.js` (or `?tiles=<url>`) at them; that host must send `Access-Control-Allow-Origin`. `manifest.json` says which levels exist. `sky/hdtiles.js` streams only what is needed, like culling and LOD in a game:
 
 - **LOD:** `tilemath.levelFor` picks the level whose texels are about as dense as the screen's pixels.
 - **Visibility:** `tilemath.visibleTiles` walks the tile quadtree from level 3 and skips every off-screen branch (≈12 of 8,192 tiles at 6°).
