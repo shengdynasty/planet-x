@@ -91,6 +91,8 @@ export function psfMisfit(img, s, sigma) {
   return dd > 0 ? (rr - d.length * sig * sig) / dd : 1;
 }
 const MISFIT_MAX = 0.15, MISFIT_MIN_SNR = 30, CLUSTER_PX = 4;
+const ZP_MIN_STARS = 4, EXCESS_MIN_DEX = 0.5; // Gaia-G zero point needs 4 matched stars; "not that star" means > ×3.2 (or 3 × the field's scatter) brighter
+const zpCache = new WeakMap();
 
 // ---------- aperture photometry for the variability test ----------
 // On an under-sampled PSF (real SPHEREx frames: FWHM ≈ 1 px after resampling) the peak pixel depends on where the
@@ -150,6 +152,29 @@ function analyseUncached(field, ia, ib) {
   // Gaia DR3 stars (live fields only): a change at a catalogued star is variability, not motion.
   const starAt = (t, p) => { let best = null, bd = 1.5; for (const s of STARS) { const [x, y] = s.pos(t); const d = Math.hypot(x - p.x, y - p.y); if (d < bd) { bd = d; best = s; } } return best; };
   const starTxt = s => `${s.name} (G ${s.g.toFixed(1)})`;
+  // Is this source's light plausibly that star's? The frame's own matched stars give a zero point between Gaia G and
+  // 5×5 aperture flux; a source more than max(×3, 3 × the field's G-to-band scatter) brighter than the star it sits on
+  // is not that star, so it is handled like any other appeared/vanished source, with the coincidence named (ISS-28:
+  // without this, a mover landing within 1.5 px of any of a crowded field's faint catalogued stars was filed as a
+  // brightening; the injection test recovered 28% in Barnard's field against 74% clear of stars).
+  // Gaia RP (0.63–1.05 µm) is the magnitude used: it sits next to SPHEREx's bands, so the colour term is small at 0.75–1.1 µm
+  // and the field's own scatter covers it further out. A star without RP (7 of 218 in Barnard's field) keeps the old reading.
+  const magOf = s => Number.isFinite(s.rp) ? s.rp : null;
+  const zeroPoint = i => { let m = zpCache.get(field); if (!m) zpCache.set(field, m = new Map()); if (m.has(i)) return m.get(i);
+    const img = field.frame(i), t = field.epochs[i].t, det = detect(img, 5), rs = [];
+    for (const s of STARS) { const mag = magOf(s); if (mag == null) continue; const [x, y] = s.pos(t), [d, dd] = nearest(det, { x, y }); if (!d || dd > 1) continue;
+      if (det.some(q => q !== d && dist(q, d) < 3) || hardFlags(i, d).length) continue;                  // blended or saturated: flux means nothing
+      const F = apFlux(img, d.x, d.y); if (F.flux < AP_SNR * F.noise) continue; rs.push(Math.log10(F.flux) + 0.4 * mag); }
+    rs.sort((p, q) => p - q); let zp = null;
+    if (rs.length >= ZP_MIN_STARS) { const med = rs[rs.length >> 1], dev = rs.map(r => Math.abs(r - med)).sort((p, q) => p - q); zp = { zp: med, scatter: 1.4826 * dev[dev.length >> 1], n: rs.length }; }
+    m.set(i, zp); return zp; };
+  const excessOf = (i, p, s) => { const z = zeroPoint(i), mag = magOf(s); if (!z || mag == null) return null;
+    const F = apFlux(field.frame(i), p.x, p.y).flux, ratio = F / Math.pow(10, z.zp - 0.4 * mag), lim = Math.pow(10, Math.max(EXCESS_MIN_DEX, 3 * z.scatter));
+    // next to a brighter source the aperture holds its light too (a blend within 3 px, or the wings of a star ≥ 20× brighter
+    // within 8 px), so an excess there proves nothing: keep the star reading
+    const wings = [...A, ...B].some(q => q.peak > 20 * p.peak && dist(q, p) > 0.01 && dist(q, p) < 8);
+    return { ratio, excess: ratio > lim && !blended(p) && !wings, txt: `×${fmtRatio(ratio)} brighter than ${starTxt(s)} should be in this band from its Gaia RP (zero point from ${z.n} stars, limit ×${lim.toFixed(1)})` }; };
+  const onStarTxt = ex => ex ? ` · sits on a catalogued star, ${ex.txt}: a mover on top of it, or a strong brightening` : '';
   const knownAt = (t, p) => { for (const k of KNOWN) { const q = k.pos(t); if (!q) continue; const [x, y] = q; if (Math.hypot(x - p.x, y - p.y) < 3) return k; } return null; };
   // Variability on an under-sampled PSF is judged on aperture flux (see apFlux), relative to the field's other stars.
   const psf = psfModel(field), under = psf.sigma < UNDERSAMPLED_SIGMA;
@@ -196,24 +221,27 @@ function analyseUncached(field, ia, ib) {
   // a vanished source sitting on a Gaia star is a star that faded, never the origin of a mover; nor is a cosmic ray or
   // bad pixel in the reference, or a source whose spot in the comparison frame is hidden under one (an injection test on
   // the real example fields linked 45% of entering sources to such a "partner" across the field, see docs/WRITEUP.md)
-  const partner = b => { let best = null, bd = 1e9; for (const v of vanished) { if (usedV.has(v) || (STARS.length && starAt(ta, v)) || hardFlags(ia, v).length || artWhy(hardA, hardB, v)) continue; const r = b.peak / v.peak; if (r < 0.5 || r > 2) continue; const d = dist(v, b); if (d < bd) { bd = d; best = v; } } return [best, bd]; };
+  // a vanished source on a Gaia star it could plausibly be is a star that faded, never the origin of a mover
+  // (and whatever sits there, if the light at that spot did not actually drop, nothing left: the star's detection just toggled)
+  const starV = new Map(); const vanishedOnStar = v => { if (!starV.has(v)) { const s = STARS.length ? starAt(ta, v) : null, ex = s ? excessOf(ia, v, s) : null, c = s && under ? change(v, v) : null;
+    starV.set(v, { s, ex, isStar: !!s && !(ex && ex.excess && (!c || c.ratio < 1 / AP_RATIO)) }); } return starV.get(v); };
+  const partner = b => { let best = null, bd = 1e9; for (const v of vanished) { if (usedV.has(v) || vanishedOnStar(v).isStar || hardFlags(ia, v).length || artWhy(hardA, hardB, v)) continue; const r = b.peak / v.peak; if (r < 0.5 || r > 2) continue; const d = dist(v, b); if (d < bd) { bd = d; best = v; } } return [best, bd]; };
   for (const b of appeared) {
     const k = knownAt(tb, b), hf = k ? [] : hardFlags(ib, b);  // an ephemeris match wins over every artifact test
     if (hf.length) { res.push({ kind: 'art', title: 'Flagged by the SPHEREx pipeline', x: b.x, y: b.y, to: b, detail: `Pixel flags: ${hf.join(', ')}. The L2 pipeline marks this pixel as bad in this frame` }); continue; }
     const why = artWhy(hardB, hardA, b);
     if (!k && why === 'spike') { res.push({ kind: 'art', title: 'Single-pixel spike', x: b.x, y: b.y, to: b, detail: 'Not PSF-shaped: cosmic ray or hot pixel' }); continue; }
     if (!k && why) { res.push({ kind: 'art', title: ART_TXT[why][0], x: b.x, y: b.y, to: b, detail: ART_TXT[why][1] }); continue; }
-    const s = !k && STARS.length ? starAt(tb, b) : null;
-    if (s) { // a Gaia star that is now detected and wasn't: a brightening only if its aperture flux really rose
-      const c = under ? change(b, b) : null;
+    const s = !k && STARS.length ? starAt(tb, b) : null, ex = s ? excessOf(ib, b, s) : null, c = s && under ? change(b, b) : null;
+    if (s && !(ex && ex.excess && (!c || c.ratio > AP_RATIO))) { // a Gaia star that is now detected and wasn't: a brightening only if its aperture flux really rose
       if (c && (!c.varies || c.ratio < 1 || blended(b))) continue;                     // same flux, the 5σ detection just toggled (sampling, blend)
       if (dupVar(b)) continue;
       res.push({ kind: 'var', title: 'Brightened star', x: b.x, y: b.y, to: b, star: s, detail: `Appeared at ${starTxt(s)}, below detection in the reference${c ? `: ${c.txt}` : ''}; a brightening, not a mover` + softTxt(ib, b) }); continue; }
-    const [v, dv] = partner(b);
-    const rate = v ? dv * SCALE / dt : null;
+    const [v, dv] = partner(b), vs = v ? vanishedOnStar(v) : null;
+    const rate = v ? dv * SCALE / dt : null, coin = onStarTxt(s ? ex : null) + (vs && vs.s ? ` · its reference position sits on ${starTxt(vs.s)}, ${vs.ex.txt}` : '');
     if (k) { if (v) usedV.add(v); res.push({ kind: 'known', title: k.name, x: b.x, y: b.y, from: v, to: b, obj: k, detail: (v ? `Moved ${(dv * SCALE).toFixed(0)}″ in ${fmtDt(dt)} — matches ephemeris` : 'Matches ephemeris') + offTxt(k, tb, b) }); continue; }
-    if (v) { usedV.add(v); res.push({ kind: 'cand', title: 'Uncatalogued mover', x: b.x, y: b.y, from: v, to: b, detail: `${(dv * SCALE).toFixed(0)}″ in ${fmtDt(dt)} = ${fmtRate(rate, dt)}. No ephemeris match.` + softTxt(ib, b) }); }
-    else res.push({ kind: 'cand', title: 'New source, no counterpart', x: b.x, y: b.y, to: b, detail: 'Appeared with nothing vanishing nearby' + softTxt(ib, b) });
+    if (v) { usedV.add(v); res.push({ kind: 'cand', title: 'Uncatalogued mover', x: b.x, y: b.y, from: v, to: b, star: s || vs.s || undefined, detail: `${(dv * SCALE).toFixed(0)}″ in ${fmtDt(dt)} = ${fmtRate(rate, dt)}. No ephemeris match.` + coin + softTxt(ib, b) }); }
+    else res.push({ kind: 'cand', title: 'New source, no counterpart', x: b.x, y: b.y, to: b, star: s || undefined, detail: 'Appeared with nothing vanishing nearby' + coin + softTxt(ib, b) });
   }
   for (const v of vanished) { if (usedV.has(v)) continue;
     const k = knownAt(ta, v), hf = k ? [] : hardFlags(ia, v);
@@ -222,13 +250,13 @@ function analyseUncached(field, ia, ib) {
     const why = artWhy(hardA, hardB, v);
     if (!k && why === 'spike') { res.push({ kind: 'art', title: 'Single-pixel spike in reference', x: v.x, y: v.y, from: v, detail: 'Not PSF-shaped: cosmic ray or hot pixel' }); continue; }
     if (!k && why) { res.push({ kind: 'art', title: ART_TXT[why][0] + (why === 'masked' ? '' : ' in reference'), x: v.x, y: v.y, from: v, detail: ART_TXT[why][1] }); continue; }
-    const s = !k && STARS.length ? starAt(ta, v) : null;
-    if (s) { // a Gaia star no longer detected: a fading only if its aperture flux really fell
+    const { s, ex, isStar } = k ? { s: null } : vanishedOnStar(v);
+    if (isStar) { // a Gaia star no longer detected: a fading only if its aperture flux really fell
       const c = under ? change(v, v) : null;
       if (c && (!c.varies || c.ratio > 1 || blended(v))) continue;                     // same flux, the 5σ detection just toggled (sampling, blend)
       if (dupVar(v)) continue;
       res.push({ kind: 'var', title: 'Faded star', x: v.x, y: v.y, from: v, star: s, detail: `${starTxt(s)} dropped below detection in the comparison frame${c ? `: ${c.txt}` : ''}; fading, not motion` }); continue; }
-    res.push({ kind: 'left', title: k ? `${k.name} — left the cutout` : 'Source vanished', x: v.x, y: v.y, from: v, detail: k ? 'Ephemeris puts it outside this field now' : 'Faded or moved out of field' }); }
+    res.push({ kind: 'left', title: k ? `${k.name} — left the cutout` : 'Source vanished', x: v.x, y: v.y, from: v, star: s || undefined, detail: (k ? 'Ephemeris puts it outside this field now' : 'Faded or moved out of field') + onStarTxt(s ? ex : null) }); }
   // Known movers whose shift is below the pairing threshold (a high-proper-motion star at ~1 px/yr) never appear or
   // vanish, so they would go unreported; name them when a source sits at the predicted position in both frames.
   for (const k of KNOWN) {

@@ -33,11 +33,12 @@ test('detector alone (planted clear of Gaia stars): bright movers are recovered,
   assert.ok(errs.length > 500 && errs[errs.length >> 1] < 0.5, `median position error ${errs.length ? errs[errs.length >> 1].toFixed(2) : '–'} px over ${errs.length} recoveries (want < 0.5 px)`);
 });
 
-test('the Gaia coincidence rule, not the detector, is what loses movers in a crowded field', () => {
+test('a mover landing on a catalogued star is still a mover when it is far brighter than that star could be (ISS-28)', () => {
   const any = run({ fields, trials: TRIALS }), clear = run({ fields, trials: TRIALS, clearGaia: true });
   const pf = (out, id) => { const f = out.fields.find(x => x.id === id); return f.recovered / f.n; };
-  assert.ok(pf(any, 'barnard') < 0.5, `Barnard's Star field (218 Gaia stars), planted anywhere: ${(pf(any, 'barnard') * 100).toFixed(0)}% (the rule hides most of them)`);
-  assert.ok(pf(clear, 'barnard') >= 0.65, `Barnard's Star field, planted clear of stars: ${(pf(clear, 'barnard') * 100).toFixed(0)}% (want ≥ 65%)`);
+  // before the Gaia-RP brightness check this was 28% against 74% clear of stars (2026-11-14)
+  assert.ok(pf(any, 'barnard') >= 0.65, `Barnard's Star field (218 Gaia stars), planted anywhere: ${(pf(any, 'barnard') * 100).toFixed(0)}% (want ≥ 65%)`);
+  assert.ok(pf(clear, 'barnard') - pf(any, 'barnard') <= 0.15, `the coincidence costs at most 15 points there: ${(pf(clear, 'barnard') * 100).toFixed(0)}% clear vs ${(pf(any, 'barnard') * 100).toFixed(0)}% anywhere`);
   assert.ok(pf(clear, 'epsindi') >= 0.85 && pf(any, 'epsindi') >= 0.85, `a sparse field (25 Gaia stars) recovers ≥ 85% either way: ${(pf(any, 'epsindi') * 100).toFixed(0)}% / ${(pf(clear, 'epsindi') * 100).toFixed(0)}%`);
-  assert.ok(rate(any, 20, '5') >= 0.6, `planted anywhere, 20σ, 5 px: ${(rate(any, 20, '5') * 100).toFixed(0)}% (want ≥ 60%)`);
+  for (const snr of [12, 20, 40]) assert.ok(rate(any, snr, '5') >= 0.7 && rate(any, snr, 'enter') >= 0.75, `planted anywhere, ${snr}σ: 5 px ${(rate(any, snr, '5') * 100).toFixed(0)}% (want ≥ 70%), entering ${(rate(any, snr, 'enter') * 100).toFixed(0)}% (want ≥ 75%)`);
 });

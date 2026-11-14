@@ -76,7 +76,11 @@ export function trial(field, ia, ib, snr, cas, r, ctx) {
   const g = { ...field, psfSigmaPx: ctx.sigma, frame: i => i === ia ? fa : i === ib ? fb : field.frame(i) };
   const res = analyse(g, ia, ib);
   const atB = p => p && d2(p, posB) < MATCH_PX, atA = p => p && d2(p, posA) < MATCH_PX;
-  if (cas.enter) { const h = res.find(x => x.kind === 'cand' && x.title === 'New source, no counterpart' && atB(x.to)); if (h) return { outcome: 'recovered', errPx: d2(h.to, posB) }; }
+  if (cas.enter) { // an entering source is recovered as "New source, no counterpart", or, when the real field happens to hold a genuinely
+    // vanished source (not an artifact, not a star that faded) of similar brightness, as an "Uncatalogued mover" paired with it: with two
+    // epochs that reading is as valid as ours, so it counts, and is tallied separately
+    const h = res.find(x => x.kind === 'cand' && atB(x.to) && (x.title === 'New source, no counterpart' || ctx.baseline.some(b => b.kind === 'left' && b.from && x.from && d2(b.from, x.from) < 0.5)));
+    if (h) return { outcome: 'recovered', errPx: d2(h.to, posB), paired: h.title === 'Uncatalogued mover' }; }
   else if (cas.leave) { const h = res.find(x => x.kind === 'left' && atA(x.from)); if (h) return { outcome: 'recovered', errPx: d2(h.from, posA) }; }
   else { const h = res.find(x => x.kind === 'cand' && x.title === 'Uncatalogued mover' && atB(x.to) && atA(x.from)); if (h) return { outcome: 'recovered', errPx: Math.max(d2(h.to, posB), d2(h.from, posA)) }; }
   const near = res.find(x => atB(x.to) || atA(x.from) || atB(x) || atA(x));
@@ -101,6 +105,7 @@ export function run({ fields, trials = 20, pairs = 'first', seed = 20261114, snr
       for (const snr of snrs) for (const cas of cases) for (let k = 0; k < trials; k++) {
         const t = trial(field, ia, ib, snr, cas, r, ctx); if (t.outcome === 'noroom') continue;
         const cell = cells[snr][cas.id]; cell.n++; cell[t.outcome]++;
+        if (t.paired) cell.paired = (cell.paired || 0) + 1;
         if (t.errPx != null) cell.errs.push(t.errPx);
         if (t.kind) cell.kinds[`${t.kind}: ${t.title}`] = (cell.kinds[`${t.kind}: ${t.title}`] || 0) + 1;
         if (snr >= 12 && cas.shift >= 3) { pf.n++; if (t.outcome === 'recovered') pf.recovered++; }
@@ -127,6 +132,7 @@ export function tables(out) {
     '', head, `|${'---|'.repeat(C.length + 1)}`, ...rows, '',
     `Position error of recovered sources: median ${all.length ? (all[all.length >> 1]).toFixed(2) : '–'} px, 90th percentile ${all.length ? all[Math.floor(all.length * 0.9)].toFixed(2) : '–'} px.`,
     `What the misses became: ${misTxt}.`,
+    `Entering sources paired by the pipeline with a genuinely vanished source elsewhere in the field (counted as recovered): ${S.map(s => `${s}σ ${out.cells[s].enter.paired || 0}/${out.cells[s].enter.n}`).join(', ')}.`,
     '', '| Field | PSF σ (px) | Gaia stars | Pairs | Recovered at SNR ≥ 12, shift ≥ 3 px |', '|---|---|---|---|---|',
     ...out.fields.map(f => `| ${f.id} | ${f.sigma.toFixed(2)} | ${f.stars} | ${f.pairs} | ${pct(f.recovered, f.n)} (${f.recovered}/${f.n}) |`),
   ].join('\n');
