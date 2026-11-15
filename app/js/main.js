@@ -82,5 +82,8 @@ if (!store.get('scan') || !(store.get('scans') || []).some(s => s.id === store.g
 const deep = deepLink();
 if (deep) { store.set('field', deep); store.set('view', 'field'); }
 mountModes(store); // after every module has drawn, so the plain-words pass starts from the finished page
+// the in-app helper is optional: if it cannot load, the app runs without its Ask button
+try { (await import('./assistant/index.js')).mountAssistant($('assistant'), store); boot.modules.assistant = 'module'; }
+catch (err) { console.warn('[planet-x] assistant not loaded:', err); }
 boot.ready = true;
 document.documentElement.dataset.ready = 'true';

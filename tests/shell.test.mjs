@@ -1,13 +1,13 @@
 // Shell + Sky + Compare — headless Chrome against app/index.html.
 // Run from the repo root:  node tests/shell.test.mjs
-// Serves the repo on 127.0.0.1:8101 itself (reuses a server already listening there). Screenshots go to the scratchpad.
+// Serves the repo on 127.0.0.1:8101 ($PORT overrides) itself (reuses a server already listening there). Screenshots go to the scratchpad.
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 import { launch, serve, SCRATCH } from './browser.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = 8101, URL_ = `http://127.0.0.1:${PORT}/app/`;
+const PORT = +(process.env.PORT || 8101), URL_ = `http://127.0.0.1:${PORT}/app/`;
 const SHOTS = path.join(SCRATCH, 'shots', 'shell');
 mkdirSync(SHOTS, { recursive: true });
 

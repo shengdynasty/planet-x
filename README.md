@@ -6,6 +6,8 @@ SPHEREx looks about 90° from the Sun and re-maps the whole sky every six months
 
 Enter a position (or pick one of the built-in targets), and the app loads every SPHEREx pass of that patch at a matching wavelength, plays them like a little video, blinks or subtracts any two, overlays Gaia stars and the SPHEREx pipeline's own bad-pixel flags, and names what it recognises. Any flagged source can be shown in DSS2, 2MASS and AllWISE images and exported as a one-page follow-up report, and the whole-sky view stays sharp when zoomed in, streamed from NASA's star map. New SPHEREx releases need no code change: each pass names its release, a new release can be typed in the day IRSA publishes it, and a field saved as one file opens on any copy of the app, including the hosted one. For any star, the Field view measures a spectrum on the fly: its brightness in every SPHEREx exposure that covers it, at the wavelength each one saw. A **Simple** switch in the top bar swaps the technical terms for plain words and hides the astronomer's controls; **Advanced** (the default) is the app as described here.
 
+An **Ask** button in the top bar opens a small helper that answers common questions about the app (how parallax works, what the tool can and cannot find, where the data comes from, what the badge means) and can take you there: it switches views, opens an example field or flies the sky to it. It runs fully offline: an intent matcher over a short hand-written knowledge base drawn from the write-up, this README and the help sheet (`app/js/assistant/`). When a question isn't covered it says so and offers the help sheet instead of guessing.
+
 **Live demo:** https://shengdynasty.github.io/planet-x/ (real SPHEREx data for the six built-in targets, saved in the repo; any other position needs the local server below)
 
 > **Status:** hackathon prototype. The badge in the top bar always says what you are looking at: **Live · SPHEREx** (the local server fetches any position from IRSA), **Saved SPHEREx data** (real frames, known objects and Gaia stars for the six example targets, saved in `app/data/snapshots/` on the date in the badge's tooltip), or **Simulated data** (placeholder scans and movers, labelled as such).
@@ -161,6 +163,8 @@ node tests/shell.test.mjs                           # app shell, top bar, badge 
 node tests/hdtiles.test.mjs                         # streamed sky tiles: WebP + AVIF level 6 at the zoom limit (browser)
 node tests/features.test.mjs                        # every feature, Advanced and Simple modes, as the hosted copy (browser, ~6 min)
 node tests/review.test.mjs                          # review panel + sky markers        (browser)
+node tests/assistant.test.mjs                       # helper: intent matcher, knowledge base, honesty rule (Node)
+node tests/assistant-browser.test.mjs               # helper end to end: answers, actions, Esc and focus, phone (browser)
 node tests/workflow.test.mjs                        # end-to-end sim workflow           (browser)
 node tests/field.test.mjs                           # Field view                        (browser)
 node tests/report.test.mjs                          # candidate report: model, link, fit, exports (Node)

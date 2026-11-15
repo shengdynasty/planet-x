@@ -1,13 +1,13 @@
 // Regression checks for the independent review's confirmed bugs (one block per fix), headless Chrome against app/.
 // Run from the repo root:  node tests/review.test.mjs
-// Serves the worktree on 127.0.0.1:8107 itself (reuses a server already listening there). Hermetic: the local live
+// Serves the worktree on 127.0.0.1:8107 ($PORT overrides) itself (reuses a server already listening there). Hermetic: the local live
 // server (:8787) is blocked, so the app always boots on simulated data.
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 import { launch, serve } from './browser.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = 8107, URL_ = `http://127.0.0.1:${PORT}/app/`;
+const PORT = +(process.env.PORT || 8107), URL_ = `http://127.0.0.1:${PORT}/app/`;
 
 let failures = 0, passes = 0;
 function ok(cond, msg) { if (cond) { passes++; console.log('  ok  ' + msg); } else { failures++; console.log('  FAIL ' + msg); } }

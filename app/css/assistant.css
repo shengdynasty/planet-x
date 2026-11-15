@@ -1,0 +1,52 @@
+/* In-app helper (js/assistant): the top-bar Ask button and its panel. Grey only, like the rest of the UI. */
+#ask { height: 32px; padding: 0 12px; border-radius: 7px; flex: none; }
+#ask[aria-expanded="true"] { background: var(--fill); color: var(--fill-ink); border-color: transparent; }
+
+#assistant {
+  z-index: 5; top: calc(var(--top-h) + 8px); right: 16px; width: 360px;
+  max-height: calc(100dvh - var(--top-h) - 8px - env(safe-area-inset-bottom, 0px) - 86px);
+  border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--panel-solid); /* solid: long text over the moving sky stays readable */
+}
+#assistant[hidden] { display: none; }
+#assistant:not([hidden]) > * { animation: as-in .2s cubic-bezier(.2, .7, .2, 1); }
+@keyframes as-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+.as-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--edge); }
+.as-head h2 { margin: 0; font-size: 13px; font-weight: 500; }
+
+.as-log { flex: 1 1 auto; min-height: 80px; overflow: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; overscroll-behavior: contain; outline: none; }
+.as-log:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.as-msg { margin: 0; line-height: 1.5; max-width: 100%; overflow-wrap: anywhere; }
+.as-msg p { margin: 0; }
+.as-a { color: var(--ink-2); }
+.as-a p:first-child { color: var(--ink); }
+.as-intro { color: var(--ink-2); }
+.as-q { align-self: flex-end; max-width: 85%; padding: 6px 10px; border-radius: 8px; background: var(--fill); color: var(--fill-ink); }
+.as-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.as-acts button { text-align: left; line-height: 1.3; }
+.as-src { margin-top: 6px !important; font-size: 11px; color: var(--ink-3); }
+
+.as-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px; border-top: 1px solid var(--edge); }
+.as-chip { border-radius: 999px; padding: 6px 10px; color: var(--ink-2); line-height: 1.3; text-align: left; }
+.as-chip:hover { color: var(--ink); }
+
+.as-form { display: flex; gap: 6px; padding: 8px 14px 12px; }
+.as-form input { flex: 1; min-width: 0; }
+
+body[data-mode="simple"] .as-msg { font-size: 14px; }
+
+@media (max-width: 860px) and (pointer: coarse), (max-width: 560px) {
+  #ask { height: 40px; min-width: 40px; }
+  .as-chip, .as-acts button, .as-form button, .as-form input { min-height: 40px; }
+  .as-head .icon { width: 40px; height: 40px; }
+}
+@media (max-width: 560px) {
+  #ask { order: 3; }
+  /* a sheet across the screen under the wrapped top bar (--as-top, set by index.js) */
+  #assistant { left: 12px; right: 12px; width: auto; top: var(--as-top, 160px); max-height: calc(100dvh - var(--as-top, 160px) - env(safe-area-inset-bottom, 0px) - 12px); }
+  .as-msg { font-size: 14px; }
+  .as-form input { font-size: 16px; } /* no zoom on focus in iOS Safari */
+}
+@media (max-width: 860px) { body.assistant-open #readout .pos { display: none; } } /* the panel sits right under it */
+@media (prefers-reduced-motion: reduce) { #assistant > * { animation: none !important; } .as-log { scroll-behavior: auto; } }

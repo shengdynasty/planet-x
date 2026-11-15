@@ -1,13 +1,13 @@
 // Candidate review panel (workflow) — headless Chrome against app/dev/candidates.html.
 // Run from the repo root:  node tests/workflow.test.mjs
-// Serves the repo on 127.0.0.1:8104 itself (reuses a server already listening there). Screenshots go to the scratchpad.
+// Serves the repo on 127.0.0.1:8104 ($PORT overrides) itself (reuses a server already listening there). Screenshots go to the scratchpad.
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 import { launch, serve, SCRATCH } from './browser.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = 8104, URL_ = `http://127.0.0.1:${PORT}/app/dev/candidates.html`;
+const PORT = +(process.env.PORT || 8104), URL_ = `http://127.0.0.1:${PORT}/app/dev/candidates.html`;
 const SHOTS = path.join(SCRATCH, 'shots', 'workflow');
 mkdirSync(SHOTS, { recursive: true });
 
