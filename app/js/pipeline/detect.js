@@ -296,3 +296,23 @@ export function maxStack(field, band, ia, ib) {
     m.set(key, c = { img: st, ts, idx }); }
   return c;
 }
+
+const meanCache = new WeakMap();
+/**
+ * Pixel-wise mean (co-add) of every epoch at `band` whose time lies between epochs ia and ib (inclusive): the
+ * "add images together" the challenge brief asks for. Fixed sources gain signal-to-noise (noise falls by about
+ * √n for n passes of equal depth; `gain` is the measured ratio against the first pass), a mover is spread thin.
+ * Cached per field + band + time span, like maxStack.
+ * @returns {{img: Float32Array, ts: number[], idx: number[], n: number, gain: number}}
+ */
+export function meanStack(field, band, ia, ib) {
+  let m = meanCache.get(field); if (!m) meanCache.set(field, m = new Map());
+  const E = field.epochs, lo = Math.min(E[ia].t, E[ib].t), hi = Math.max(E[ia].t, E[ib].t), key = band + ',' + lo + ',' + hi;
+  let c = m.get(key);
+  if (!c) { const L = field.N * field.N, sum = new Float64Array(L), ts = [], idx = [];
+    E.forEach((e, i) => { if (e.band !== band || e.t < lo || e.t > hi) return; ts.push(e.t); idx.push(i); const f = field.frame(i); for (let p = 0; p < L; p++) sum[p] += f[p]; });
+    const n = idx.length || 1, img = new Float32Array(L); for (let p = 0; p < L; p++) img[p] = sum[p] / n;
+    const gain = idx.length ? stats(field.frame(idx[0])).sig / Math.max(stats(img).sig, 1e-9) : 1;
+    m.set(key, c = { img, ts, idx, n: idx.length, gain }); }
+  return c;
+}

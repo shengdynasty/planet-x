@@ -51,6 +51,12 @@ const st = P.maxStack(field, 0.95, 0, 5);
 ok(JSON.stringify(st.idx) === '[0,1,3,4,5]' && st.ts.length === 5, 'maxStack picks same-band passes in the window');
 ok(st === P.maxStack(field, 0.95, 5, 0), 'maxStack cached per band+span (order-free)');
 ok(st.img[777] >= f0[777] && st.img[777] >= f5[777], 'maxStack is a pixel max');
+const mn = P.meanStack(field, 0.95, 0, 5);
+ok(JSON.stringify(mn.idx) === '[0,1,3,4,5]' && mn.n === 5 && mn.ts.length === 5, 'meanStack picks the same same-band passes in the window');
+ok(mn === P.meanStack(field, 0.95, 5, 0), 'meanStack cached per band+span (order-free)');
+{ const want = mn.idx.reduce((a, i) => a + field.frame(i)[777], 0) / mn.idx.length; ok(Math.abs(mn.img[777] - want) < 1e-4, 'meanStack is the pixel mean of those passes'); }
+ok(mn.gain > 1.5 && mn.gain < 3 && P.stats(mn.img).sig < P.stats(f0).sig, `meanStack lowers the noise (gain ${mn.gain.toFixed(2)}× for 5 passes, ideal √5 = 2.24)`);
+ok(P.meanStack(field, 0.95, 0, 0).n === 1 && P.meanStack(field, 0.95, 0, 0).gain === 1, 'a one-pass window is that pass, gain 1');
 
 // 5. radec / pixel round trip, centre
 const [ra, dec] = P.radec(field, 160, 160);

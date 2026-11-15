@@ -71,6 +71,7 @@ export const EXACT = {
   'Reference pass': 'First picture',
   'Compare with': 'Second picture',
   'Track': 'Path',
+  'Stack': 'Add together',
   'Play': 'Play',
   'Flags': 'Possible movers',
   'Known objects': 'Known objects',

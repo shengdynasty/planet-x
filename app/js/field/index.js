@@ -1,7 +1,7 @@
 // Field analysis view: the Moving Sky experience inside the app (blink / difference / track a patch of sky,
 // vet what moved, send candidates to the review list). Mounts into <section id="view-field">.
 // Talks to the rest of the app only through the store (view, field, candidates, selectedId; flyto, toast).
-import { simulateField, analyse, diff, maxStack, radec, fmtDt, fmtRA, fmtDec, spectrum, dist, psfModel } from '../pipeline/index.js';
+import { simulateField, analyse, diff, maxStack, meanStack, radec, fmtDt, fmtRA, fmtDec, spectrum, dist, psfModel } from '../pipeline/index.js';
 import { drawImage, drawStamp, drawOverlay, glyph, KIND_NAME } from './render.js';
 import { parseCentre } from '../sky/coords.js';
 import { clampFieldSize } from '../core/limits.js';
@@ -51,7 +51,8 @@ const TEMPLATE = `
       <div class="seg" role="group" aria-label="View mode">
         <button data-mode="blink" aria-pressed="true">Blink</button>
         <button data-mode="diff" aria-pressed="false">Difference</button>
-        <button data-mode="track" aria-pressed="false">Track</button>
+        <button data-mode="track" aria-pressed="false" title="Pixel-wise maximum of every pass at the reference wavelength: a mover leaves a trail">Track</button>
+        <button data-mode="stack" aria-pressed="false" title="Add the passes together: the mean of every pass at the reference wavelength, so faint fixed sources gain signal-to-noise">Stack</button>
         <button data-mode="play" aria-pressed="false" title="Cycle through every pass at the reference wavelength">Play</button>
       </div>
       <div class="seg" role="group" aria-label="Overlays">
@@ -123,7 +124,7 @@ const TEMPLATE = `
         <button data-act="report" class="ghost" title="One-page follow-up report in a new tab: stamps, astrometry, predictions, data files">Report ↗</button> <!-- report -->
       </div>
     </section>
-    <p class="fv-keys">Keys: <kbd>B</kbd> <kbd>D</kbd> <kbd>T</kbd> <kbd>L</kbd> blink / difference / track / play · <kbd>F</kbd> flags · <kbd>K</kbd> known · <kbd>G</kbd> Gaia · <kbd>X</kbd> bad pixels · <kbd>Space</kbd> flip / next pass · <kbd>N</kbd>/<kbd>P</kbd> next/previous flag · <kbd>1</kbd>–<kbd>8</kbd> compare pass · <kbd>A</kbd> add · <kbd>S</kbd> show on sky · <kbd>Esc</kbd> clear / back</p>
+    <p class="fv-keys">Keys: <kbd>B</kbd> <kbd>D</kbd> <kbd>T</kbd> <kbd>M</kbd> <kbd>L</kbd> blink / difference / track / stack / play ·<kbd>F</kbd> flags · <kbd>K</kbd> known · <kbd>G</kbd> Gaia · <kbd>X</kbd> bad pixels · <kbd>Space</kbd> flip / next pass · <kbd>N</kbd>/<kbd>P</kbd> next/previous flag · <kbd>1</kbd>–<kbd>8</kbd> compare pass · <kbd>A</kbd> add · <kbd>S</kbd> show on sky · <kbd>Esc</kbd> clear / back</p>
   </aside>
 </div>`;
 
@@ -526,6 +527,9 @@ export function mountField(el, store) {
       legend.innerHTML = '<i aria-hidden="true"></i><span>fainter · brighter</span>'; }
     else if (mode === 'play') { const seq = playSeq(), n = playIdx % seq.length, i = seq[n]; shown = field.frame(i); drawImage(img, shown, N, false, stretch);
       flash.textContent = `${epName(E, E[i])} · ${E[i].date ? String(E[i].date).slice(0, 10) : E[i].label} (${n + 1}/${seq.length})`; knownT = [E[i].t]; }
+    else if (mode === 'stack') { const band = E[A].band, c = meanStack(field, band, A, B); shown = c.img; drawImage(img, shown, N, false, stretch); knownT = c.ts.slice();
+      const n = knownT.length, [e0, e1] = E[A].t <= E[B].t ? [A, B] : [B, A];
+      flash.textContent = `Mean of ${n} pass${n === 1 ? '' : 'es'} at ${band} µm, ${epName(E, E[e0])} to ${epName(E, E[e1])}${n > 1 ? ` · noise ${c.gain.toFixed(1)}× lower than one pass` : ''}`; }
     else { const band = E[A].band, c = maxStack(field, band, A, B); shown = c.img; drawImage(img, shown, N, false, stretch); knownT = c.ts.slice();
       const n = knownT.length, [e0, e1] = E[A].t <= E[B].t ? [A, B] : [B, A];
       flash.textContent = `Max-stack of ${n} pass${n === 1 ? '' : 'es'} at ${band} µm, ${epName(E, E[e0])} to ${epName(E, E[e1])}`; }
@@ -562,7 +566,7 @@ export function mountField(el, store) {
     syncFlip();
   }
   function setMode(m) { mode = m; el.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m))); blinkPhase = 0; playIdx = 0; render(); setTimer();
-    announce({ blink: 'Blink', diff: 'Difference image', track: 'Track: max-stack', play: field ? `Play: ${playSeq().length} passes at ${field.epochs[A].band} µm in time order${reducedMQ.matches ? '; Space or Next pass steps' : ''}` : 'Play' }[m]); }
+    announce({ blink: 'Blink', diff: 'Difference image', track: 'Track: max-stack', stack: 'Stack: the passes added together, mean image', play: field ? `Play: ${playSeq().length} passes at ${field.epochs[A].band} µm in time order${reducedMQ.matches ? '; Space or Next pass steps' : ''}` : 'Play' }[m]); }
   function flip() {
     if (mode === 'play') { playIdx++; render(); syncFlip(); announce(`Showing ${$('flash').textContent}`); return; }
     if (mode !== 'blink') return; blinkPhase++; render(); syncFlip(); announce(`Showing ${$('flash').textContent}`);
@@ -600,7 +604,7 @@ export function mountField(el, store) {
   const readoutAt = e => { if (!field) return; const [fx, fy] = toPix(e); lastXY = [Math.floor(fx), Math.floor(fy)]; showReadout(); };
   function showReadout() { if (!lastXY || !field) return; const [x, y] = lastXY, N = field.N; if (x < 0 || y < 0 || x >= N || y >= N) return;
     const img = shown || field.frame(A), [ra, dec] = radec(field, x, y);
-    $('readout').innerHTML = `<span>RA <b>${fmtRA(ra)}</b></span><span>Dec <b>${fmtDec(dec)}</b></span><span>Pixel <b>${x}, ${y}</b></span><span>${mode === 'diff' ? 'Difference' : mode === 'track' ? 'Stack max' : 'Value'} <b>${img[y * N + x].toFixed(2)} MJy/sr</b></span>`; }
+    $('readout').innerHTML = `<span>RA <b>${fmtRA(ra)}</b></span><span>Dec <b>${fmtDec(dec)}</b></span><span>Pixel <b>${x}, ${y}</b></span><span>${mode === 'diff' ? 'Difference' : mode === 'track' ? 'Stack max' : mode === 'stack' ? 'Stack mean' : 'Value'} <b>${img[y * N + x].toFixed(2)} MJy/sr</b></span>`; }
   ov.addEventListener('pointermove', readoutAt); ov.addEventListener('pointerdown', readoutAt);
   ov.addEventListener('click', e => { if (!field) return; const [x, y] = toPix(e); let best = null, bd = Math.max(14 * field.N / 320, 18 * field.N / (ov.getBoundingClientRect().width || 320));
     for (const r of results) { const d = Math.hypot(r.x - x, r.y - y); if (d < bd) { bd = d; best = r; } } select(best, false); });
@@ -615,7 +619,7 @@ export function mountField(el, store) {
     if ([...document.querySelectorAll('dialog[open], [role="dialog"]')].some(d => !el.contains(d) && !d.hidden && d.getClientRects().length && getComputedStyle(d).visibility !== 'hidden')) return; // help sheet, Export dialog…
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (k === 'Escape') { if (loading) cancelLoad(); else if (selected) { select(null); } else store.set('view', 'sky'); }
-    else if (k === 'b') setMode('blink'); else if (k === 'd') setMode('diff'); else if (k === 't') setMode('track'); else if (k === 'l') setMode('play');
+    else if (k === 'b') setMode('blink'); else if (k === 'd') setMode('diff'); else if (k === 't') setMode('track'); else if (k === 'm') setMode('stack'); else if (k === 'l') setMode('play');
     else if (k === 'f') toggle('marks'); else if (k === 'k') toggle('known');
     else if (k === 'g') { if ($('starsbtn').hidden) return; toggle('stars'); } else if (k === 'x') { if ($('badbtn').hidden) return; toggle('bad'); }
     else if (k === ' ') { if (((mode === 'blink' && reducedMQ.matches) || mode === 'play') && tag !== 'BUTTON') flip(); else return; }

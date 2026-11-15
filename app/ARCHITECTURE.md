@@ -60,7 +60,7 @@ Views show/hide themselves from `store.on('view', …)`; the shell owns the top-
 `app/js/pipeline/index.js` exports pure functions (also importable from Node for tests):
 - `simulateField(opts?) → Field` — the Moving Sky simulated field (stars, asteroid, slow mover ~500 AU, variable, spike), byte-for-byte the same results as `artifacts/moving-sky` on main.
 - `analyse(field, ia, ib) → Result[]` — same semantics and output as Moving Sky's `analyse` (kinds: cand, known, var, art, left), cached per frame.
-- `stats(img)`, `detect(img, k)`, `diff(field, ia, ib)`, `maxStack(field, band, ia, ib)`, `radec(field, x, y)`, `fmtDt`, `fmtRate`, `spectrum(kind)`.
+- `stats(img)`, `detect(img, k)`, `diff(field, ia, ib)`, `maxStack(field, band, ia, ib)`, `meanStack(field, band, ia, ib)` (the passes added together: mean image, `n`, measured noise `gain`), `radec(field, x, y)`, `fmtDt`, `fmtRate`, `spectrum(kind)`.
 `Field` and `Candidate` shapes: `app/js/core/types.js`.
 
 ## Data API (data → used by main, field)
