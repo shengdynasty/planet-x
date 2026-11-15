@@ -148,3 +148,11 @@ Chips: DSS2 (1980s–90s), 2MASS (1997–2001), AllWISE (2010–2011) and SIMBAD
 Aladin Lite (GPL-3.0) is never copied into the repo: it is loaded from the CDS CDN only when a chip is pressed. Surveys and
 dates live in `app/js/aladin/geom.js`. Dev page `app/dev/aladin.html`; test `node tests/aladin.test.mjs`.
 <!-- /aladin:doc -->
+
+## Sky tiles: AVIF q42 (current set)
+
+The shipped tile set is AVIF q42 (speed 3), re-encoded from the WebP levels 3-6 by `scripts/reencode-tiles-avif.py`: levels 3-5 cover the whole sky (69.5 MB) and level 6 (64k, 182 px/deg, 176 MB) is split by sky halves so no merge passes 100 MB. Where a level 6 tile is missing the viewer falls back to level 5. A lower AVIF quality (q35 and below) smears the star fields because they are close to noise; full-sky 64k does not fit in one 100 MB merge at any quality that keeps the stars.
+
+## Modes
+
+`app/js/modes.js` implements Simple and Advanced (see `app/FEATURES.md`): a text-swap layer over the finished DOM plus `body[data-mode]` CSS, so the owning modules never change. `tests/e2e/featuretest.mjs` checks every feature in both; results are in `tests/e2e/results/`.

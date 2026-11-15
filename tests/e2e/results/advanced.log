@@ -1,0 +1,77 @@
+PASS  A1  Mode is applied (advanced)
+PASS  A2  Mode switch shows Simple and Advanced
+PASS  A3  Home link points to the site home
+PASS  A4  View switch: Sky, Compare, Field exist
+PASS  A5  Source badge text is right for the mode
+PASS  A6  Go-to box is shown
+PASS  A7  RA/Dec readout is shown
+PASS  A8  Grid and Tracks buttons are shown
+PASS  A9  Moving Sky demo link works
+PASS  A10  Help sheet opens with the advanced text and closes with Esc
+PASS  A11  Help sheet closes with its ✕ button
+PASS  A12  Mode choice is remembered after reload
+PASS  A13  Switching modes back and forth restores the original words
+PASS  B1  Sky view is the starting view
+PASS  B2  Zoom in (+) narrows the field of view
+PASS  B3  Zoom out (−) widens the field of view
+PASS  B4  Reset view returns to the start
+PASS  B5  Scroll wheel zooms
+PASS  B6  Dragging looks around
+PASS  B7  Arrow keys pan
+PASS  B8  Zoom counter shows zoom, field and sky level
+PASS  B9  Sharp tiles load at high zoom (64k where available)
+PASS  B10  Sky background and star map are drawn (canvas has content)
+PASS  B11  Grid toggle button flips (Advanced) / G key
+PASS  B12  Tracks toggle button flips (Advanced) / T key
+PASS  B13  Go to RA/Dec moves the sky (Advanced)
+PASS  B14  Go to "candidate 3": selects it, or says there is no such candidate (saved data has none named c3)
+PASS  B15  Timeline lists the scans
+PASS  B16  Clicking a scan makes it current
+PASS  B17  Number keys jump to a scan
+PASS  B18  Blink button flips between scans / B key
+PASS  C1  Movers list shows 5 items
+PASS  C2  Filter buttons narrow the list
+PASS  C3  Search narrows the list
+PASS  C4  Sort changes the order
+PASS  C5  Picking a mover opens its details
+PASS  C6  Details panel shows a picture and plain/technical text
+PASS  C7  Center / Look-here button moves the sky to the mover
+PASS  C8  Export menu opens with 4 choices
+PASS  C9  Export: download CSV works and cells are safe
+PASS  C10  Export: download JSON works
+PASS  C11  Export: copy CSV works or shows its text box
+PASS  C12  Close (✕) clears the selection
+PASS  D1  Compare button opens the Compare view
+PASS  D2  Compare shows the chosen mover name
+PASS  D3  Left and Right scan pickers exist
+PASS  D4  Picking a scan on the left changes it
+PASS  D5  Overlay: Difference mode
+PASS  D6  Wipe slider moves with arrow keys
+PASS  D7  Wipe slider moves by dragging
+PASS  D8  Compare Blink button works
+PASS  D9  Facts list is technical
+PASS  D10  Honest note about simulated pixels is shown
+PASS  D11  Back to sky works
+PASS  E1  Field view opens
+PASS  E2  Field draws a picture
+PASS  E3  View modes: Blink / Difference / Track / Play each can be selected
+PASS  E4  Reference pass picker changes pass
+PASS  E5  Compare-with pass picker changes pass
+PASS  E6  Layer buttons (Flags / Known objects) toggle
+PASS  E7  Brightness (Stretch) slider works
+PASS  E8  Flagged-source list has entries
+PASS  E9  Choosing an example target loads it
+PASS  E10  Field keyboard: B/D/T/L switch view mode
+PASS  E11  Keyboard-hint list is shown
+PASS  E12  Spectrum chart exists
+PASS  E13  Field picture labels are technical
+PASS  E14  Back (← Sky) leaves Field
+PASS  F1  Keyboard S/C/F switch views
+PASS  F2  / focuses the go-to box (Advanced)
+PASS  F3  ? opens help
+PASS  F4  Deep link ?ra&dec opens the Field view
+PASS  F5  Mobile layout: panel toggle opens the list
+PASS  F6  Mobile: the mode switch is reachable
+PASS  F7  No unexpected console or page errors
+
+advanced: 75/75 passed
