@@ -124,11 +124,17 @@ cannot load (offline, blocked) the NASA picture simply stays. Pure helpers are t
 
 The 4k backdrop is ~11 px/deg, so it blurs when zoomed. NASA publishes the same Deep Star Map at up to 65,536 × 32,768 px
 (182 px/deg, one image pixel per screen pixel at the 6° zoom limit). `scripts/make-sky-tiles.py` cuts it into a pyramid of
-512 px tiles (`app/assets/skytiles/<level>/<col>_<row>.<ext>`; `manifest.json` gives the levels and the format). **Levels 3–5 are on `main`**
-as WebP q70 (32,768 px wide, up to 91 px/deg, 2,688 tiles, about 153 MB; merged in #7). They are committed once, not per code change: each
-regeneration would add its size to the repo history. Two alternatives are kept on branches, not merged: `feat/sky-tiles-avif` (the same
-levels as AVIF q50, 93 MB) and `feat/sky-tiles-all` (all four levels as WebP, up to 182 px/deg, 525 MB). In side-by-side tests 32k looked far sharper than 16k, while 64k was not visibly different from 32k. AVIF needs
-Chrome 85+, Firefox 93+ or Safari 16.4+; on anything older the tiles fail quietly and the 4k sky stays.
+512 px tiles (`app/assets/skytiles/<level>/<col>_<row>.<ext>`; `manifest.json` gives the levels and the format). **All four levels are on `main`**:
+levels 3–5 as WebP q70 (32,768 px wide, up to 91 px/deg, 2,688 tiles, about 153 MB; merged in #7) and level 6 as AVIF q42 (65,536 px
+wide, 182 px/deg, 8,192 tiles, 176 MB; #13 and #14, re-encoded from the WebP q70 level 6 on `feat/sky-tiles-all`). `manifest.json`
+names the default format (`ext`) and per-level overrides (`exts`), so the two formats mix. They are committed once, not per code
+change: each regeneration would add its size to the repo history. Levels 3–5 stay WebP because an AVIF q42 re-encode of them (#12,
+not merged) kept only 31–69% of the faint stars in dense Milky Way tiles, the grain that is the Milky Way's texture when zoomed out,
+and looked blotchy at 1:1; level 6 keeps 96–99% (77% in the densest tile) because its stars are larger. At the 6° limit a level 6
+tile holds about twice the faint stars of the level 5 tile upsampled to the same scale (2,722 vs 1,144 in a galactic-centre tile).
+Other sets are kept on branches: `feat/sky-tiles-avif` (levels 3–5 as AVIF q50 from the source, 93 MB) and `feat/sky-tiles-all` (all
+four levels as WebP, 525 MB). AVIF needs Chrome 85+, Firefox 93+, Edge 121+ or Safari 16.4+; on anything older the level 6 tiles fail
+quietly and level 5 stays on screen.
 To make them yourself, run the script on `starmap_2020_64k.exr`. They can also be hosted elsewhere: point `SKY_TILES.remote` in
 `sky/config.js` (or `?tiles=<url>`) at them; that host must send `Access-Control-Allow-Origin`. `manifest.json` says which levels exist. `sky/hdtiles.js` streams only what is needed, like culling and LOD in a game:
 

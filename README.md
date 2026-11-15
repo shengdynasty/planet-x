@@ -152,6 +152,7 @@ node --test tests/stack.test.mjs                    # shift-and-stack on the sav
 node scripts/shift-and-stack.mjs                    # the full stacking tables behind docs/WRITEUP.md (--trials, --true-au)
 node scripts/link-fields.mjs --field app/data/snapshots/psyche.json --pair 0,1   # link that pair's vanished sources (needs the server; --predict-only does not)
 node tests/shell.test.mjs                           # app shell, top bar, badge         (browser)
+node tests/hdtiles.test.mjs                         # streamed sky tiles: WebP + AVIF level 6 at the zoom limit (browser)
 node tests/review.test.mjs                          # review panel + sky markers        (browser)
 node tests/workflow.test.mjs                        # end-to-end sim workflow           (browser)
 node tests/field.test.mjs                           # Field view                        (browser)

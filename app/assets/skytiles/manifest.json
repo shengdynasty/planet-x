@@ -1,12 +1,13 @@
 {
  "tileSize": 512,
  "minLevel": 3,
- "maxLevel": 5,
+ "maxLevel": 6,
  "ext": "webp",
+ "exts": { "6": "avif" },
  "width": 65536,
  "height": 32768,
  "source": "NASA SVS 4851, Deep Star Maps 2020 (starmap_2020_64k.exr)",
  "gain": 15.75,
  "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio. Gaia DR2: ESA/Gaia/DPAC.",
- "note": "Levels 3-5 only (up to 91 px/deg). All four levels (to 182 px/deg) are on the branch feat/sky-tiles-all."
+ "note": "Levels 3-5 are WebP q70 (up to 91 px/deg, 153 MB). Level 6 (64k, 182 px/deg, 176 MB) is AVIF q42 re-encoded from the WebP q70 level 6 on feat/sky-tiles-all. ext is the default format; exts overrides it per level."
 }
