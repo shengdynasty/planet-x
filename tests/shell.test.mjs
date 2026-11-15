@@ -77,7 +77,9 @@ console.log('desktop 1440×900, dark');
   ok(errors.length === 0, `boot: no console errors (${errors.join(' | ')})`);
   ok(await page.evaluate(() => window.__sky.backdrop) === 'image', 'real NASA sky map is the backdrop');
   { const types = await page.evaluate(() => window.__sky.sceneTypes());
-    ok(!types.Points && types.Mesh === 1 && types.Group === 3, `no invented star layers: the scene holds the backdrop, grid, markers and tracks only (${JSON.stringify(types)})`); }
+    ok(!types.Points && types.Mesh === 1 && (types.Group === 3 || types.Group === 4), `no invented star layers: the scene holds the backdrop, grid, markers, tracks and the streamed NASA tile group only (${JSON.stringify(types)})`);
+    const hd = await page.evaluate(() => window.__sky.hd && window.__sky.hd());
+    ok(hd && ['ready', 'loading', 'idle', 'off'].includes(hd.state), `streamed HD tiles report a state (${hd && hd.state}, base ${hd && hd.base})`); }
   ok((await page.textContent('#source-text')) === 'Simulated data', 'badge says "Simulated data"');
   await page.evaluate(() => window.__px.set('source', { mode: 'live', live: true, note: 'SPHEREx via IRSA' }));
   ok((await page.textContent('#source-text')) === 'Live · SPHEREx', 'badge says "Live · SPHEREx" for a live source');

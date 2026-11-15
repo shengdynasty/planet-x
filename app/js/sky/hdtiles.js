@@ -5,7 +5,8 @@
 //   - coarse tiles load first and stay under the fine ones, so the picture refines instead of popping;
 //   - a small LRU cache: textures that have not been seen for a while are disposed.
 // The 4k backdrop (backdrop.js) stays underneath as the base, so nothing is ever blank. If assets/skytiles is absent
-// (it is not in git; see scripts/make-sky-tiles.py) this module turns itself off and the sky is as before.
+// (see scripts/make-sky-tiles.py) this module turns itself off and the sky is as before. manifest.json names the format
+// (`ext`, with per-level overrides in `exts`: levels 3-5 are WebP, level 6 AVIF); a tile that fails to load leaves the coarser one showing.
 // Tiles may live on another site: `bases` is tried in order for a manifest.json, and images are loaded with CORS so WebGL accepts them.
 /* global THREE */
 import { levelFor, visibleTiles, parentOf, tileKey, gridOf } from './tilemath.js';
@@ -49,7 +50,7 @@ export function createHdTiles({ onChange = () => {}, low = false, bases = ['asse
         e.tex = tex; e.status = 'ready'; inflight--; onChange(); pump();
       };
       img.onerror = () => { e.status = 'missing'; inflight--; pump(); };
-      img.src = `${base}/${e.level}/${e.col}_${e.row}.${manifest.ext}`;
+      img.src = `${base}/${e.level}/${e.col}_${e.row}.${(manifest.exts && manifest.exts[e.level]) || manifest.ext}`; // exts: a per-level format (level 6 is AVIF, 3-5 WebP)
     }
   }
 

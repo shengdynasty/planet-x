@@ -120,6 +120,7 @@ const TEMPLATE = `
       <div class="fv-actions">
         <button data-act="add" data-ref="add">Add to review list</button>
         <button data-act="sky" class="ghost">Show on sky</button>
+        <button data-act="report" class="ghost" title="One-page follow-up report in a new tab: stamps, astrometry, predictions, data files">Report ↗</button> <!-- report -->
       </div>
     </section>
     <p class="fv-keys">Keys: <kbd>B</kbd> <kbd>D</kbd> <kbd>T</kbd> <kbd>L</kbd> blink / difference / track / play · <kbd>F</kbd> flags · <kbd>K</kbd> known · <kbd>G</kbd> Gaia · <kbd>X</kbd> bad pixels · <kbd>Space</kbd> flip / next pass · <kbd>N</kbd>/<kbd>P</kbd> next/previous flag · <kbd>1</kbd>–<kbd>8</kbd> compare pass · <kbd>A</kbd> add · <kbd>S</kbd> show on sky · <kbd>Esc</kbd> clear / back</p>
@@ -491,6 +492,21 @@ export function mountField(el, store) {
     announce(`Added ${cand.name} to the review list`);
     renderVet(); $('add').focus();
   }
+  // Candidate report (app/report.html) for the selected source, in a new tab. The report module loads only on this // report
+  // click; the tab is opened first, synchronously, so a popup blocker lets it through. Nothing is re-detected. // report
+  async function openReport() { // report
+    const r = selected; if (!r || !field) return; // report
+    const w = window.open('', '_blank'); // report
+    try { // report
+      const [{ buildReport }, { toHash }] = await Promise.all([import('../report/model.js'), import('../report/encode.js')]); // report
+      const mode = dataMod && typeof dataMod.dataMode === 'function' ? dataMod.dataMode() : undefined; // report
+      const url = new URL('../../report.html#' + await toHash(buildReport(r, field, { A, B, mode, psfSigma: psfModel(field).sigma })), import.meta.url).href; // report
+      if (w) { w.opener = null; w.location.href = url; } else window.open(url, '_blank', 'noopener'); // report
+      announce('Report opened in a new tab'); // report
+    } catch (e) { // report
+      if (w) w.close(); console.warn('[planet-x] field: report failed', e); store.emit('toast', `Report could not be made: ${e.message}`); // report
+    } // report
+  } // report
   function showOnSky() {
     const r = selected; let ra, dec;
     if (r) [ra, dec] = radec(field, r.x, r.y); else [ra, dec] = radec(field, field.N / 2, field.N / 2);
@@ -568,6 +584,7 @@ export function mountField(el, store) {
       case 'flip': flip(); break;
       case 'add': addToReview(); break;
       case 'sky': showOnSky(); break;
+      case 'report': openReport(); break; // report
       case 'cancel': cancelLoad(); break;
     }
   });

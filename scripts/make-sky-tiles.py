@@ -5,10 +5,11 @@
 
 That command makes levels 3-5 (32,768 px wide, 91 px per degree) as AVIF, about 93 MB: a smaller equivalent of the WebP q70 set that is on
 main (153 MB; branch feat/sky-tiles-avif has the AVIF files). Encoding runs in parallel (--workers) and --resume continues an interrupted
-run. --top-level 6 adds the full 64k level (WebP q70: 372 MB more; branch feat/sky-tiles-all).
+run. --top-level 6 adds the full 64k level (WebP q70: 372 MB more, branch feat/sky-tiles-all; main carries that level as AVIF q42,
+176 MB, re-encoded from the WebP, with manifest.json's "exts" naming the format per level: the app reads "ext" as the default).
 
 Level l is the whole map at 1024 * 2^l px wide: 2^(l+1) columns x 2^l rows of tiles (see app/js/sky/tilemath.js). A 64k
-map gives levels 3..6 (level 6 = 65,536 px wide). Tiles are written to <out>/<level>/<col>_<row>.webp plus <out>/manifest.json.
+map gives levels 3..6 (level 6 = 65,536 px wide). Tiles are written to <out>/<level>/<col>_<row>.<ext> plus <out>/manifest.json.
 WebP (quality 70) is both smaller and closer to the source than JPEG (quality 80): about 55 KB vs 85 KB per dense tile,
 34.8 vs 32.1 dB PSNR, so the whole pyramid is roughly 500 MB instead of 780 MB (GitHub Pages sites are limited to 1 GB).
 

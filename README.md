@@ -4,7 +4,7 @@ A NASA Space Apps Challenge 2026 project: search NASA's **SPHEREx** all-sky infr
 
 SPHEREx looks about 90° from the Sun and re-maps the whole sky every six months, so its two passes over any patch see it from opposite sides of Earth's orbit. A body at 500 AU jumps 825″ between them (134 pixels, out of a 300″ cutout and into another) and drifts 7″ a day between the re-visits within one pass. The app compares the same patch of sky across epochs, flags what moved, appeared, vanished or brightened, and checks each one against JPL's catalogue of known asteroids and comets and Gaia DR3's catalogue of stars. Whatever is left is a **candidate for human review, never a detection**. What it can and cannot find was measured by planting synthetic movers into real frames (`docs/WRITEUP.md`).
 
-Enter a position (or pick one of the built-in targets), and the app loads every SPHEREx pass of that patch at a matching wavelength, plays them like a little video, blinks or subtracts any two, overlays Gaia stars and the SPHEREx pipeline's own bad-pixel flags, and names what it recognises.
+Enter a position (or pick one of the built-in targets), and the app loads every SPHEREx pass of that patch at a matching wavelength, plays them like a little video, blinks or subtracts any two, overlays Gaia stars and the SPHEREx pipeline's own bad-pixel flags, and names what it recognises. Any flagged source can be shown in DSS2, 2MASS and AllWISE images and exported as a one-page follow-up report, and the whole-sky view stays sharp when zoomed in, streamed from NASA's star map.
 
 **Live demo:** https://shengdynasty.github.io/planet-x/ (real SPHEREx data for the six built-in targets, saved in the repo; any other position needs the local server below)
 
@@ -129,16 +129,17 @@ A deployed API must be on HTTPS (the app on GitHub Pages is HTTPS) and must list
 | Field view (frames, flags, blink, live request box) | `app/js/field/` |
 | 3D sky, markers, fly-to | `app/js/sky/` |
 | Candidate review panel, export | `app/js/candidates/` |
+| Candidate report (shareable link, PDF, ADES/CSV/JSON) | `app/js/report/`, `app/report.html`; contracts in `app/ARCHITECTURE.md` |
 | Data loading, server contract, sim fallback | `app/js/data/index.js`; contract in `app/ARCHITECTURE.md` |
 | Real-data server (IRSA, JPL, FITS, WCS) | `server/lib/`; explained in `server/README.md` |
-| Write-up and pitch | `docs/WRITEUP.md`, `docs/PITCH-OUTLINE.md` |
+| Write-up, pitch and the submission form text | `docs/WRITEUP.md`, `docs/PITCH-OUTLINE.md`, `docs/PROJECT-PAGE.md` |
 | What's done / in progress | `STATUS.md` |
 
 Rules of thumb: anything simulated must say so in the UI (`simulated: true` flows through to a *Simulated* tag); nothing is ever called a detection, only a candidate; coordinates are ICRS degrees everywhere except where a label says otherwise.
 
 ### 5. Tests
 
-Run the relevant suite before you push. Node-only suites take seconds; browser suites need Chrome and take a minute or two each (longer on a machine without a GPU: Chrome renders the sky in software). Don't run two browser suites at the same time. Each browser suite serves the repo itself on a port in 8101–8108 and refuses to reuse a server there that serves different files, so a forgotten `http.server` from another checkout can't make it test the wrong code. The server is python's `http.server`: on Windows the suites start it with `py -3` or `python` (the `python3` there is the Store stub); `PLANETX_PYTHON="py -3"` (or a path to `python.exe`) picks the interpreter on any platform.
+Run the relevant suite before you push. Node-only suites take seconds; browser suites need Chrome and take a minute or two each (longer on a machine without a GPU: Chrome renders the sky in software). Don't run two browser suites at the same time. Each browser suite serves the repo itself on a port in 8101–8109 and refuses to reuse a server there that serves different files, so a forgotten `http.server` from another checkout can't make it test the wrong code. The server is python's `http.server`: on Windows the suites start it with `py -3` or `python` (the `python3` there is the Store stub); `PLANETX_PYTHON="py -3"` (or a path to `python.exe`) picks the interpreter on any platform.
 
 ```sh
 node tests/pipeline.test.mjs                        # detection pipeline (also checks parity with Moving Sky)
@@ -147,11 +148,16 @@ node --test tests/injection.test.mjs                # injection-recovery on the 
 node scripts/injection-recovery.mjs [--clear-gaia]  # the full recovery tables behind docs/WRITEUP.md
 node tests/link.test.mjs                            # cross-field linker: parallax prediction + planted counterpart (Node, offline)
 node tests/parallax.test.mjs                        # parallax-distance estimator: distance with an error bar from a measured shift (Node, offline)
+node --test tests/stack.test.mjs                    # shift-and-stack on the saved real fields (Node, seconds)
+node scripts/shift-and-stack.mjs                    # the full stacking tables behind docs/WRITEUP.md (--trials, --true-au)
 node scripts/link-fields.mjs --field app/data/snapshots/psyche.json --pair 0,1   # link that pair's vanished sources (needs the server; --predict-only does not)
 node tests/shell.test.mjs                           # app shell, top bar, badge         (browser)
+node tests/hdtiles.test.mjs                         # streamed sky tiles: WebP + AVIF level 6 at the zoom limit (browser)
 node tests/review.test.mjs                          # review panel + sky markers        (browser)
 node tests/workflow.test.mjs                        # end-to-end sim workflow           (browser)
 node tests/field.test.mjs                           # Field view                        (browser)
+node tests/report.test.mjs                          # candidate report: model, link, fit, exports (Node)
+node tests/report-browser.test.mjs                  # candidate report end to end       (browser)
 node tests/live.test.mjs                            # live mode against :8787          (browser, needs a data server)
 node qa/moving-sky.test.mjs                         # Moving Sky demo                   (browser)
 ```

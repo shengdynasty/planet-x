@@ -18,9 +18,10 @@ No build step. Plain ES modules loaded by `app/index.html`; three.js r128 stays 
 | Data sources (sim + live client) + server | agent **data** | `app/js/data/*`, `server/*`, `tests/data.test.mjs` |
 | Candidate workflow (panel) | agent **workflow** | `app/js/candidates/*`, `app/css/candidates.css` |
 | Real sky imagery | agent **assets** | `app/assets/*` (+ `app/assets/README.md` with source, licence, orientation) |
+| Candidate report (link + PDF + data files) | agent **report** | `app/report.html`, `app/js/report/*`, `app/css/report.css`, `tests/report.test.mjs`, `tests/report-browser.test.mjs` (+ one tagged button in `app/js/field/index.js`) |
 
 Each agent may also add a standalone dev page `app/dev/<module>.html` that mounts only its module with simulated data.
-Dev-server ports (avoid clashes): shell 8101, field 8102, data 8103, workflow 8104, assets 8105.
+Dev-server ports (avoid clashes): shell 8101, field 8102, data 8103, workflow 8104, assets 8105, report 8109.
 
 ## Mount contract (shell provides, modules fill)
 
@@ -123,11 +124,17 @@ cannot load (offline, blocked) the NASA picture simply stays. Pure helpers are t
 
 The 4k backdrop is ~11 px/deg, so it blurs when zoomed. NASA publishes the same Deep Star Map at up to 65,536 × 32,768 px
 (182 px/deg, one image pixel per screen pixel at the 6° zoom limit). `scripts/make-sky-tiles.py` cuts it into a pyramid of
-512 px tiles (`app/assets/skytiles/<level>/<col>_<row>.<ext>`; `manifest.json` gives the levels and the format). **Levels 3–5 are on `main`**
-as WebP q70 (32,768 px wide, up to 91 px/deg, 2,688 tiles, about 153 MB; merged in #7). They are committed once, not per code change: each
-regeneration would add its size to the repo history. Two alternatives are kept on branches, not merged: `feat/sky-tiles-avif` (the same
-levels as AVIF q50, 93 MB) and `feat/sky-tiles-all` (all four levels as WebP, up to 182 px/deg, 525 MB). In side-by-side tests 32k looked far sharper than 16k, while 64k was not visibly different from 32k. AVIF needs
-Chrome 85+, Firefox 93+ or Safari 16.4+; on anything older the tiles fail quietly and the 4k sky stays.
+512 px tiles (`app/assets/skytiles/<level>/<col>_<row>.<ext>`; `manifest.json` gives the levels and the format). **All four levels are on `main`**:
+levels 3–5 as WebP q70 (32,768 px wide, up to 91 px/deg, 2,688 tiles, about 153 MB; merged in #7) and level 6 as AVIF q42 (65,536 px
+wide, 182 px/deg, 8,192 tiles, 176 MB; #13 and #14, re-encoded from the WebP q70 level 6 on `feat/sky-tiles-all`). `manifest.json`
+names the default format (`ext`) and per-level overrides (`exts`), so the two formats mix. They are committed once, not per code
+change: each regeneration would add its size to the repo history. Levels 3–5 stay WebP because an AVIF q42 re-encode of them (#12,
+not merged) kept only 31–69% of the faint stars in dense Milky Way tiles, the grain that is the Milky Way's texture when zoomed out,
+and looked blotchy at 1:1; level 6 keeps 96–99% (77% in the densest tile) because its stars are larger. At the 6° limit a level 6
+tile holds about twice the faint stars of the level 5 tile upsampled to the same scale (2,722 vs 1,144 in a galactic-centre tile).
+Other sets are kept on branches: `feat/sky-tiles-avif` (levels 3–5 as AVIF q50 from the source, 93 MB) and `feat/sky-tiles-all` (all
+four levels as WebP, 525 MB). AVIF needs Chrome 85+, Firefox 93+, Edge 121+ or Safari 16.4+; on anything older the level 6 tiles fail
+quietly and level 5 stays on screen.
 To make them yourself, run the script on `starmap_2020_64k.exr`. They can also be hosted elsewhere: point `SKY_TILES.remote` in
 `sky/config.js` (or `?tiles=<url>`) at them; that host must send `Access-Control-Allow-Origin`. `manifest.json` says which levels exist. `sky/hdtiles.js` streams only what is needed, like culling and LOD in a game:
 
@@ -149,9 +156,39 @@ Aladin Lite (GPL-3.0) is never copied into the repo: it is loaded from the CDS C
 dates live in `app/js/aladin/geom.js`. Dev page `app/dev/aladin.html`; test `node tests/aladin.test.mjs`.
 <!-- /aladin:doc -->
 
-## Sky tiles: AVIF q42 (current set)
+<!-- report:doc -->
+## Candidate report (report)
 
-The shipped tile set is AVIF q42 (speed 3), re-encoded from the WebP levels 3-6 by `scripts/reencode-tiles-avif.py`: levels 3-5 cover the whole sky (69.5 MB) and level 6 (64k, 182 px/deg, 176 MB) is split by sky halves so no merge passes 100 MB. Where a level 6 tile is missing the viewer falls back to level 5. A lower AVIF quality (q35 and below) smears the star fields because they are close to noise; full-sky 64k does not fit in one 100 MB merge at any quality that keeps the stars.
+The Field view's **Report ↗** button (vetting actions, the only `// report` lines in `app/js/field/index.js`) lazy-loads
+`report/model.js` and `report/encode.js` and opens `app/report.html#v=1&c=…` in a new tab. Static hosting only: the
+report lives in the URL hash (deflate-raw + base64url, ~0.7–1.5 KB), which is never sent to a server.
+
+- `model.js` `buildReport(result, field, {A, B, mode})` → the core object `schema.js` describes (v1): per-epoch MJD,
+  RA/Dec (6 decimals), centroid error (σ_PSF / SNR, floor 0.1 px), 5×5 aperture flux (Jy on real MJy/sr frames), band,
+  SPHEREx image id and flag names, plus the Gaia DR3 / known-object cross-match within 30″. It reads one `analyse()`
+  result as the Field view lists it and never re-runs detection. `derive(core)` computes motion, predictions, the
+  follow-up box and the exports; it is deterministic ("now" is the report's generation time).
+- `schema.js` `validate()` checks every field (types, ranges, lengths) and throws `ReportError`; `migrate()` reads v1.
+  Decoded values are untrusted and the page uses `textContent` only.
+- `predict.js`: weighted linear fit on the tangent plane (RA wrap and high Dec safe; σ grows linearly with time from the
+  fit covariance), a low-precision Sun for elongation, and an **illustrative** distance fan (circular prograde orbit at
+  2/5/40/300 AU, seen from Earth's centre). No orbit fit: the page says "Arc too short for an orbit fit".
+- `export.js`: ADES PSV (headed "For follow-up use; not an MPC submission"; stn XXX, no spacecraft position), astrometry
+  CSV, 30-night ephemeris CSV, JSON. Every file starts with SIMULATED DATA when the field was simulated.
+- `stamps.js` rebuilds the field (`simulateField` for sim; `data/initData` + `getField` for saved or live frames), checks
+  its epochs match the report's, and draws per-epoch stamps plus the difference on one stretch, with an N/E compass and
+  a scale bar. If the frames are unreachable the page says "Stamps unavailable offline" and shows the rest.
+- Simulated dates: the simulation has no calendar, so its epochs sit on a nominal date (`SIM_T0_MJD`, 2025-05-15) and
+  the page and files say so.
+- QR code: `qrcode-generator` 1.4.4 from cdnjs (with an integrity hash), on `report.html` only; without it the link text
+  stands alone. It encodes the ~80-character deep link to the field (`render.js` `fieldLink`), not the 700–1,000-character
+  report link: a code of the latter has ~100 modules a side and cannot be read from a 32 mm print.
+- Tests: `node tests/report.test.mjs` (Node), `node tests/report-browser.test.mjs` (browser, port 8109).
+<!-- /report:doc -->
+
+## Re-encoding tiles
+
+`scripts/reencode-tiles-avif.py` re-encodes a WebP tile set as AVIF (it made the q42 level 6). Levels 3-5 stay WebP q70 on main: a q42 AVIF made from the WebP lost 31-69% of the faint stars in dense Milky Way tiles; a q50+ encode straight from the EXR is the follow-up.
 
 ## Modes
 

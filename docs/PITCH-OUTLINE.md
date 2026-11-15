@@ -26,8 +26,7 @@ Nine slides, drawn from `docs/WRITEUP.md`. Every number and claim here comes fro
 - **Key message:** SPHEREx looks 90° from the Sun, so its six-monthly passes see every patch from opposite sides of Earth's orbit: a 2 AU parallax baseline, built in.
 - **Supporting points:**
   - Roughly six-month all-sky cadence, and within a pass the same patch re-imaged days apart (1.4, 4.4 and 17.8 days in our example fields)
-  - Bursts of four exposures about 2.4 minutes apart, then a revisit hours to a day later
-  - 6.15″ pixels; 0.75–5 µm in 102 bands
+  - 6.15″ pixels; 0.75–5 µm in 102 bands, which is why frames must be paired at matching wavelength (slide 5)
 - **Visual:** The app's scan timeline (four scans, the last shown as scheduled).
 
 ## Slide 4: How it works
@@ -53,8 +52,8 @@ Nine slides, drawn from `docs/WRITEUP.md`. Every number and claim here comes fro
 
 - **Key message:** Browse the whole sky, compare scans, analyse a field and review every mover in one place.
 - **Supporting points:**
-  - Sky: whole-sky view with tracks, Go to, and Blink across scans
-  - Compare: wipe, Difference (a mover shows up twice) and Blink; Field: the detection pipeline with stamps and spectrum
+  - Sky: whole-sky view with tracks, Go to, and Blink across scans; sharp to the 6° zoom limit from NASA's Deep Star Map streamed as tiles
+  - Compare: wipe, Difference (a mover shows up twice) and Blink; Field: the detection pipeline with stamps, spectrum, DSS2/2MASS/AllWISE chips and a one-page follow-up report per source
   - Movers panel: Candidate, Matched and Likely statuses, CSV/JSON export
   - A badge always says *Live · SPHEREx*, *Saved SPHEREx data* (the hosted copy: real frames for six targets) or *Simulated data*
 - **Visual:** Side-by-side screenshots of the Sky view with the review panel and of the Field view.
@@ -63,7 +62,7 @@ Nine slides, drawn from `docs/WRITEUP.md`. Every number and claim here comes fro
 
 - **Key message:** On real SPHEREx frames the pipeline recovers a known asteroid where JPL says it should be, and we measured what it can and cannot find by planting movers into real frames.
 - **Supporting points:**
-  - 300″ field, 15 February 2026: 16 Psyche labelled *Known object*, within 2″ of its Horizons position; absent from the same field in September 2025 and September 2026
+  - 300″ field, 15 February 2026: 16 Psyche labelled *Known object*, 1.3″ from its Horizons position; absent from the same field in September 2025 and September 2026; the ten other flags are artifacts the SPHEREx flag plane marks
   - Injection test on six real fields, 720 trials per cell: 80–91% of movers at 12σ+ shifting 18–92″ recovered with both positions (0.9″ median error); a vanished source 91–97%, a new source with no counterpart 76–93%; zero false movers on the un-injected pairs
   - Nothing below 7σ, nothing under a 13″ shift, worse next to bright stars; the test found and fixed two detector bugs
   - A Planet Nine-class body would not reach 7σ in one exposure: our limit is AB 16.3–17.5 in clean fields; the nominal 10 Earth-mass model is AB 22.8–23.4 at 3–5 µm (5–6.5 mag short) and even the most optimistic published model (AB 18.8) is 1.3–2 mag short; we reach such a body only inside about 250–340 AU, or by stacking four passes (SPHEREx 5σ AB 19.5–19.9) once its orbit is known
@@ -85,6 +84,6 @@ Nine slides, drawn from `docs/WRITEUP.md`. Every number and claim here comes fro
 - **Key message:** The real-data path works end to end and its limits are measured. Next, join the two halves of a Planet X signature across cutouts.
 - **Supporting points:**
   - Risks: three epochs is the minimum for an orbit fit, false positives, nothing fainter than 7σ, a body inside 1,500 AU leaves the cutout between passes
-  - A first cross-field linker exists: it predicts where a vanished source reappears for 300–2,000 AU, builds those cutouts and found a planted counterpart at the true distance on real frames. Next: run it on every real vanished source, across many fields
-  - Then: multi-epoch linking and orbit fits, real spectra, a hosted data server
-- **Visual:** Short roadmap line with three milestones. Close with team names `[Team member names]` and links: app https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW, Moving Sky https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b, `[Video link]`.
+  - A first cross-field linker exists: it predicts where a vanished source reappears for 300–2,000 AU, builds those cutouts and found a planted counterpart at the true distance on real frames; the measured shift then gives a distance with an error bar (500 AU → 450–546 AU). Shift-and-stack across SPHEREx's three or four passes gains only 0.3–0.4 mag, so depth, not method, is the limit. Next: run the linker on every real vanished source, across many fields
+  - Then: multi-epoch linking and orbit fits, real spectra, a hosted data server for any position
+- **Visual:** Short roadmap line with three milestones. Close with team names `[Team member names]` and links: app https://shengdynasty.github.io/planet-x/, source https://github.com/shengdynasty/planet-x, Moving Sky https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b, `[Video link]`.
