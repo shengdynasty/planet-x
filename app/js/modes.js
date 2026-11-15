@@ -93,6 +93,10 @@ export const EXACT = {
   'Comparison cutout': 'Second picture',
   'Example targets': 'Example places',
   'Close': 'Close',
+  // data releases and field files
+  'Data releases': 'Where these pictures come from',
+  'Save field file': 'Save these pictures as a file',
+  'Open field file…': 'Open a saved file…',
 };
 
 // regular expressions for phrases with numbers in them

@@ -141,7 +141,7 @@ export async function buildField(q) {
     progress.set(id, P);
     const step = (stage, label, total = 0) => Object.assign(P, { stage, label, done: 0, total });
     try {
-    const exps = await searchExposures(q.ra, q.dec, extra);
+    const report = {}, exps = await searchExposures(q.ra, q.dec, extra, report); // report.requestedStatus: what each typed release gave
     T.sia = Date.now() - T.start;
     if (!exps.length) { const e = new Error(`No SPHEREx exposures cover RA ${q.ra}, Dec ${q.dec} in ${extra.length ? 'the searched collections (including ' + extra.join(', ') + ')' : 'the searched collections'}`); e.status = 404; throw e; }
     const epochs = groupEpochs(exps);
@@ -239,7 +239,7 @@ export async function buildField(q) {
       stars, starsSource: gaiaWanted ? 'Gaia DR3 (ESA archive), G < 19, positions at J2016.0 with proper motions' : null,
       starsStatus: !gaiaWanted ? 'skipped' : gaia?.error ? 'failed: ' + gaia.error : 'ok',
       surveyEpochs: epochs.map(ep => ({ id: ep.id, label: ep.label, date: ep.date, start: ep.start, end: ep.end, nExposures: ep.nExposures })),
-      source: { mode: 'live', note: 'Live · SPHEREx via IRSA', collections: [...new Set(frames.map(f => f.collection))], requested: extra },
+      source: { mode: 'live', note: 'Live · SPHEREx via IRSA', collections: [...new Set(frames.map(f => f.collection))], requested: extra, requestedStatus: report.requestedStatus || [] },
       notes: [
         'Pixels: SPHEREx L2 IMAGE minus the pipeline ZODI model, bilinearly resampled (TAN-SIP WCS) onto a common north-up grid at 6.15″/px.',
         'Masked or off-detector pixels are replaced by the frame median; FLAGS are not applied.',
@@ -252,7 +252,7 @@ export async function buildField(q) {
       builtAt: new Date().toISOString(),
     };
     } finally { progress.delete(id); }
-  });
+  }, extra.length ? 3600000 : undefined); // asked with typed releases: rebuilt hourly (mostly from the disk cache), so a release that goes live later is picked up
   building.set(id, run);
   try { return await run; } finally { building.delete(id); }
 }

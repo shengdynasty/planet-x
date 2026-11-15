@@ -6,7 +6,7 @@ import { celestialWCS, spectralWCS } from './wcs.mjs';
 
 export const SIA_URL = 'https://irsa.ipac.caltech.edu/SIA';
 export const TAP_URL = 'https://irsa.ipac.caltech.edu/TAP/sync';
-const DAY = 86400000;
+const DAY = 86400000, HOUR = DAY / 24;
 
 // Which SPHEREx collections to search. IRSA renames them as releases land (Oct 2026: spherex_qr2 + spherex_qr3;
 // Nov 2026: spherex_dr1 replaced qr2), so by default we ask IRSA TAP (ivoa.obscore) once a day for every
@@ -46,7 +46,7 @@ const unesc = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;
 /** Parse the first TABLE of a VOTable (TABLEDATA serialisation) into objects. */
 export function parseVOTable(xml) {
   const err = xml.match(/<INFO[^>]*name="QUERY_STATUS"[^>]*value="ERROR"[^>]*>([\s\S]*?)<\/INFO>/);
-  if (err) throw new Error('IRSA SIA error: ' + unesc(err[1]).trim());
+  if (err) throw Object.assign(new Error('IRSA SIA error: ' + unesc(err[1]).trim()), { sia: true }); // IRSA's own refusal, inside an HTTP 200
   const tableStart = xml.indexOf('<TABLE'); if (tableStart < 0) return [];
   const t = xml.slice(tableStart);
   const names = [...t.matchAll(/<FIELD\b[^>]*?\bname="([^"]+)"/g)].map(m => m[1]);
@@ -65,28 +65,49 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
  *  cube product (the same ones discovery skips). Exported for the server's parameter check and the tests. */
 export const isCollectionName = c => typeof c === 'string' && /^spherex_[a-z0-9_]{1,40}$/.test(c) && !/_(cal|deep|cube)$/.test(c);
 
-/** Every SPHEREx science exposure (all six detectors) covering (ra, dec), across COLLECTIONS plus any `extra`
- *  collections the caller names (a release that has just appeared and discovery has not seen yet). */
-export async function searchExposures(ra, dec, extra = []) {
-  const names = [...new Set([...(await collections()), ...extra.filter(isCollectionName)])];
+/**
+ * Every SPHEREx science exposure (all six detectors) covering (ra, dec), across COLLECTIONS plus any `extra`
+ * collections the caller names (a release that has just appeared and discovery has not seen yet).
+ * - Typed releases are searched first: where two releases hold the same exposure (a reprocessing) the first copy is
+ *   kept, so the copy from the release the person asked for wins.
+ * - A typed release IRSA refuses (an HTTP 4xx, or a VOTable reporting an error: a typo, or a name not live yet) is
+ *   skipped instead of failing the search, and `report.requestedStatus` says so: [{collection, exposures, error}].
+ *   IRSA being down (5xx, timeouts) still fails the search, as for the discovered collections, so a field is never
+ *   built without a release because of a transient error.
+ * - A typed release's answer is kept for an hour, not a week, so a name typed before IRSA publishes it starts to work
+ *   the same day.
+ */
+export async function searchExposures(ra, dec, extra = [], report = {}) {
+  const typed = [...new Set(extra.filter(isCollectionName))];
+  const status = new Map(typed.map(c => [c, { collection: c, exposures: 0, error: null }]));
+  const names = [...new Set([...typed, ...(await collections())])];
   const lists = await mapLimit(names, 2, async coll => {
     const url = `${SIA_URL}?COLLECTION=${coll}&POS=CIRCLE+${ra.toFixed(6)}+${dec.toFixed(6)}+0.0003&RESPONSEFORMAT=VOTABLE&MAXREC=5000`;
-    const xml = (await fetchBuf(url, { ns: 'sia', maxAgeMs: 7 * DAY, timeoutMs: 90000 })).toString('utf8');
-    return parseVOTable(xml).map(r => ({ ...r, collection: coll }));
+    try {
+      const xml = (await fetchBuf(url, { ns: 'sia', maxAgeMs: status.has(coll) ? HOUR : 7 * DAY, timeoutMs: 90000 })).toString('utf8');
+      return parseVOTable(xml).map(r => ({ ...r, collection: coll }));
+    } catch (e) {
+      const refused = (e.status >= 400 && e.status < 500) || e.sia === true;
+      if (!status.has(coll) || !refused) throw e;
+      status.get(coll).error = e.status ? `HTTP ${e.status}` : String(e.message).replace(/^IRSA SIA error: /, '').slice(0, 160);
+      return [];
+    }
   });
   const seen = new Set(), out = [];
   for (const r of lists.flat()) {
     if (r.dataproduct_subtype && r.dataproduct_subtype !== 'science') continue;
     if (r.calib_level && +r.calib_level !== 2) continue;
     const id = r.obs_publisher_did || r.access_url;
-    if (seen.has(r.obs_id + r.energy_bandpassname)) continue; // a newer release may repeat an exposure
+    if (seen.has(r.obs_id + r.energy_bandpassname)) continue; // a newer release may repeat an exposure: the first copy (typed releases come first) is kept
     seen.add(r.obs_id + r.energy_bandpassname); seen.add(id);
     out.push({
       obsId: r.obs_id, detector: +String(r.energy_bandpassname).replace(/\D/g, ''), bandName: r.energy_bandpassname,
       emMin: +r.em_min * 1e6, emMax: +r.em_max * 1e6, mjd: (+r.t_min + +r.t_max) / 2, exptime: +r.t_exptime,
       url: r.access_url, collection: r.collection, release: r.obs_release_date,
     });
+    if (status.has(r.collection)) status.get(r.collection).exposures++;
   }
+  report.requestedStatus = [...status.values()];
   out.sort((a, b) => a.mjd - b.mjd || a.detector - b.detector);
   return out;
 }

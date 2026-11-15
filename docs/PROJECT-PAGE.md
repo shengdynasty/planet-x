@@ -43,7 +43,9 @@ mover. *Field* runs the detection pipeline on one patch: it aligns the SPHEREx p
 changed (uncatalogued mover, known object, variable star, artifact, vanished source) and opens a vetting panel with
 stamps, the catalogue checks, DSS2, 2MASS and AllWISE images of the same spot, and a one-page follow-up report that an
 observer could act on (positions with uncertainties, motion, predictions, ADES/CSV/JSON files). A badge always says
-whether the data is live from the server, saved real frames, or simulation.
+whether the data is live from the server, saved real frames, or simulation. New SPHEREx releases need no code change:
+each pass says which release it came from, a new release can be typed in the day IRSA publishes it, and a field saved
+as one file on any machine opens in the hosted app with no server.
 
 **How it works.** A small Node server (no dependencies) finds every SPHEREx exposure of a position in NASA/IPAC IRSA,
 reads each file's own spectral WCS to pair frames at the same wavelength (SPHEREx's filters vary across the detector,

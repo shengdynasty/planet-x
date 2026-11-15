@@ -21,6 +21,13 @@ body[data-mode="simple"] .fv-stretch,
 body[data-mode="simple"] .fv-liveform,
 body[data-mode="simple"] .fv-readout { display: none !important; }
 
+/* data releases: adding an IRSA collection by name needs a data server and the archive's own names, so Simple keeps
+   only which release the pictures came from and the Save / Open file buttons */
+body[data-mode="simple"] .fv-relform,
+body[data-mode="simple"] [data-ref="reltypedlab"],
+body[data-mode="simple"] [data-ref="reltyped"],
+body[data-mode="simple"] [data-ref="relnote"] { display: none !important; }
+
 /* movers list and compare: the technical facts */
 body[data-mode="simple"] .cx-band,
 body[data-mode="simple"] .cx-pos { display: none !important; }

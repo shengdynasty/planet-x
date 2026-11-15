@@ -4,7 +4,7 @@ A NASA Space Apps Challenge 2026 project: search NASA's **SPHEREx** all-sky infr
 
 SPHEREx looks about 90° from the Sun and re-maps the whole sky every six months, so its two passes over any patch see it from opposite sides of Earth's orbit. A body at 500 AU jumps 825″ between them (134 pixels, out of a 300″ cutout and into another) and drifts 7″ a day between the re-visits within one pass. The app compares the same patch of sky across epochs, flags what moved, appeared, vanished or brightened, and checks each one against JPL's catalogue of known asteroids and comets and Gaia DR3's catalogue of stars. Whatever is left is a **candidate for human review, never a detection**. What it can and cannot find was measured by planting synthetic movers into real frames (`docs/WRITEUP.md`).
 
-Enter a position (or pick one of the built-in targets), and the app loads every SPHEREx pass of that patch at a matching wavelength, plays them like a little video, blinks or subtracts any two, overlays Gaia stars and the SPHEREx pipeline's own bad-pixel flags, and names what it recognises. Any flagged source can be shown in DSS2, 2MASS and AllWISE images and exported as a one-page follow-up report, and the whole-sky view stays sharp when zoomed in, streamed from NASA's star map. A **Simple** switch in the top bar swaps the technical terms for plain words and hides the astronomer's controls; **Advanced** (the default) is the app as described here.
+Enter a position (or pick one of the built-in targets), and the app loads every SPHEREx pass of that patch at a matching wavelength, plays them like a little video, blinks or subtracts any two, overlays Gaia stars and the SPHEREx pipeline's own bad-pixel flags, and names what it recognises. Any flagged source can be shown in DSS2, 2MASS and AllWISE images and exported as a one-page follow-up report, and the whole-sky view stays sharp when zoomed in, streamed from NASA's star map. New SPHEREx releases need no code change: each pass names its release, a new release can be typed in the day IRSA publishes it, and a field saved as one file opens on any copy of the app, including the hosted one. A **Simple** switch in the top bar swaps the technical terms for plain words and hides the astronomer's controls; **Advanced** (the default) is the app as described here.
 
 **Live demo:** https://shengdynasty.github.io/planet-x/ (real SPHEREx data for the six built-in targets, saved in the repo; any other position needs the local server below)
 
@@ -159,6 +159,9 @@ node tests/workflow.test.mjs                        # end-to-end sim workflow   
 node tests/field.test.mjs                           # Field view                        (browser)
 node tests/report.test.mjs                          # candidate report: model, link, fit, exports (Node)
 node tests/report-browser.test.mjs                  # candidate report end to end       (browser)
+node --test tests/releases.test.mjs                 # release labels, typed releases, field files (Node, offline)
+node --test tests/releases-server.test.mjs          # typed releases on the server against a stand-in IRSA (Node, offline)
+node tests/releases-browser.test.mjs                # save a field on one page, open it on a fresh one with no server (browser)
 node tests/live.test.mjs                            # live mode against :8787          (browser, needs a data server)
 node qa/moving-sky.test.mjs                         # Moving Sky demo                   (browser)
 ```

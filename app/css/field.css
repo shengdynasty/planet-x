@@ -150,3 +150,8 @@
 .fv-relform { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; margin-top: 8px; }
 .fv-relform label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--ink-3); min-width: 0; }
 .fv-relform input[aria-invalid="true"] { border-color: var(--ink); border-width: 2px; }
+.fv-fileacts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; } /* not .fv-actions: that class names the vetting actions, and tests find them by it */
+.fv-typed { list-style: none; padding-left: 0; }
+.fv-typed li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fv-typed li span { min-width: 0; overflow-wrap: anywhere; }
+.fv-typed button { font-size: 12px; }

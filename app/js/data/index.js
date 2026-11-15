@@ -254,6 +254,28 @@ export function setReleases(list) {
   try { globalThis.localStorage?.setItem(RELEASES_KEY, JSON.stringify(clean)); } catch { /* storage blocked: the list lasts until reload */ }
   return clean;
 }
+/**
+ * What adding a person's text to the releases already kept would do, without saving anything:
+ * {list: the list to keep, added, already, bad, full}. Nothing is added when a word is not a release name (`bad`) or
+ * when the list would go past MAX_RELEASES (`full`), so the caller can say why instead of dropping names quietly.
+ */
+export function addReleases(current, text) {
+  const { list, bad } = parseReleases(text);
+  const over = bad.filter(isCollectionName), junk = bad.filter(b => !isCollectionName(b)); // parseReleases moves names past the limit into bad
+  const have = [...new Set((current || []).filter(isCollectionName))], asked = [...list, ...over];
+  const added = asked.filter(c => !have.includes(c)), already = asked.filter(c => have.includes(c));
+  const full = have.length + added.length > MAX_RELEASES, ok = !junk.length && !full;
+  return { list: ok ? [...have, ...added] : have, added: ok ? added : [], already, bad: junk, full };
+}
+/** A typed release's line for the current field, from the server's report: '12 exposures here', 'no exposures here yet',
+ *  'IRSA refused it (HTTP 400)', or '' when this field was not loaded with it. */
+export function requestedStatusText(field, collection) {
+  const all = field && field.source && Array.isArray(field.source.requestedStatus) ? field.source.requestedStatus : [];
+  const s = all.find(x => x && x.collection === collection); if (!s) return '';
+  if (s.error) return `IRSA refused it (${String(s.error).slice(0, 120)})`;
+  const n = Number.isFinite(+s.exposures) ? +s.exposures : 0;
+  return n ? `${n} exposure${n === 1 ? '' : 's'} here` : 'no exposures here yet';
+}
 /** "2026-11-04T00:00:00Z" or an MJD → "4 Nov 2026"; '' when there is nothing to show. */
 const fmtRelease = r => { if (r == null || r === '') return ''; const ms = Number.isFinite(+r) && +r > 40000 && +r < 100000 ? (+r - 40587) * 86400000 : Date.parse(r); return Number.isFinite(ms) ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : String(r); };
 /** One epoch's release as text: "spherex_dr1 · released 4 Nov 2026", or "" for a field that carries no release (simulated, older saved files). */

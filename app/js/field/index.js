@@ -101,8 +101,10 @@ const TEMPLATE = `
         <label>New release <input data-ref="relin" type="text" placeholder="spherex_dr2" autocomplete="off" spellcheck="false" aria-describedby="relhelp"></label>
         <button type="submit">Use it</button>
       </form>
+      <div class="fv-rowlab" data-ref="reltypedlab" hidden>Added by you</div>
+      <ul class="fv-rel fv-typed" data-ref="reltyped" aria-label="Releases added by you" hidden></ul>
       <p class="fv-note" data-ref="relnote" id="relhelp">When IRSA publishes a new release, type its name here (e.g. spherex_dr2). The next field you load from the data server also searches it.</p>
-      <div class="fv-actions">
+      <div class="fv-fileacts">
         <button data-act="savefile" data-ref="savebtn" class="ghost" title="Download this field as one file that opens in the app on any computer, no server needed">Save field file</button>
         <button data-act="openfile" class="ghost" title="Open a field file saved on another machine">Open field file…</button>
         <input data-ref="filein" type="file" accept=".json,application/json" hidden aria-label="Field file">
@@ -355,7 +357,7 @@ export function mountField(el, store) {
       : f.snapshot ? `Real SPHEREx images from NASA/IPAC IRSA, saved ${fmtSaved(f.snapshot.savedAt)} and analysed in your browser. Flags are candidates, not detections.`
       : 'Real SPHEREx images from NASA/IPAC IRSA, analysed in your browser. Flags are candidates, not detections.';
     syncOverlayButtons(); update(); renderKnownNote(); renderLive(); renderData(); if (visible()) syncUrl(true);
-    if (visible() && !same) announce(`Field loaded${f.simulated ? ', simulated' : f.snapshot ? ', saved SPHEREx data' : ', live SPHEREx data'}. ${results.length} flagged source${results.length === 1 ? '' : 's'}.`);
+    if (visible() && !same) announce(`Field loaded${f.simulated ? ', simulated' : f.fromFile ? ', SPHEREx data from a file' : f.snapshot ? ', saved SPHEREx data' : ', live SPHEREx data'}. ${results.length} flagged source${results.length === 1 ? '' : 's'}.`);
     else if (visible() && same) announce(`Known objects checked. ${results.length} flagged source${results.length === 1 ? '' : 's'}.`);
   }
 
@@ -628,21 +630,45 @@ export function mountField(el, store) {
     for (const r of real ? dataMod.fieldReleases(field) : []) {
       const li = document.createElement('li'); li.textContent = `${r.collection}${r.release ? ` · released ${r.release}` : ''} · ${r.n} image${r.n === 1 ? '' : 's'}`; ul.appendChild(li);
     }
-    const mine = dataMod.getReleases();
-    $('relnote').textContent = (mine.length ? `Added by you: ${mine.join(', ')}. ` : '') + (liveSource() ? 'The next field you load searches these as well.' : 'Needs the local data server: only a server can search IRSA. Saved releases are kept in this browser until you run one.');
+    const mine = dataMod.getReleases(), typed = $('reltyped');
+    typed.innerHTML = '';
+    for (const c of mine) { // each release added by hand, with what this field got from it (when it was loaded with it) and a way to take it back
+      const li = document.createElement('li'), t = document.createElement('span'), b = document.createElement('button');
+      const st = real ? dataMod.requestedStatusText(field, c) : '';
+      t.textContent = st ? `${c} · ${st}` : c;
+      b.type = 'button'; b.className = 'ghost'; b.dataset.act = 'relrm'; b.dataset.rel = c; b.textContent = 'Remove'; b.setAttribute('aria-label', `Remove ${c}`);
+      li.append(t, b); typed.appendChild(li);
+    }
+    typed.hidden = $('reltypedlab').hidden = !mine.length;
+    $('relnote').textContent = liveSource()
+      ? `When IRSA publishes a new release, add its name here (e.g. spherex_dr2): fields you load from the data server then search it too${mine.length ? ', as they do the ones above' : ''}. Up to ${dataMod.MAX_RELEASES}.`
+      : 'Adding a release needs the local data server: only a server can search IRSA. Names you add are kept in this browser until you run one.';
     $('savebtn').disabled = !real || !field._json;
   }
+  const reloadForReleases = msg => { // a change of releases changes what the server searches: reload a live field, otherwise just redraw the list
+    if (liveSource() && visible()) { loadedFor = null; load(); announce(`${msg} Reloading this field from the server.`); }
+    else { renderData(); announce(msg); }
+  };
   $('relform').addEventListener('submit', e => {
     e.preventDefault();
     if (!dataMod) return;
-    const { list, bad } = dataMod.parseReleases($('relin').value);
-    const note = $('relnote');
-    if (bad.length || !list.length) { $('relin').setAttribute('aria-invalid', 'true'); note.textContent = !list.length && !bad.length ? 'Type a release name, e.g. spherex_dr2.' : `Not a SPHEREx release name: ${bad.join(', ')}. Names look like spherex_dr2 or spherex_qr4 (the IRSA collection name).`; announce(note.textContent); return; }
-    $('relin').removeAttribute('aria-invalid');
-    const all = dataMod.setReleases([...new Set([...dataMod.getReleases(), ...list])]); $('relin').value = '';
-    if (liveSource() && visible()) { loadedFor = null; load(); announce(`Release ${list.join(', ')} added; reloading this field from the server.`); }
-    else renderData();
-    store.emit('toast', `Release added: ${list.join(', ')}`); return all;
+    const input = $('relin'), r = dataMod.addReleases(dataMod.getReleases(), input.value);
+    const say = (msg, invalid) => { $('relnote').textContent = msg; announce(msg); if (invalid) input.setAttribute('aria-invalid', 'true'); else input.removeAttribute('aria-invalid'); };
+    if (r.bad.length) return say(`Not a SPHEREx release name: ${r.bad.join(', ')}. Names look like spherex_dr2 or spherex_qr4 (the IRSA collection name).`, true);
+    if (r.full) return say(`Up to ${dataMod.MAX_RELEASES} releases can be added. Remove one first.`, true);
+    if (!r.added.length) return say(r.already.length ? `Already added: ${r.already.join(', ')}.` : 'Type a release name, e.g. spherex_dr2.', !r.already.length);
+    input.removeAttribute('aria-invalid'); input.value = '';
+    dataMod.setReleases(r.list);
+    store.emit('toast', `Release added: ${r.added.join(', ')}`);
+    reloadForReleases(`Release ${r.added.join(', ')} added.`);
+  });
+  $('reltyped').addEventListener('click', e => {
+    const b = e.target.closest('button[data-act="relrm"]'); if (!b || !dataMod) return;
+    const c = b.dataset.rel;
+    dataMod.setReleases(dataMod.getReleases().filter(x => x !== c));
+    store.emit('toast', `Release removed: ${c}`);
+    $('relin').focus(); // the button is gone: keep the keyboard in the section
+    reloadForReleases(`Release ${c} removed.`);
   });
   $('savebtn').addEventListener('click', () => {
     try {

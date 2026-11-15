@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { collectionsParam } from '../server/index.mjs';
 import { isCollectionName } from '../server/lib/irsa.mjs';
-import { parseReleases, releaseLabel, fieldReleases, toField, fieldFileText, fieldFileName, parseFieldFile, getReleases, setReleases, RELEASES_KEY } from '../app/js/data/index.js';
+import { parseReleases, addReleases, requestedStatusText, releaseLabel, fieldReleases, toField, fieldFileText, fieldFileName, parseFieldFile, getReleases, setReleases, RELEASES_KEY } from '../app/js/data/index.js';
 
 const fixture = () => JSON.parse(readFileSync(new URL('./fixtures/spherex-psyche-field-v3.json', import.meta.url), 'utf8'));
 const sp = q => new URL('http://x/?' + q).searchParams;
@@ -23,6 +23,25 @@ test('typed releases: shorthand, case, duplicates, junk, limit', () => {
   assert.deepEqual(parseReleases(''), { list: [], bad: [] });
   const many = parseReleases('dr1 dr2 dr3 dr4 dr5');
   assert.equal(many.list.length, 4); assert.deepEqual(many.bad, ['spherex_dr5']);
+});
+
+test('adding releases says what happened instead of dropping names quietly', () => {
+  assert.deepEqual(addReleases([], 'dr2'), { list: ['spherex_dr2'], added: ['spherex_dr2'], already: [], bad: [], full: false });
+  const four = ['spherex_dr2', 'spherex_dr3', 'spherex_dr4', 'spherex_dr5'];
+  assert.deepEqual(addReleases(four, 'dr6'), { list: four, added: [], already: [], bad: [], full: true }, 'a fifth is refused, the list stays');
+  assert.deepEqual(addReleases(['spherex_dr2'], 'DR2'), { list: ['spherex_dr2'], added: [], already: ['spherex_dr2'], bad: [], full: false });
+  assert.deepEqual(addReleases(['spherex_dr2'], 'banana dr3'), { list: ['spherex_dr2'], added: [], already: [], bad: ['banana'], full: false }, 'nothing is added beside a bad word');
+  const five = addReleases([], 'dr1 dr2 dr3 dr4 dr5');
+  assert.equal(five.full, true); assert.deepEqual(five.bad, [], 'five good names at once are "too many", not "bad"'); assert.deepEqual(five.list, []);
+});
+
+test('a typed release says what this field got from it', () => {
+  const f = { source: { requestedStatus: [{ collection: 'spherex_dr2', exposures: 12, error: null }, { collection: 'spherex_dr9', exposures: 0, error: 'HTTP 400' }, { collection: 'spherex_dr3', exposures: 0, error: null }] } };
+  assert.equal(requestedStatusText(f, 'spherex_dr2'), '12 exposures here');
+  assert.equal(requestedStatusText(f, 'spherex_dr9'), 'IRSA refused it (HTTP 400)');
+  assert.equal(requestedStatusText(f, 'spherex_dr3'), 'no exposures here yet');
+  assert.equal(requestedStatusText(f, 'spherex_dr4'), '', 'not asked with this field');
+  assert.equal(requestedStatusText({}, 'spherex_dr2'), ''); assert.equal(requestedStatusText(null, 'spherex_dr2'), '');
 });
 
 test('typed releases are kept between visits and cleaned on the way in and out', () => {
