@@ -1,5 +1,5 @@
 // Build a multi-epoch Field (app/js/core/types.js) from real SPHEREx exposures.
-import { searchExposures, groupEpochs, exposureAtTarget, cutout } from './irsa.mjs';
+import { searchExposures, isCollectionName, groupEpochs, exposureAtTarget, cutout } from './irsa.mjs';
 import { smallBodies, horizonsRaDec } from './jpl.mjs';
 import { gaiaCone, gaiaAt, gaiaName, pmTotal, HIGH_PM_MAS } from './gaia.mjs';
 import { findImageHDU, readImage, readMask, readTableRow } from './fits.mjs';
@@ -131,8 +131,9 @@ export async function buildField(q) {
   const N = Math.max(8, Math.round(size / SCALE));
   const det = q.lam ? null : (q.det || 1), perEpoch = Math.min(Math.max(q.perEpoch || 2, 1), 4);
   const gaiaWanted = q.gaia !== false;
+  const extra = [...new Set((q.collections || []).filter(isCollectionName))].sort(); // releases typed by the user, on top of the discovered ones
   // v3: adds flags[], stars[] (Gaia DR3) and high-proper-motion stars in known[]
-  const id = JSON.stringify(['field-v3', +q.ra.toFixed(5), +q.dec.toFixed(5), N, det, q.lam || null, perEpoch, q.known !== false, q.mjd || null, gaiaWanted]);
+  const id = JSON.stringify(['field-v3', +q.ra.toFixed(5), +q.dec.toFixed(5), N, det, q.lam || null, perEpoch, q.known !== false, q.mjd || null, gaiaWanted, extra]);
   if (building.has(id)) return building.get(id);
   const run = memoJSON('field', id, async () => {
     const T = { start: Date.now() };
@@ -140,9 +141,9 @@ export async function buildField(q) {
     progress.set(id, P);
     const step = (stage, label, total = 0) => Object.assign(P, { stage, label, done: 0, total });
     try {
-    const exps = await searchExposures(q.ra, q.dec);
+    const exps = await searchExposures(q.ra, q.dec, extra);
     T.sia = Date.now() - T.start;
-    if (!exps.length) { const e = new Error(`No SPHEREx exposures cover RA ${q.ra}, Dec ${q.dec} in ${'the searched collections'}`); e.status = 404; throw e; }
+    if (!exps.length) { const e = new Error(`No SPHEREx exposures cover RA ${q.ra}, Dec ${q.dec} in ${extra.length ? 'the searched collections (including ' + extra.join(', ') + ')' : 'the searched collections'}`); e.status = 404; throw e; }
     const epochs = groupEpochs(exps);
     const detector = det || (exps.find(e => q.lam >= e.emMin && q.lam <= e.emMax) || {}).detector;
     if (!detector) { const e = new Error(`No detector covers ${q.lam} µm`); e.status = 400; throw e; }
@@ -181,7 +182,7 @@ export async function buildField(q) {
         t, band: matched ? ref : +wave.toFixed(2), label: fmtT(t), sub: `${wave.toFixed(2)} µm · ${f.scanDate}`,
         mjd: f.mjdAvg, date: mjdISO(f.mjdAvg), lambda: +wave.toFixed(4), bandwidth: res[i].bw ?? f.bw, dLambda: +(wave - sel.ref).toFixed(4), matched,
         waveSource: res[i].wave != null ? 'spectral WCS at target (cutout)' : f.waveSource,
-        detector: f.detector, obsId: f.obsId, scan: f.scan, scanLabel: f.scanLabel, collection: f.collection,
+        detector: f.detector, obsId: f.obsId, scan: f.scan, scanLabel: f.scanLabel, collection: f.collection, release: f.release || null,
         coverage: +res[i].coverage.toFixed(3), flagged: +res[i].flagged.toFixed(4), url: f.url,
       };
     });
@@ -238,7 +239,7 @@ export async function buildField(q) {
       stars, starsSource: gaiaWanted ? 'Gaia DR3 (ESA archive), G < 19, positions at J2016.0 with proper motions' : null,
       starsStatus: !gaiaWanted ? 'skipped' : gaia?.error ? 'failed: ' + gaia.error : 'ok',
       surveyEpochs: epochs.map(ep => ({ id: ep.id, label: ep.label, date: ep.date, start: ep.start, end: ep.end, nExposures: ep.nExposures })),
-      source: { mode: 'live', note: 'Live · SPHEREx via IRSA', collections: [...new Set(frames.map(f => f.collection))] },
+      source: { mode: 'live', note: 'Live · SPHEREx via IRSA', collections: [...new Set(frames.map(f => f.collection))], requested: extra },
       notes: [
         'Pixels: SPHEREx L2 IMAGE minus the pipeline ZODI model, bilinearly resampled (TAN-SIP WCS) onto a common north-up grid at 6.15″/px.',
         'Masked or off-detector pixels are replaced by the frame median; FLAGS are not applied.',
