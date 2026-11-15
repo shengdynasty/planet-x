@@ -61,9 +61,15 @@ export function parseVOTable(xml) {
 const mjdToDate = mjd => new Date((mjd - 40587) * DAY);
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** Every SPHEREx science exposure (all six detectors) covering (ra, dec), across COLLECTIONS. */
-export async function searchExposures(ra, dec) {
-  const lists = await mapLimit(await collections(), 2, async coll => {
+/** A usable IRSA collection name typed by a person: spherex_<something>, lower case, and not a calibration, deep-field or
+ *  cube product (the same ones discovery skips). Exported for the server's parameter check and the tests. */
+export const isCollectionName = c => typeof c === 'string' && /^spherex_[a-z0-9_]{1,40}$/.test(c) && !/_(cal|deep|cube)$/.test(c);
+
+/** Every SPHEREx science exposure (all six detectors) covering (ra, dec), across COLLECTIONS plus any `extra`
+ *  collections the caller names (a release that has just appeared and discovery has not seen yet). */
+export async function searchExposures(ra, dec, extra = []) {
+  const names = [...new Set([...(await collections()), ...extra.filter(isCollectionName)])];
+  const lists = await mapLimit(names, 2, async coll => {
     const url = `${SIA_URL}?COLLECTION=${coll}&POS=CIRCLE+${ra.toFixed(6)}+${dec.toFixed(6)}+0.0003&RESPONSEFORMAT=VOTABLE&MAXREC=5000`;
     const xml = (await fetchBuf(url, { ns: 'sia', maxAgeMs: 7 * DAY, timeoutMs: 90000 })).toString('utf8');
     return parseVOTable(xml).map(r => ({ ...r, collection: coll }));

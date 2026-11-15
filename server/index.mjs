@@ -6,7 +6,7 @@ import zlib from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scansAt, buildField, knownAt, progress, SIZE_MIN, SIZE_MAX, SIZE_DEFAULT } from './lib/field.mjs';
-import { COLLECTIONS, SIA_URL } from './lib/irsa.mjs';
+import { COLLECTIONS, SIA_URL, isCollectionName } from './lib/irsa.mjs';
 import { SB_IDENT } from './lib/jpl.mjs';
 import { GAIA_TAP } from './lib/gaia.mjs';
 import { CACHE_DIR, upstreamLog, peekJSON, memoJSON } from './lib/net.mjs';
@@ -29,6 +29,14 @@ function send(req, res, status, body, extraHeaders = {}) {
   res.writeHead(status, h); res.end(buf);
 }
 
+/** ?collections=spherex_dr2,spherex_qr4 → the validated list (at most 4); anything that is not a spherex_* collection name is a 400. */
+export function collectionsParam(sp) {
+  const raw = sp.get('collections'); if (!raw) return [];
+  const list = raw.split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+  const bad = list.find(c => !isCollectionName(c));
+  if (bad || list.length > 4) throw Object.assign(new Error(`Bad parameter collections=${raw} (up to 4 names like spherex_dr2; calibration, deep and cube products are not searched)`), { status: 400 });
+  return list;
+}
 function num(sp, name, { required = true, min = -Infinity, max = Infinity } = {}) {
   const raw = sp.get(name);
   if (raw === null || raw === '') { if (required) throw Object.assign(new Error(`Missing parameter ${name}`), { status: 400 }); return undefined; }
@@ -87,7 +95,7 @@ const routes = {
       ra, dec, size: num(sp, 'size', { required: false, min: SIZE_MIN, max: SIZE_MAX }) ?? SIZE_DEFAULT,
       det: num(sp, 'det', { required: false, min: 1, max: 6 }), lam: num(sp, 'lam', { required: false, min: 0.7, max: 5.1 }),
       perEpoch: num(sp, 'per', { required: false, min: 1, max: 4 }), known: sp.get('known') !== '0', gaia: sp.get('gaia') !== '0',
-      mjd: num(sp, 't', { required: false, min: 60000, max: 70000 }),
+      mjd: num(sp, 't', { required: false, min: 60000, max: 70000 }), collections: collectionsParam(sp),
     });
   },
   // Cold field builds in progress, so the app can show what it is waiting for (warm requests never appear here).

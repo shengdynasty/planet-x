@@ -144,3 +144,9 @@
 .fv-exnote { border-left: 2px solid var(--edge); padding-left: 10px; }
 .fv-example { margin-top: 8px; align-self: flex-start; font-size: 12px; }
 @media (max-width: 860px) { .fv-pill-warn { grid-column: 1 / -1; grid-row: auto; max-width: none; } }
+
+/* data releases and field files */
+.fv-rel { margin: 6px 0; padding-left: 16px; font-size: 12px; color: var(--ink-2); }
+.fv-relform { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; margin-top: 8px; }
+.fv-relform label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--ink-3); min-width: 0; }
+.fv-relform input[aria-invalid="true"] { border-color: var(--ink); border-width: 2px; }

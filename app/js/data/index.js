@@ -225,7 +225,85 @@ export function toField(j) {
     },
   }));
   const { frames: _f, flags: _fl, known: _k, stars: _s, ...meta } = j;
-  return { ...meta, epochs: j.epochs, frame: i => frames[i], flags: i => flags[i] || null, flagBits: j.flagBits || null, known, stars, simulated: false };
+  const field = { ...meta, epochs: j.epochs, frame: i => frames[i], flags: i => flags[i] || null, flagBits: j.flagBits || null, known, stars, simulated: false };
+  Object.defineProperty(field, '_json', { value: j }); // the original JSON, kept (not enumerable) so the field can be saved to a file as it came
+  return field;
+}
+
+// ---------- releases: which SPHEREx data release each image came from, and releases typed in by hand ----------
+/** IRSA collection names look like spherex_dr1, spherex_qr3. Same rule as the server (server/lib/irsa.mjs isCollectionName). */
+export const isCollectionName = c => typeof c === 'string' && /^spherex_[a-z0-9_]{1,40}$/.test(c) && !/_(cal|deep|cube)$/.test(c);
+export const RELEASES_KEY = 'planetx.releases.v1';
+export const MAX_RELEASES = 4;
+/** Turn what a person typed ("spherex_dr2, SPHEREX_qr4", or just "dr2") into {list, bad}: valid collection names and the words that were not. */
+export function parseReleases(text) {
+  const list = [], bad = [];
+  for (let w of String(text ?? '').split(/[\s,;]+/).map(x => x.trim().toLowerCase()).filter(Boolean)) {
+    if (/^(dr|qr)\d+$/.test(w)) w = 'spherex_' + w; // "dr2" is accepted as shorthand for spherex_dr2
+    if (!isCollectionName(w)) bad.push(w); else if (!list.includes(w)) list.push(w);
+  }
+  if (list.length > MAX_RELEASES) { bad.push(...list.splice(MAX_RELEASES)); }
+  return { list, bad };
+}
+/** The releases this browser has been told about (kept in localStorage; [] if none or storage is blocked). */
+export function getReleases() {
+  try { const v = JSON.parse(globalThis.localStorage?.getItem(RELEASES_KEY) || '[]'); return Array.isArray(v) ? v.filter(isCollectionName).slice(0, MAX_RELEASES) : []; } catch { return []; }
+}
+export function setReleases(list) {
+  const clean = [...new Set((list || []).filter(isCollectionName))].slice(0, MAX_RELEASES);
+  try { globalThis.localStorage?.setItem(RELEASES_KEY, JSON.stringify(clean)); } catch { /* storage blocked: the list lasts until reload */ }
+  return clean;
+}
+/** "2026-11-04T00:00:00Z" or an MJD → "4 Nov 2026"; '' when there is nothing to show. */
+const fmtRelease = r => { if (r == null || r === '') return ''; const ms = Number.isFinite(+r) && +r > 40000 && +r < 100000 ? (+r - 40587) * 86400000 : Date.parse(r); return Number.isFinite(ms) ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : String(r); };
+/** One epoch's release as text: "spherex_dr1 · released 4 Nov 2026", or "" for a field that carries no release (simulated, older saved files). */
+export function releaseLabel(e) {
+  if (!e || !e.collection) return '';
+  const d = fmtRelease(e.release);
+  return d ? `${e.collection} · released ${d}` : e.collection;
+}
+/** The releases a field draws on: [{collection, release (earliest date text or ''), n (images)}], in name order. */
+export function fieldReleases(field) {
+  const m = new Map();
+  for (const e of (field && field.epochs) || []) {
+    if (!e.collection) continue;
+    const r = m.get(e.collection) || { collection: e.collection, release: '', n: 0 };
+    r.n++; const d = fmtRelease(e.release); if (d && (!r.release || Date.parse(String(e.release)) < Date.parse(r.release))) r.release = d;
+    m.set(e.collection, r);
+  }
+  return [...m.values()].sort((a, b) => a.collection.localeCompare(b.collection));
+}
+
+// ---------- field files: save a field pulled on one machine, open it on any other (no server needed) ----------
+export const FIELD_FILE_MAX_BYTES = 200e6;
+/** The text of a field file: the server's field JSON exactly as it came. Throws for a simulated field (nothing real to save). */
+export function fieldFileText(field) {
+  if (!field || field.simulated || !field._json) throw new Error('This field is simulated or was not loaded from SPHEREx data, so there is nothing to save');
+  return JSON.stringify(field._json);
+}
+/** A readable file name: planetx-field-70.4200+19.1800-D1.json */
+export function fieldFileName(field) {
+  const f = (v, d) => (v >= 0 ? '+' : '-') + Math.abs(v).toFixed(d);
+  return `planetx-field-${(+field.ra0).toFixed(4)}${f(+field.dec0, 4)}-D${field.detector ?? 'x'}.json`;
+}
+/** Check a field file's text and turn it into a Field. Throws an Error whose message says what is wrong. */
+export function parseFieldFile(text, name = '') {
+  let j; try { j = JSON.parse(text); } catch { throw new Error('This file is not JSON. Open a field file saved from this app or from the data server (/api/field).'); }
+  const bad = why => new Error(`Not a Planet X field file (${why})`);
+  if (!j || typeof j !== 'object' || Array.isArray(j)) throw bad('expected an object');
+  if (j.simulated) throw bad('it is a simulated field');
+  const N = j.N;
+  if (!Number.isInteger(N) || N < 8 || N > 400) throw bad('N missing or out of range');
+  for (const k of ['ra0', 'dec0', 'scale']) if (!Number.isFinite(j[k])) throw bad(`${k} missing`);
+  if (!Array.isArray(j.frames) || j.frames.length < 2) throw bad('needs at least two frames');
+  if (!Array.isArray(j.epochs) || j.epochs.length !== j.frames.length) throw bad('epochs do not match frames');
+  for (const [i, e] of j.epochs.entries()) if (!e || !Number.isFinite(e.t) || e.band == null) throw bad(`epoch ${i + 1} is incomplete`);
+  for (const [i, b] of j.frames.entries()) if (typeof b !== 'string' || Math.floor(b.length * 3 / 4) < N * N * 4 - 3) throw bad(`frame ${i + 1} is too short for ${N}×${N} pixels`);
+  if (j.flags && (!Array.isArray(j.flags) || j.flags.length !== j.frames.length)) throw bad('flags do not match frames');
+  let f; try { f = toField(j); } catch (e) { throw bad(e.message); }
+  f.fromFile = { name: String(name || ''), savedAt: j.builtAt || null };
+  f.request = { ra: j.ra0, dec: j.dec0, sizeArcsec: N * j.scale, det: j.detector, t: null, known: true };
+  return f;
 }
 
 async function simField(ra, dec) {
@@ -324,6 +402,7 @@ export async function getField({ ra, dec, sizeArcsec = HOME.sizeArcsec, det, t, 
   if (det) qs.set('det', String(det));
   if (Number.isFinite(t) && t > 60000) qs.set('t', String(t));
   if (!known) qs.set('known', '0');
+  const rel = getReleases(); if (rel.length) qs.set('collections', rel.join(',')); // releases typed in by hand: searched in addition to the discovered ones
   try {
     const f = toField(await getJSON('/api/field?' + qs, 600000, signal));
     f.request = { ra, dec, sizeArcsec: liveSize(sizeArcsec), det: det || f.detector, t: Number.isFinite(t) ? t : null, known };

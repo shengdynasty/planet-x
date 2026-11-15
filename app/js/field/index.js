@@ -18,7 +18,7 @@ const epName = (E, e) => {
   return `Scan ${e.scan}${same.length > 1 ? String.fromCharCode(97 + same.indexOf(e)) : ''}`;
 };
 const epSub = e => String(e.sub || e.band + ' µm').split(' · ')[0]; // the wavelength only
-const epTitle = e => `${e.label}${e.date ? ` · ${String(e.date).slice(0, 10)}` : ''}${e.obsId ? ` · ${e.obsId}` : ''}`;
+const epTitle = e => `${e.label}${e.date ? ` · ${String(e.date).slice(0, 10)}` : ''}${e.obsId ? ` · ${e.obsId}` : ''}${e.collection ? ` · ${e.collection}${e.release ? ' released ' + String(e.release).slice(0, 10) : ''}` : ''}`;
 const DETECTORS = [[1, '0.75–1.09 µm'], [2, '1.10–1.62 µm'], [3, '1.63–2.41 µm'], [4, '2.42–3.82 µm'], [5, '3.83–4.41 µm'], [6, '4.42–5.00 µm']];
 const exampleFor = r => r && Number.isFinite(r.ra) ? EXAMPLES.find(e => Math.abs(e.ra - r.ra) < 1e-4 && Math.abs(e.dec - r.dec) < 1e-4) : null;
 const isoToMJD = ms => ms / 86400000 + 40587;
@@ -92,6 +92,22 @@ const TEMPLATE = `
       <div class="fv-rowlab" data-ref="labB">Compare with</div>
       <div class="fv-epochs" data-ref="epB" role="group"></div>
       <div role="status" class="fv-status"><div class="fv-warn" data-ref="warn" hidden></div><p class="fv-note" data-ref="knownnote" hidden></p></div>
+    </section>
+    <section class="fv-data" data-ref="datasec">
+      <h3>Data releases</h3>
+      <p class="fv-note" data-ref="relline"></p>
+      <ul class="fv-rel" data-ref="rellist"></ul>
+      <form data-ref="relform" class="fv-relform">
+        <label>New release <input data-ref="relin" type="text" placeholder="spherex_dr2" autocomplete="off" spellcheck="false" aria-describedby="relhelp"></label>
+        <button type="submit">Use it</button>
+      </form>
+      <p class="fv-note" data-ref="relnote" id="relhelp">When IRSA publishes a new release, type its name here (e.g. spherex_dr2). The next field you load from the data server also searches it.</p>
+      <div class="fv-actions">
+        <button data-act="savefile" data-ref="savebtn" class="ghost" title="Download this field as one file that opens in the app on any computer, no server needed">Save field file</button>
+        <button data-act="openfile" class="ghost" title="Open a field file saved on another machine">Open field file…</button>
+        <input data-ref="filein" type="file" accept=".json,application/json" hidden aria-label="Field file">
+      </div>
+      <p class="fv-note" data-ref="filenote" role="status"></p>
     </section>
     <section class="fv-live" data-ref="live" hidden>
       <h3 data-ref="livehead">Live request</h3>
@@ -332,12 +348,13 @@ export function mountField(el, store) {
     const [ra, dec] = radec(f, f.N / 2, f.N / 2), size = f.N * f.scale / 60;
     $('pos').textContent = `RA ${fmtRA(ra)}, Dec ${fmtDec(dec)} · ${size.toFixed(1)}′ × ${size.toFixed(1)}′${f.simulated ? '' : ` · ${f.N}×${f.N} px`}`;
     const src = $('source');
-    src.textContent = f.simulated ? (f.fallbackReason ? `Simulated field · ${f.fallbackReason}` : 'Simulated field') : `${f.snapshot ? 'Saved' : 'Live'} · SPHEREx D${f.detector ?? '?'} · ${f.band} µm`;
+    src.textContent = f.simulated ? (f.fallbackReason ? `Simulated field · ${f.fallbackReason}` : 'Simulated field') : `${f.fromFile ? 'File' : f.snapshot ? 'Saved' : 'Live'} · SPHEREx D${f.detector ?? '?'} · ${f.band} µm`;
     src.classList.toggle('fv-pill-warn', !!f.fallbackReason);
     src.title = f.simulated ? 'Simulated star field and planted movers. Nothing here is a real detection.'
+      : f.fromFile ? `Real SPHEREx images from a field file${f.fromFile.name ? ' (' + f.fromFile.name + ')' : ''}, analysed in your browser. Flags are candidates, not detections.`
       : f.snapshot ? `Real SPHEREx images from NASA/IPAC IRSA, saved ${fmtSaved(f.snapshot.savedAt)} and analysed in your browser. Flags are candidates, not detections.`
       : 'Real SPHEREx images from NASA/IPAC IRSA, analysed in your browser. Flags are candidates, not detections.';
-    syncOverlayButtons(); update(); renderKnownNote(); renderLive(); if (visible()) syncUrl(true);
+    syncOverlayButtons(); update(); renderKnownNote(); renderLive(); renderData(); if (visible()) syncUrl(true);
     if (visible() && !same) announce(`Field loaded${f.simulated ? ', simulated' : f.snapshot ? ', saved SPHEREx data' : ', live SPHEREx data'}. ${results.length} flagged source${results.length === 1 ? '' : 's'}.`);
     else if (visible() && same) announce(`Known objects checked. ${results.length} flagged source${results.length === 1 ? '' : 's'}.`);
   }
@@ -358,6 +375,7 @@ export function mountField(el, store) {
     const a = E[A], b = E[B], dt = Math.abs(b.t - a.t), matched = a.band === b.band;
     const baseTxt = A === B ? 'Pick two different passes.' : `Baseline ${fmtDt(dt)} · ${matched ? `both at ${a.band} µm` : `${a.band} vs ${b.band} µm`}`;
     if ($('baseline').textContent !== baseTxt) { const first = !$('baseline').textContent; $('baseline').textContent = baseTxt; if (!first && visible()) announce(`Reference ${epName(E, a)}, compare ${epName(E, b)}. ${baseTxt}`); }
+    renderData();
     const warn = $('warn');
     if (!matched) {
       warn.hidden = false;
@@ -597,6 +615,58 @@ export function mountField(el, store) {
     }
   });
   $('liveform').addEventListener('submit', submitLive);
+
+  // ---------- data releases and field files ----------
+  const relText = e => dataMod && dataMod.releaseLabel ? dataMod.releaseLabel(e) : '';
+  function renderData() {
+    if (!dataMod) { import('../data/index.js').then(m => { dataMod = m; renderData(); }, () => {}); return; }
+    const real = field && !field.simulated, E = real ? field.epochs : [];
+    const ta = E[A] && relText(E[A]), tb = E[B] && relText(E[B]);
+    $('relline').textContent = !real ? 'Simulated data has no SPHEREx release.' : !ta && !tb ? 'This field does not say which release it came from (saved before releases were recorded).'
+      : A === B || ta === tb ? `Both passes: ${ta}.` : `Reference pass: ${ta || 'unknown'}. Compare pass: ${tb || 'unknown'}.`;
+    const ul = $('rellist'); ul.innerHTML = '';
+    for (const r of real ? dataMod.fieldReleases(field) : []) {
+      const li = document.createElement('li'); li.textContent = `${r.collection}${r.release ? ` · released ${r.release}` : ''} · ${r.n} image${r.n === 1 ? '' : 's'}`; ul.appendChild(li);
+    }
+    const mine = dataMod.getReleases();
+    $('relnote').textContent = (mine.length ? `Added by you: ${mine.join(', ')}. ` : '') + (liveSource() ? 'The next field you load searches these as well.' : 'Needs the local data server: only a server can search IRSA. Saved releases are kept in this browser until you run one.');
+    $('savebtn').disabled = !real || !field._json;
+  }
+  $('relform').addEventListener('submit', e => {
+    e.preventDefault();
+    if (!dataMod) return;
+    const { list, bad } = dataMod.parseReleases($('relin').value);
+    const note = $('relnote');
+    if (bad.length || !list.length) { $('relin').setAttribute('aria-invalid', 'true'); note.textContent = !list.length && !bad.length ? 'Type a release name, e.g. spherex_dr2.' : `Not a SPHEREx release name: ${bad.join(', ')}. Names look like spherex_dr2 or spherex_qr4 (the IRSA collection name).`; announce(note.textContent); return; }
+    $('relin').removeAttribute('aria-invalid');
+    const all = dataMod.setReleases([...new Set([...dataMod.getReleases(), ...list])]); $('relin').value = '';
+    if (liveSource() && visible()) { loadedFor = null; load(); announce(`Release ${list.join(', ')} added; reloading this field from the server.`); }
+    else renderData();
+    store.emit('toast', `Release added: ${list.join(', ')}`); return all;
+  });
+  $('savebtn').addEventListener('click', () => {
+    try {
+      const blob = new Blob([dataMod.fieldFileText(field)], { type: 'application/json' }), a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = dataMod.fieldFileName(field); document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      $('filenote').textContent = `Saved ${a.download}. Open it with "Open field file" on any computer, no server needed.`;
+    } catch (err) { $('filenote').textContent = err.message; }
+  });
+  $('filein').addEventListener('change', async e => {
+    const file = e.target.files && e.target.files[0]; e.target.value = ''; if (!file) return;
+    const note = $('filenote');
+    try {
+      if (!dataMod) dataMod = await import('../data/index.js');
+      if (file.size > dataMod.FIELD_FILE_MAX_BYTES) throw new Error('This file is too large to be a field file');
+      const f = dataMod.parseFieldFile(await file.text(), file.name);
+      if (ctl) ctl.abort(); ctl = null; loadSeq++; stopLoading();
+      loadedFor = store.get('field'); // what the store asks for stays as it was; this marks it loaded, so coming back to the view does not reload from the server
+      knownState = null; setField(f);
+      note.textContent = `Opened ${file.name}: ${f.epochs.length} images, ${f.N}×${f.N} px, RA ${f.ra0.toFixed(4)}, Dec ${f.dec0.toFixed(4)}.`;
+      announce(note.textContent);
+    } catch (err) { note.textContent = err.message; announce(err.message); }
+  });
+  el.addEventListener('click', e => { const b = e.target.closest('button[data-act="openfile"]'); if (b && el.contains(b)) $('filein').click(); });
   $('lex').addEventListener('change', e => {
     const ex = EXAMPLES.find(x => x.id === e.target.value); if (!ex) return;
     const next = { ra: ex.ra, dec: ex.dec, sizeArcsec: ex.sizeArcsec, det: ex.det }; if (ex.t) next.t = ex.t;
@@ -660,6 +730,7 @@ export function mountField(el, store) {
   store.on('candidates', () => { if (selected && visible()) renderVet(); });
   store.on('source', () => { if (field) renderLive(); });
   show(store.get('view'));
+  renderData();
 
   const handle = el.__fv = { // handle for tests / the dev page
     get state() { return { A, B, mode, playIdx, showStars, showBad, selected, results, field, loading, knownState }; },
