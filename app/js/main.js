@@ -3,6 +3,7 @@
 import * as store from './core/store.js';
 import { mountSky } from './sky/index.js';
 import { mountHud } from './sky/hud.js';
+import { mountModes } from './modes.js';
 import { mountCompare } from './compare/index.js';
 import { initDataStub, mountCandidatesStub, mountFieldStub } from './sky/fallbacks.js';
 import { parseCentre } from './sky/coords.js';
@@ -80,5 +81,6 @@ if (!store.get('scan') || !(store.get('scans') || []).some(s => s.id === store.g
 }
 const deep = deepLink();
 if (deep) { store.set('field', deep); store.set('view', 'field'); }
+mountModes(store); // after every module has drawn, so the plain-words pass starts from the finished page
 boot.ready = true;
 document.documentElement.dataset.ready = 'true';

@@ -49,6 +49,7 @@ export function mountSky(el, store, opts = {}) {
   const deepHost = document.createElement('div'); deepHost.className = 'sky-deep'; deepHost.setAttribute('aria-hidden', 'true');
   el.insertBefore(deepHost, renderer.domElement);
   const deep = createDeepZoom(deepHost, { onReady: () => kick() });
+  // Zoom counter: how far in we are, and which tile level is drawing.
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(VIEW.home.fov, 1, 0.1, 2000);
   const home = yawPitchFor(VIEW.home.raH, VIEW.home.decD);

@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="css/field.css">
 <link rel="stylesheet" href="css/candidates.css">
 <link rel="stylesheet" href="css/aladin.css"> <!-- aladin -->
+<link rel="stylesheet" href="css/modes.css">
 </head>
 <body data-view="sky">
 <a class="skip" href="#panel">Skip to movers</a>
@@ -72,6 +73,23 @@
   <div class="box" tabindex="-1">
     <button type="button" class="ghost close icon" id="sheet-close" aria-label="Close">✕</button>
     <h2 id="sheet-title">Planet X</h2>
+    <div class="simple-help">
+      <h3>What is this?</h3>
+      <p>Somewhere far out past Neptune there might be another planet. It is so far away that it moves very slowly across the sky. NASA’s SPHEREx telescope photographs the whole sky every six months, so we can compare the pictures and look for dots that moved.</p>
+      <p>Anything that moved and is not on a list of known objects is shown as a <em>possible new object</em>. It is only a lead for a person to check. It is not a discovery.</p>
+      <h3>How to use it</h3>
+      <ul>
+        <li><b>Sky</b>: drag to look around and scroll to zoom. Tap a dot in the list to jump to it.</li>
+        <li><b>Compare</b>: put two pictures of the same spot side by side and slide between them. Anything that moved shows twice.</li>
+        <li><b>Close-up</b>: zoom into one small patch and flip between pictures to see what changed.</li>
+        <li><b>Flip</b> switches back and forth between pictures taken at different times, so movers seem to jump.</li>
+      </ul>
+      <h3>What the label in the top bar means</h3>
+      <p><b>Practice data</b> is made up for the demo. <b>Real telescope photos</b> are saved SPHEREx images for six example places. <b>Live telescope photos</b> come straight from NASA for any place you pick.</p>
+      <p>Want the technical terms and every control? Switch to <b>Advanced</b> at the top.</p>
+      <p class="credit">Sky picture: NASA’s Scientific Visualization Studio. Star positions: ESA’s Gaia mission. Not endorsed by NASA.</p>
+    </div>
+    <div class="adv-help">
     <p>A tool for the Space Apps challenge “Planet X and SPHEREx”: look for a distant planet by its parallax. SPHEREx looks 90° from the Sun, so its six‑monthly passes see every patch from opposite sides of Earth’s orbit: a body at 500 AU jumps 825″ between passes and drifts 7″ a day between the re‑visits within a pass. Anything that moves and doesn’t match a known object is a <em>candidate</em> for a human to review, not a confirmed object.</p>
     <h3>Views</h3>
     <ul>
@@ -103,6 +121,7 @@
     <h3>Imagery</h3>
     <p class="credit">Sky: NASA/Goddard Space Flight Center Scientific Visualization Studio (Deep Star Maps 2020). Gaia DR2: ESA/Gaia/DPAC. Not endorsed by NASA.</p>
     <p class="credit">Other telescopes: Aladin Lite (CDS, Strasbourg), loaded from jsDelivr; DSS2, 2MASS and AllWISE HiPS (CDS) via the IRSA mirror; names from SIMBAD (CDS). <!-- aladin-credit --></p>
+    </div>
   </div>
 </div>
 

@@ -185,3 +185,11 @@ report lives in the URL hash (deflate-raw + base64url, ~0.7–1.5 KB), which is 
   report link: a code of the latter has ~100 modules a side and cannot be read from a 32 mm print.
 - Tests: `node tests/report.test.mjs` (Node), `node tests/report-browser.test.mjs` (browser, port 8109).
 <!-- /report:doc -->
+
+## Re-encoding tiles
+
+`scripts/reencode-tiles-avif.py` re-encodes a WebP tile set as AVIF (it made the q42 level 6). Levels 3-5 stay WebP q70 on main: a q42 AVIF made from the WebP lost 31-69% of the faint stars in dense Milky Way tiles; a q50+ encode straight from the EXR is the follow-up.
+
+## Modes
+
+`app/js/modes.js` implements Simple and Advanced (see `app/FEATURES.md`): a text-swap layer over the finished DOM plus `body[data-mode]` CSS, so the owning modules never change. `tests/e2e/featuretest.mjs` checks every feature in both; results are in `tests/e2e/results/`.
