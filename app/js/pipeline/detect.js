@@ -299,20 +299,34 @@ export function maxStack(field, band, ia, ib) {
 
 const meanCache = new WeakMap();
 /**
- * Pixel-wise mean (co-add) of every epoch at `band` whose time lies between epochs ia and ib (inclusive): the
- * "add images together" the challenge brief asks for. Fixed sources gain signal-to-noise (noise falls by about
- * √n for n passes of equal depth; `gain` is the measured ratio against the first pass), a mover is spread thin.
- * Cached per field + band + time span, like maxStack.
- * @returns {{img: Float32Array, ts: number[], idx: number[], n: number, gain: number}}
+ * The passes added together: an inverse-variance weighted mean of every epoch whose time lies between epochs ia and
+ * ib (inclusive) at `band`, or at every wavelength when `band` is null (the brief's "add together all the data taken
+ * by each of the six detector arrays"). Each frame enters as (frame − its own sky) / σ², so a shallow pass cannot drag
+ * the result down, and the first pass's sky level is put back. Fixed sources gain signal-to-noise (noise falls by up
+ * to √n for n passes of equal depth); a mover is spread thin. `nEff` is the effective number of passes, (Σw)²/Σw²
+ * (n for equal depths, less when a shallow pass carries little weight), and `gain` = √nEff is the noise reduction to
+ * expect for aligned, independent passes. `gainMad` is the ratio of robust image scatter, best pass over stack; in a
+ * dense field that scatter is faint real stars, identical in every pass, so it barely moves: it is a diagnostic, not
+ * a claim. Cached per field + band + time span, like maxStack.
+ * @returns {{img: Float32Array, ts: number[], idx: number[], n: number, nEff: number, gain: number, gainMad: number, bands: number[]}}
  */
 export function meanStack(field, band, ia, ib) {
   let m = meanCache.get(field); if (!m) meanCache.set(field, m = new Map());
-  const E = field.epochs, lo = Math.min(E[ia].t, E[ib].t), hi = Math.max(E[ia].t, E[ib].t), key = band + ',' + lo + ',' + hi;
+  const E = field.epochs, lo = Math.min(E[ia].t, E[ib].t), hi = Math.max(E[ia].t, E[ib].t), key = (band == null ? '*' : band) + ',' + lo + ',' + hi;
   let c = m.get(key);
-  if (!c) { const L = field.N * field.N, sum = new Float64Array(L), ts = [], idx = [];
-    E.forEach((e, i) => { if (e.band !== band || e.t < lo || e.t > hi) return; ts.push(e.t); idx.push(i); const f = field.frame(i); for (let p = 0; p < L; p++) sum[p] += f[p]; });
-    const n = idx.length || 1, img = new Float32Array(L); for (let p = 0; p < L; p++) img[p] = sum[p] / n;
-    const gain = idx.length ? stats(field.frame(idx[0])).sig / Math.max(stats(img).sig, 1e-9) : 1;
-    m.set(key, c = { img, ts, idx, n: idx.length, gain }); }
+  if (!c) {
+    const L = field.N * field.N, sum = new Float64Array(L), ts = [], idx = [], bands = []; let wsum = 0, w2sum = 0, best = Infinity;
+    E.forEach((e, i) => {
+      if ((band != null && e.band !== band) || e.t < lo || e.t > hi) return;
+      const f = field.frame(i), { med, sig } = stats(f), w = 1 / Math.max(sig * sig, 1e-12);
+      ts.push(e.t); idx.push(i); if (!bands.includes(e.band)) bands.push(e.band); wsum += w; w2sum += w * w; if (sig < best) best = sig;
+      for (let p = 0; p < L; p++) sum[p] += w * (f[p] - med);
+    });
+    const img = new Float32Array(L);
+    if (idx.length) { const med0 = stats(field.frame(idx[0])).med; for (let p = 0; p < L; p++) img[p] = med0 + sum[p] / wsum; }
+    const nEff = idx.length ? wsum * wsum / w2sum : 0, gain = idx.length ? Math.sqrt(nEff) : 1;
+    const gainMad = idx.length ? best / Math.max(stats(img).sig, 1e-9) : 1;
+    m.set(key, c = { img, ts, idx, n: idx.length, nEff, gain, gainMad, bands: bands.sort((a, b) => Number(a) - Number(b)) });
+  }
   return c;
 }

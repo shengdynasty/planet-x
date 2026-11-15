@@ -72,6 +72,7 @@ export const EXACT = {
   'Compare with': 'Second picture',
   'Track': 'Path',
   'Stack': 'Add together',
+  'All wavelengths': 'All colours',
   'Play': 'Play',
   'Flags': 'Possible movers',
   'Known objects': 'Known objects',

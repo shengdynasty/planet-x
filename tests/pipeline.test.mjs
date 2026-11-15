@@ -54,9 +54,19 @@ ok(st.img[777] >= f0[777] && st.img[777] >= f5[777], 'maxStack is a pixel max');
 const mn = P.meanStack(field, 0.95, 0, 5);
 ok(JSON.stringify(mn.idx) === '[0,1,3,4,5]' && mn.n === 5 && mn.ts.length === 5, 'meanStack picks the same same-band passes in the window');
 ok(mn === P.meanStack(field, 0.95, 5, 0), 'meanStack cached per band+span (order-free)');
-{ const want = mn.idx.reduce((a, i) => a + field.frame(i)[777], 0) / mn.idx.length; ok(Math.abs(mn.img[777] - want) < 1e-4, 'meanStack is the pixel mean of those passes'); }
-ok(mn.gain > 1.5 && mn.gain < 3 && P.stats(mn.img).sig < P.stats(f0).sig, `meanStack lowers the noise (gain ${mn.gain.toFixed(2)}× for 5 passes, ideal √5 = 2.24)`);
-ok(P.meanStack(field, 0.95, 0, 0).n === 1 && P.meanStack(field, 0.95, 0, 0).gain === 1, 'a one-pass window is that pass, gain 1');
+{ // inverse-variance weighted mean of sky-subtracted frames, first pass's sky put back
+  let num = 0, den = 0; for (const i of mn.idx) { const f = field.frame(i), { med, sig } = P.stats(f), w = 1 / (sig * sig); num += w * (f[777] - med); den += w; }
+  const want = P.stats(f0).med + num / den; ok(Math.abs(mn.img[777] - want) < 1e-3, `meanStack is the inverse-variance mean of those passes (${mn.img[777].toFixed(3)} vs ${want.toFixed(3)})`); }
+ok(mn.nEff > 4.5 && mn.nEff <= 5 + 1e-9 && Math.abs(mn.gain - Math.sqrt(mn.nEff)) < 1e-9, `five passes of equal depth count as ${mn.nEff.toFixed(2)} effective passes, expected gain √nEff = ${mn.gain.toFixed(2)}×`);
+ok(mn.gainMad > 1.5 && P.stats(mn.img).sig < P.stats(f0).sig, `in the noise-dominated simulation the robust scatter really drops (${mn.gainMad.toFixed(2)}×, ideal 2.24)`);
+ok(JSON.stringify(mn.bands) === '[0.95]', 'bands lists the wavelengths that went in');
+{ const one = P.meanStack(field, 0.95, 0, 0); ok(one.n === 1 && Math.abs(one.gain - 1) < 1e-6 && Math.abs(one.img[777] - f0[777]) < 1e-4, 'a one-pass window is that pass, gain 1'); }
+{ const all = P.meanStack(field, null, 0, 5);
+  ok(JSON.stringify(all.idx) === '[0,1,2,3,4,5]' && all.n === 6 && JSON.stringify(all.bands) === '[0.95,1.62]', `band null adds every wavelength in the window (${all.n} passes, bands ${all.bands.join('/')})`);
+  ok(all.gain > 2 && all.nEff > 5 && all === P.meanStack(field, null, 5, 0), `all-wavelength stack: ${all.nEff.toFixed(2)} effective passes (gain ${all.gain.toFixed(2)}×), cached`); }
+{ // a shallow pass must not drag the co-add down: double one frame's noise and the weighted mean still beats the best single pass
+  const g = { ...field, frame: i => { const f = field.frame(i); if (i !== 1) return f; const h = Float32Array.from(f), r = P.rng(7); for (let p = 0; p < h.length; p++) h[p] += (r() + r() + r() + r() - 2) * 3 * P.stats(f).sig; return h; } };
+  const ws = P.meanStack(g, 0.95, 0, 5); ok(ws.nEff > 4 && ws.nEff < 4.6 && ws.gainMad > 1.8, `a 3× noisier pass is down-weighted: ${ws.nEff.toFixed(2)} effective passes of 5, measured scatter still ${ws.gainMad.toFixed(2)}× lower (a plain mean would be dragged down)`); }
 
 // 5. radec / pixel round trip, centre
 const [ra, dec] = P.radec(field, 160, 160);

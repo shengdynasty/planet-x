@@ -115,7 +115,15 @@ const noHScroll = p => p.evaluate(() => { const v = document.querySelector('.fv'
   // Stack: the passes added together (mean), the brief's "add together images taken at different times"
   await p.click('[data-mode="stack"]');
   const stackLab = await p.locator('[data-ref="flash"]').innerText();
-  ok(/^Mean of 5 passes at 0\.95 µm, Pass 1 to Pass 6 · noise \d\.\d× lower than one pass$/.test(stackLab), `stack label states the passes and the measured noise gain (${stackLab})`);
+  ok(/^Mean of 5 passes at 0\.95 µm, Pass 1 to Pass 6 · noise about \d\.\d× lower than one pass$/.test(stackLab), `stack label states the passes and the measured noise gain (${stackLab})`);
+  ok(/^\d+ sources above 5σ in the stack · \d+ in Pass 1$/.test(await p.locator('[data-ref="legend"]').innerText()) && await p.locator('[data-ref="legend"]').isVisible(), `stack legend counts sources above 5σ against one pass (${await p.locator('[data-ref="legend"]').innerText()})`);
+  ok(await p.locator('[data-ref="stackallwrap"]').isVisible(), 'the all-wavelengths option appears in stack mode only');
+  await p.check('[data-ref="stackall"]');
+  const allLab = await p.locator('[data-ref="flash"]').innerText();
+  ok(/^Mean of 6 passes, all wavelengths \(0\.95–1\.62 µm\), Pass 1 to Pass 6 · noise about \d\.\d× lower than one pass$/.test(allLab), `all wavelengths adds every pass in the window (${allLab})`);
+  await p.uncheck('[data-ref="stackall"]');
+  await p.click('[data-mode="blink"]'); ok(!(await p.locator('[data-ref="stackallwrap"]').isVisible()) && await p.locator('[data-ref="legend"]').evaluate(e => e.hidden), 'leaving stack mode hides the option and the legend');
+  await p.click('[data-mode="stack"]');
   { const sb = await p.locator('.fv-ov').boundingBox(); await p.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
     ok(/Stack mean -?\d/.test(await p.locator('[data-ref="readout"]').innerText()), 'hover readout names the stack mean'); }
   await p.screenshot({ path: OUT + '/desktop-stack.png' });

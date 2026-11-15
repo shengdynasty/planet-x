@@ -1,7 +1,7 @@
 // Field analysis view: the Moving Sky experience inside the app (blink / difference / track a patch of sky,
 // vet what moved, send candidates to the review list). Mounts into <section id="view-field">.
 // Talks to the rest of the app only through the store (view, field, candidates, selectedId; flyto, toast).
-import { simulateField, analyse, diff, maxStack, meanStack, radec, fmtDt, fmtRA, fmtDec, spectrum, dist, psfModel } from '../pipeline/index.js';
+import { simulateField, analyse, detect, diff, maxStack, meanStack, radec, fmtDt, fmtRA, fmtDec, spectrum, dist, psfModel } from '../pipeline/index.js';
 import { drawImage, drawStamp, drawOverlay, glyph, KIND_NAME } from './render.js';
 import { parseCentre } from '../sky/coords.js';
 import { clampFieldSize } from '../core/limits.js';
@@ -63,6 +63,7 @@ const TEMPLATE = `
       </div>
       <button data-act="flip" data-ref="flip" hidden>Show comparison</button>
       <span class="fv-spacer"></span>
+      <label class="fv-stretch fv-stackall" data-ref="stackallwrap" hidden title="Add every pass of this detector together, whatever its wavelength: more signal, colour differences mixed in"><input data-ref="stackall" type="checkbox"> All wavelengths</label>
       <label class="fv-stretch">Stretch <input data-ref="stretch" type="range" min="0.3" max="3" step="0.05" value="1"></label>
     </div>
     <div class="fv-stagewrap">
@@ -140,7 +141,7 @@ export function mountField(el, store) {
   $('labB').id = uid + '-lb'; $('epB').setAttribute('aria-labelledby', uid + '-lb');
   $('img').setAttribute('aria-label', 'Infrared sky image, false colour. Flagged sources are listed under Flagged sources; select one there to vet it.');
 
-  let field = null, A = 0, B = 0, mode = 'blink', showMarks = true, showKnown = false, showStars = false, showBad = false, stretch = 1;
+  let field = null, A = 0, B = 0, mode = 'blink', showMarks = true, showKnown = false, showStars = false, showBad = false, stretch = 1, stackAll = false;
   let blinkPhase = 0, playIdx = 0, selected = null, results = [], timer = null, shown = null, loadSeq = 0, loadedFor;
   const reducedMQ = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false, addEventListener() {} };
   const visible = () => store.get('view') === 'field';
@@ -520,16 +521,19 @@ export function mountField(el, store) {
     if (!field) return;
     const E = field.epochs, N = field.N, img = $('img'), flash = $('flash'), legend = $('legend');
     let knownT;
-    legend.hidden = mode !== 'diff';
+    legend.hidden = !(mode === 'diff' || mode === 'stack');
     if (mode === 'blink') { const showB = blinkPhase % 2 === 1; shown = field.frame(showB ? B : A); drawImage(img, shown, N, false, stretch);
       flash.textContent = showB ? `Compare · ${epName(E, E[B])}` : `Reference · ${epName(E, E[A])}`; knownT = [E[showB ? B : A].t]; }
     else if (mode === 'diff') { shown = diff(field, A, B); drawImage(img, shown, N, true, stretch); flash.textContent = 'Compare − Reference'; knownT = [E[A].t, E[B].t];
       legend.innerHTML = '<i aria-hidden="true"></i><span>fainter · brighter</span>'; }
     else if (mode === 'play') { const seq = playSeq(), n = playIdx % seq.length, i = seq[n]; shown = field.frame(i); drawImage(img, shown, N, false, stretch);
       flash.textContent = `${epName(E, E[i])} · ${E[i].date ? String(E[i].date).slice(0, 10) : E[i].label} (${n + 1}/${seq.length})`; knownT = [E[i].t]; }
-    else if (mode === 'stack') { const band = E[A].band, c = meanStack(field, band, A, B); shown = c.img; drawImage(img, shown, N, false, stretch); knownT = c.ts.slice();
+    else if (mode === 'stack') { const c = meanStack(field, stackAll ? null : E[A].band, A, B); shown = c.img; drawImage(img, shown, N, false, stretch); knownT = c.ts.slice();
       const n = knownT.length, [e0, e1] = E[A].t <= E[B].t ? [A, B] : [B, A];
-      flash.textContent = `Mean of ${n} pass${n === 1 ? '' : 'es'} at ${band} µm, ${epName(E, E[e0])} to ${epName(E, E[e1])}${n > 1 ? ` · noise ${c.gain.toFixed(1)}× lower than one pass` : ''}`; }
+      const where = stackAll ? `, all wavelengths (${c.bands.length > 1 ? `${c.bands[0]}–${c.bands.at(-1)}` : c.bands[0]} µm)` : ` at ${E[A].band} µm`;
+      flash.textContent = `Mean of ${n} pass${n === 1 ? '' : 'es'}${where}, ${epName(E, E[e0])} to ${epName(E, E[e1])}${n > 1 ? ` · noise about ${c.gain.toFixed(1)}× lower than one pass` : ''}`;
+      const nS = detect(c.img, 5).length, n1 = detect(field.frame(A), 5).length; // what the co-add buys, counted: sources above 5σ
+      legend.innerHTML = `<span>${nS} source${nS === 1 ? '' : 's'} above 5σ in the stack · ${n1} in ${esc(epName(E, E[A]))}</span>`; }
     else { const band = E[A].band, c = maxStack(field, band, A, B); shown = c.img; drawImage(img, shown, N, false, stretch); knownT = c.ts.slice();
       const n = knownT.length, [e0, e1] = E[A].t <= E[B].t ? [A, B] : [B, A];
       flash.textContent = `Max-stack of ${n} pass${n === 1 ? '' : 'es'} at ${band} µm, ${epName(E, E[e0])} to ${epName(E, E[e1])}`; }
@@ -565,7 +569,7 @@ export function mountField(el, store) {
     }
     syncFlip();
   }
-  function setMode(m) { mode = m; el.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m))); blinkPhase = 0; playIdx = 0; render(); setTimer();
+  function setMode(m) { mode = m; el.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m))); $('stackallwrap').hidden = m !== 'stack'; blinkPhase = 0; playIdx = 0; render(); setTimer();
     announce({ blink: 'Blink', diff: 'Difference image', track: 'Track: max-stack', stack: 'Stack: the passes added together, mean image', play: field ? `Play: ${playSeq().length} passes at ${field.epochs[A].band} µm in time order${reducedMQ.matches ? '; Space or Next pass steps' : ''}` : 'Play' }[m]); }
   function flip() {
     if (mode === 'play') { playIdx++; render(); syncFlip(); announce(`Showing ${$('flash').textContent}`); return; }
@@ -599,6 +603,7 @@ export function mountField(el, store) {
     store.set('field', next);
   });
   $('stretch').addEventListener('input', e => { stretch = parseFloat(e.target.value); requestAnimationFrame(render); });
+  $('stackall').addEventListener('change', e => { stackAll = e.target.checked; render(); announce(stackAll ? 'Stack: every wavelength of this detector added together' : `Stack: passes at ${field ? field.epochs[A].band : ''} µm only`); });
   const ov = $('ov');
   const toPix = e => { const rect = ov.getBoundingClientRect(); return [(e.clientX - rect.left) / rect.width * field.N, (e.clientY - rect.top) / rect.height * field.N]; };
   const readoutAt = e => { if (!field) return; const [fx, fy] = toPix(e); lastXY = [Math.floor(fx), Math.floor(fy)]; showReadout(); };
