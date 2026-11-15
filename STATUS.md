@@ -29,19 +29,13 @@ _Last updated: 2026-11-14_
 - Repo initialised; baseline snapshots of both published artifacts committed (`artifacts/`, commit d7a194f). Checksums match the published versions.
 
 ## In progress
-- Nothing running.
-
-- Full review report (13 confirmed findings + repro scripts): scratchpad/review/
-- Running processes: static server :8000, live data server :8787 (cache warm for home + Psyche fields).
+- Feature test on the shared harness (`tests/features.test.mjs`, branch `test/features`): Aaryan's 75 checks ported onto `tests/browser.mjs` with a strict pass rule, run against the hosted configuration (saved data, no live server); first Advanced run 73/74, the one failure a locator in the port, fixed; full two-mode run under way, FEATURES.md tables to be generated from it.
 
 ## Next
-- (a) Fix the fly-to bug + interaction QA (UI demo)
-- (b) Mobile / accessibility / performance QA (UI demo)
-- (c) Hackathon write-up
-- (d) Pitch deck
-- Merge (a)→(b) and (e)→(f); test in headless Chrome (desktop + phone); republish BOTH demos to their existing URLs (ask first)
-
-- Local preview: http://localhost:8000/artifacts/ui-demo/index.html and http://localhost:8000/artifacts/moving-sky/index.html (python http.server, bound to 127.0.0.1)
+- **Spectra on the fly** (brief: "extra kudos if your tool can generate spectra on the fly"): for a selected source, gather every SPHEREx exposure covering it across the 102 bands and six detectors (the server already finds every exposure of a position and reads each file's wavelength at that spot), measure the aperture flux at the source in each at that exposure's wavelength, and plot flux against wavelength in the vetting panel in place of today's model curves, labelled as measured with the per-point noise; keep the model curves for the simulation only, and carry the measured spectrum into the candidate report as a table. Needs the server, or a saved all-band field per example target for the hosted copy. Write-up next step 4 says the same.
+- **Add new data from user input** (brief: "easy to update with the latest data releases"): a *Data releases* field in the Live request box, pre-filled with IRSA's current `spherex_*` list and editable per request, each frame's tooltip naming its release; an *Open a saved field* picker for the JSON the server or `scripts/save-snapshots.mjs` writes, so a field made on any machine opens in the hosted copy; later, FITS upload with the cutout alignment moved from the server into the browser.
+- **Help chatbot**: the rule-based guided helper first (offline, answers from the write-up and FAQ, navigates the app); Gemini through Firebase AI Logic on the Spark plan as the answerer if Aaryan's project confirms it needs no billing.
+- Delete the merged remote branches (`feat/sky-deep-zoom`, `feat/sky-tiles-q42-west`, `feat/sky-tiles-q42-east`, `aladin/other-telescopes`, `claude/epic-brahmagupta-l4ys4g`): one push from Sheng.
 
 ## Blockers / open questions
 - `CLAUDE.md` (the project brief) is **not in this folder**. The plan below was inferred from the request and the artifacts.
