@@ -1,5 +1,5 @@
 // Feature-by-feature check of the Planet X app in one mode (75 checks, see app/FEATURES.md).
-// usage: serve the repo (python .claude/serve.py -> http://localhost:3000), then
+// usage: serve the repository root on port 3000 (e.g. python3 -m http.server 3000), then
 //   npm i playwright-core; CHROME=<path to chrome.exe> node tests/e2e/featuretest.mjs simple|advanced [http://localhost:3000/app/]
 // Needs a real Chrome/Edge (WebGL via swiftshader); the first boot can take a minute on a busy machine.
 import { chromium } from 'playwright-core'; import fs from 'fs';

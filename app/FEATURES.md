@@ -1,10 +1,10 @@
 # Features and how each was tested
 
 Every feature below has an automated check in `tests/e2e/featuretest.mjs`, run once in Advanced and once in Simple mode against a local copy
-(`node tests/e2e/featuretest.mjs advanced` / `simple`, needs `playwright-core` and Chrome). Last full run: Advanced 75/75, Simple 75/75 (before the zoom counter and its check B8 were removed).
+(`node tests/e2e/featuretest.mjs advanced` / `simple`, needs `playwright-core` and Chrome). Last full run: Advanced 75/75, Simple 75/75 (before the zoom counter and its check B8 were removed). Note that a check which returns a string counts as a pass with a note, so the count is an upper bound; the run's logs are not kept in the repository.
 "Hidden by design" means Simple mode deliberately removes that control; the check confirms it is hidden.
 
-**Modes.** *Advanced* is the app as built, with the technical terms. *Simple* keeps every view but uses plain words, hides coordinate and survey controls, and has its own help text. Switch in the top bar; the choice is remembered, and `?mode=simple|advanced` overrides it for a shared link.
+**Modes.** *Advanced* is the app as built, with the technical terms. *Simple* keeps every view but uses plain words, hides coordinate and survey controls, and has its own help text. Advanced is the default; switch in the top bar, the choice is remembered, and `?mode=simple|advanced` overrides it for a shared link.
 
 ## Top bar and help
 

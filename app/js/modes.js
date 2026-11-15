@@ -3,7 +3,7 @@
 // (coordinates, grid, tracks, spectra, key lists) and rewrites the jargon on screen into plain words.
 // The rewriting is a presentation layer: it walks the page's text, swaps known phrases for plain ones, and puts the
 // original back when you switch to Advanced, so the modules that own the UI never know. Remember the choice in
-// localStorage; ?mode=simple or ?mode=advanced overrides it for a shared link.
+// localStorage (Advanced until a choice is made); ?mode=simple or ?mode=advanced overrides it for a shared link.
 
 import { MARK } from './field/render.js';
 
@@ -117,7 +117,7 @@ const ATTRS = ['aria-label', 'title', 'placeholder'];
 function plain(text) {
   const t = text.trim(); if (!t) return null;
   if (Object.prototype.hasOwnProperty.call(EXACT, t)) return text.replace(t, EXACT[t]);
-  for (const [re, rep] of RX) { if (re.test(t)) return text.replace(t, t.replace(re, rep)); }
+  for (const [re, rep] of RX) { if (re.test(t)) return rep === null ? null : text.replace(t, t.replace(re, rep)); } // null: leave it as it is
   return null;
 }
 export const simplify = plain;
@@ -189,7 +189,7 @@ export function mountModes(store) {
   const help = document.getElementById('help'); (help && help.parentNode ? help.parentNode : document.getElementById('top')).insertBefore(seg, help || null);
   seg.addEventListener('click', e => { const b = e.target.closest('button[data-mode]'); if (b) set(b.dataset.mode); });
 
-  let start = 'simple';
+  let start = 'advanced'; // the wording the docs, pitch and suites describe; Simple is one click away
   try { const saved = localStorage.getItem(KEY); if (saved === 'advanced' || saved === 'simple') start = saved; } catch { /* default */ }
   const q = new URLSearchParams(location.search).get('mode');
   const fromLink = q === 'simple' || q === 'advanced';
