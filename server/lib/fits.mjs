@@ -110,3 +110,46 @@ export function findImageHDU(hdus, name = 'IMAGE') {
   return hdus.find(h => h.name.trim() === name && h.kv.NAXIS >= 2)
     || hdus.find(h => (h.index === 0 || String(h.kv.XTENSION).trim() === 'IMAGE') && h.kv.NAXIS === 2);
 }
+
+/**
+ * RICE_1 decompression for FITS tile-compressed integer images (a port of CFITSIO's fits_rdecomp, the format IRSA uses
+ * for the SPHEREx FLAGS plane): `n` values from `bytes`, as an Int32Array. `bytepix` 4, 2 or 1 (ZVAL of BYTEPIX),
+ * `blocksize` the ZVAL of BLOCKSIZE (32). Throws when the stream ends before `n` values.
+ */
+export function riceDecompress(bytes, n, blocksize = 32, bytepix = 4) {
+  const fsbits = bytepix === 1 ? 3 : bytepix === 2 ? 4 : 5, fsmax = bytepix === 1 ? 6 : bytepix === 2 ? 14 : 25, bbits = 1 << fsbits;
+  const out = new Int32Array(n), len = bytes.length, shift = 32 - 8 * bytepix;
+  let p = 0, lastpix = 0;
+  const next = () => { if (p >= len) throw new Error('RICE stream ended early'); return bytes[p++]; };
+  for (let k = 0; k < bytepix; k++) lastpix = (lastpix << 8) | next(); // the first value, uncoded
+  let b = next(), nbits = 8;
+  for (let i = 0; i < n;) {
+    nbits -= fsbits;
+    while (nbits < 0) { b = ((b << 8) | next()) >>> 0; nbits += 8; }
+    const fs = (b >>> nbits) - 1;
+    b &= (1 << nbits) - 1;
+    const imax = Math.min(i + blocksize, n);
+    if (fs < 0) { for (; i < imax; i++) out[i] = lastpix; } // low entropy: every difference zero
+    else if (fs === fsmax) { // high entropy: each difference stored in bbits raw bits
+      for (; i < imax; i++) {
+        let k = bbits - nbits, diff = k >= 32 ? 0 : (b << k) >>> 0;
+        for (k -= 8; k >= 0; k -= 8) { b = next(); diff = (diff | (b << k)) >>> 0; }
+        if (nbits > 0) { b = next(); diff = (diff | (b >>> -k)) >>> 0; b &= (1 << nbits) - 1; } else b = 0;
+        diff = (diff & 1) === 0 ? diff >>> 1 : ~(diff >>> 1);
+        lastpix = shift ? ((diff + lastpix) << shift) >> shift : (diff + lastpix) | 0; out[i] = lastpix;
+      }
+    } else { // Rice coding: a unary high part, then fs low bits
+      for (; i < imax; i++) {
+        while (b === 0) { nbits += 8; b = next(); }
+        const nzero = nbits - (32 - Math.clz32(b));
+        nbits -= nzero + 1; b ^= 1 << nbits; nbits -= fs;
+        while (nbits < 0) { b = ((b << 8) | next()) >>> 0; nbits += 8; }
+        let diff = ((nzero << fs) | (b >>> nbits)) >>> 0;
+        b &= (1 << nbits) - 1;
+        diff = (diff & 1) === 0 ? diff >>> 1 : ~(diff >>> 1);
+        lastpix = shift ? ((diff + lastpix) << shift) >> shift : (diff + lastpix) | 0; out[i] = lastpix;
+      }
+    }
+  }
+  return out;
+}

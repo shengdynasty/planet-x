@@ -1,0 +1,77 @@
+{
+ "savedAt": "2026-11-15T23:20:39.990Z",
+ "server": "0.1.0",
+ "spectra": [
+  {
+   "id": "barnard",
+   "label": "Barnard's Star",
+   "ra": 269.4463,
+   "dec": 4.7682,
+   "file": "barnard.json",
+   "n": 0,
+   "nExposures": 358,
+   "pm": {
+    "pmra": -801.5509783684709,
+    "pmdec": 10362.394206546573,
+    "epoch": 57388.5
+   },
+   "builtAt": "2026-11-15T23:20:34.047Z"
+  },
+  {
+   "id": "epsindi",
+   "label": "Epsilon Indi Ba/Bb",
+   "ra": 331.096,
+   "dec": -56.801,
+   "file": "epsindi.json",
+   "n": 301,
+   "nExposures": 400,
+   "pm": {
+    "pmra": 3981.97666296105,
+    "pmdec": -2466.8318147663504,
+    "epoch": 57388.5
+   },
+   "builtAt": "2026-11-15T23:20:34.669Z"
+  },
+  {
+   "id": "wise0855",
+   "label": "WISE 0855−0714",
+   "ra": 133.7599,
+   "dec": -7.2422,
+   "file": "wise0855.json",
+   "n": 199,
+   "nExposures": 258,
+   "pm": null,
+   "builtAt": "2026-11-15T23:20:35.067Z"
+  },
+  {
+   "id": "rwaur",
+   "label": "RW Aurigae",
+   "ra": 76.9565,
+   "dec": 30.4014,
+   "file": "rwaur.json",
+   "n": 18,
+   "nExposures": 335,
+   "pm": {
+    "pmra": 4.90603392110511,
+    "pmdec": -24.577534567492915,
+    "epoch": 57388.5
+   },
+   "builtAt": "2026-11-15T23:20:35.548Z"
+  },
+  {
+   "id": "rdra",
+   "label": "R Draconis",
+   "ra": 248.1673,
+   "dec": 66.755,
+   "file": "rdra.json",
+   "n": 0,
+   "nExposures": 400,
+   "pm": {
+    "pmra": -20.642811719160797,
+    "pmdec": 6.148818852711324,
+    "epoch": 57388.5
+   },
+   "builtAt": "2026-11-15T23:20:39.988Z"
+  }
+ ]
+}

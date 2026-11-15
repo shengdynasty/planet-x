@@ -119,4 +119,5 @@ other 5 hidden by design, no failures. The tables below are what that run printe
 - **Aladin survey layers** (DSS2, 2MASS, AllWISE in the Field vetting panel, and `?sky=`): load from a third-party CDN, so not checked offline.
 - **Moving Sky demo contents**: only its link is checked; it is a separate page.
 - **Touch gestures** (pinch): the mouse equivalents are checked.
+- **Measured spectra** (the Field view's SPHEREx spectrum section, the vetting panel's Spectrum button): covered by `tests/spectrum.test.mjs`, `tests/spectrum-server.test.mjs` and `tests/spectrum-browser.test.mjs`, not by this run.
 - **Data releases and field files** (the Field view's release labels, typed-in releases, Save / Open field file): covered by `tests/releases.test.mjs`, `tests/releases-server.test.mjs` and `tests/releases-browser.test.mjs`, not by this run.

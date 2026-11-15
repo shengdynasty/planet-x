@@ -150,6 +150,17 @@
 .fv-relform { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; margin-top: 8px; }
 .fv-relform label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--ink-3); min-width: 0; }
 .fv-relform input[aria-invalid="true"] { border-color: var(--ink); border-width: 2px; }
+/* measured spectra */
+.fv-specplot { width: 100%; height: auto; margin-top: 8px; overflow: visible; }
+.fv-specplot text { font-size: 9px; fill: var(--ink-3); font-variant-numeric: tabular-nums; }
+.fv-specplot .band { fill: var(--edge); opacity: .45; }
+.fv-specplot .grid { stroke: var(--edge); stroke-width: .6; }
+.fv-specplot .ax { stroke: var(--ink-3); stroke-width: .8; }
+.fv-specplot .eb { stroke: var(--ink-2); stroke-width: .9; }
+.fv-specplot .pt { fill: var(--ink); }
+.fv-specplot .pt.soft { fill: var(--bg); stroke: var(--ink); stroke-width: 1; }
+.fv-specplot .ul { fill: var(--ink-3); }
+.fv-picking .fv-ov { cursor: crosshair; }
 .fv-fileacts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; } /* not .fv-actions: that class names the vetting actions, and tests find them by it */
 .fv-typed { list-style: none; padding-left: 0; }
 .fv-typed li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

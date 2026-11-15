@@ -45,7 +45,9 @@ stamps, the catalogue checks, DSS2, 2MASS and AllWISE images of the same spot, a
 observer could act on (positions with uncertainties, motion, predictions, ADES/CSV/JSON files). A badge always says
 whether the data is live from the server, saved real frames, or simulation. New SPHEREx releases need no code change:
 each pass says which release it came from, a new release can be typed in the day IRSA publishes it, and a field saved
-as one file on any machine opens in the hosted app with no server.
+as one file on any machine opens in the hosted app with no server. For any star it measures a spectrum on the fly: its
+brightness in every SPHEREx exposure that covers it, at the wavelength each one saw, about two hundred points from 0.75
+to 5 µm.
 
 **How it works.** A small Node server (no dependencies) finds every SPHEREx exposure of a position in NASA/IPAC IRSA,
 reads each file's own spectral WCS to pair frames at the same wavelength (SPHEREx's filters vary across the detector,
@@ -74,6 +76,10 @@ separates an asteroid, a star and a trans-Neptunian body by physics rather than 
   catalogued stars filed as brightenings).
 - Linker and distance: a counterpart planted at the true distance is found, controls give no hit; on 500 random bodies
   at 300–2,000 AU with 0.9″ noise the true distance lies inside the error bar every time, median half-width 10%.
+- Spectra on the fly: Epsilon Indi Ba/Bb, a pair of T dwarfs, shows the 3.3 µm methane dip and the 4 µm peak in 301
+  measured exposures; WISE 0855's own 4.5 µm light rises above a neighbouring star's; Barnard's Star and R Draconis
+  saturate SPHEREx, and the app says so. The FLAGS plane, which IRSA stores RICE-compressed, is decoded in our own code and
+  matches IRSA's cutouts pixel for pixel.
 - Depth: our 7σ single-exposure limit is AB 17.0–17.5 in clean fields. A nominal 10 Earth-mass Planet Nine at 700 AU
   is V 21.7 and AB 22.8–23.4 at 3–5 µm; even the most optimistic published model (W1 16.1 at 622 AU) is 1.3–2 mag
   short. Shift-and-stack across SPHEREx's three or four passes gains only 0.3–0.4 mag. The tool therefore reaches
@@ -81,7 +87,7 @@ separates an asteroid, a star and a trans-Neptunian body by physics rather than 
 
 **What is real and what is not.** With the server: everything above is real SPHEREx, JPL and Gaia data. The hosted
 copy shows real saved frames, known objects and stars for six example targets, and the simulation only where it says
-so. Spectra in the vetting panel are models, not extracted from SPHEREx data. No discovery is claimed.
+so. Spectra are measured from the SPHEREx exposures on real data (relative brightness, not calibrated photometry) and modelled only on the simulated field. No discovery is claimed.
 
 **Limits.** Two epochs show consistency with motion, three and an orbit fit are needed before any claim; fields are
 120–600″ so the search covers chosen patches, not the whole sky; nothing fainter than 7σ in one exposure; a mover

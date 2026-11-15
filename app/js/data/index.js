@@ -438,6 +438,59 @@ export async function getField({ ra, dec, sizeArcsec = HOME.sizeArcsec, det, t, 
   }
 }
 
+// ---------- spectra: one position's brightness in every SPHEREx exposure (server), or a saved copy (hosted) ----------
+/** Where saved spectra live: PLANETX_SPECTRA (tests), else app/data/spectra/ next to this module. */
+const spectraBase = () => {
+  const b = globalThis.PLANETX_SPECTRA || (typeof location !== 'undefined' ? new URL('../../data/spectra/', import.meta.url).href : null);
+  return b ? String(b).replace(/\/*$/, '/') : null;
+};
+/** A saved spectrum answers for a position within this distance of its own (1.5 SPHEREx pixels). */
+export const SPECTRUM_MATCH_ARCSEC = 9;
+/** The saved spectrum entry nearest (ra, dec) within SPECTRUM_MATCH_ARCSEC, or null. Exported for tests. */
+export function findSavedSpectrum(list, ra, dec) {
+  if (!Array.isArray(list) || !Number.isFinite(ra) || !Number.isFinite(dec)) return null;
+  let best = null, bd = Infinity;
+  for (const s of list) { if (!s || !Number.isFinite(s.ra) || !Number.isFinite(s.dec)) continue; const d = sepArcsec(ra, dec, s.ra, s.dec); if (d < bd) { bd = d; best = s; } }
+  return best && bd <= SPECTRUM_MATCH_ARCSEC ? best : null;
+}
+let spectraIndex = null; // Promise<[{id, label, ra, dec, file}]>
+/** The saved spectra (app/data/spectra/index.json), or [] when there are none or they cannot be read. */
+export function savedSpectra() {
+  if (!spectraIndex) spectraIndex = (async () => {
+    const base = spectraBase(); if (!base) return [];
+    try { const r = await fetch(base + 'index.json', { signal: AbortSignal.timeout(SNAPSHOT_TIMEOUT_MS), cache: 'no-store' }); if (!r.ok) return []; const j = await r.json(); return Array.isArray(j.spectra) ? j.spectra : []; }
+    catch { return []; }
+  })();
+  return spectraIndex;
+}
+/**
+ * A measured SPHEREx spectrum at (ra, dec), from the data server when it runs (`source: 'live'`), else the saved one for
+ * that spot (`source: 'saved'`). pmra/pmdec (mas/yr) with `epoch` (MJD of ra/dec; the server assumes Gaia's J2016.0)
+ * move the position to each exposure's time. Throws an Error that says why when there is neither.
+ */
+export async function getSpectrum({ ra, dec, pmra, pmdec, epoch, near, signal } = {}) {
+  if (!Number.isFinite(ra) || !Number.isFinite(dec)) throw new Error('No position to measure');
+  if (mode === 'live') {
+    const qs = new URLSearchParams({ ra: String(+ra.toFixed(6)), dec: String(+dec.toFixed(6)) });
+    if (Number.isFinite(pmra) && Number.isFinite(pmdec)) { qs.set('pmra', String(pmra)); qs.set('pmdec', String(pmdec)); if (Number.isFinite(epoch)) qs.set('epoch', String(epoch)); }
+    if (Array.isArray(near) && near.every(Number.isFinite)) { qs.set('sra', String(+near[0].toFixed(6))); qs.set('sdec', String(+near[1].toFixed(6))); } // search IRSA where the star is during the survey
+    const rel = getReleases(); if (rel.length) qs.set('collections', rel.join(','));
+    return { ...(await getJSON('/api/spectrum?' + qs, 600000, signal)), source: 'live' };
+  }
+  if (mode !== 'snapshot') throw new Error('Simulated data has no SPHEREx spectrum');
+  const [nra, ndec] = Array.isArray(near) && near.every(Number.isFinite) ? near : [ra, dec]; // where it is in the field: a fast star's catalogue position can be far off
+  const list = await savedSpectra(), hit = findSavedSpectrum(list, nra, ndec);
+  if (!hit) throw new Error(list.length ? `Spectra are saved for ${list.map(s => s.label).join(', ')} only. Run the local data server to measure any star.` : 'No spectra are saved for the hosted copy yet. Run the local data server to measure any star.');
+  const t = AbortSignal.timeout(60000), r = await fetch(spectraBase() + hit.file, { signal: signal ? (AbortSignal.any ? AbortSignal.any([t, signal]) : signal) : t });
+  if (!r.ok) throw new Error(`The saved spectrum could not be loaded (HTTP ${r.status})`);
+  return { ...(await r.json()), source: 'saved', savedLabel: hit.label };
+}
+/** Spectrum builds the server is working on (GET /api/progress `spectra`), or null. */
+export async function spectrumProgress(signal) {
+  if (mode !== 'live' || noProgress) return null;
+  try { const r = await getJSON('/api/progress', 3000, signal); return Array.isArray(r.spectra) ? r.spectra : null; } catch { return null; }
+}
+
 /** Cold field builds the server is working on (GET /api/progress), or null if the server doesn't report them. */
 let noProgress = false; // an older server without /api/progress: ask once, then stop
 export async function fieldProgress(signal) {

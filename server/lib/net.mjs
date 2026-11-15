@@ -90,6 +90,7 @@ export async function memoJSON(ns, id, fn, maxAgeMs) {
   const hit = await cacheGet(ns, k, maxAgeMs);
   if (hit) return JSON.parse(hit.toString('utf8'));
   const v = await fn();
+  if (v && v.incomplete === true) return v; // some upstream reads failed: serve it, but do not keep it, so asking again retries them
   await cachePut(ns, k, Buffer.from(JSON.stringify(v)));
   return v;
 }

@@ -24,7 +24,7 @@ const MASKED_BIT = 30, OFF_IMAGE_BIT = 31;
 // cards, so these are the defaults; cards present in a file override them.
 export const FLAG_BITS_DEFAULT = { TRANSIENT: 0, OVERFLOW: 1, SUR_ERROR: 2, PHANTOM: 4, REFERENCE: 5, NONFUNC: 6, DICHROIC: 7, MISSING_DATA: 9, HOT: 10, COLD: 11,
   FULLSAMPLE: 12, PHANMISS: 14, NONLINEAR: 15, PERSIST: 17, OUTLIER: 19, SOURCE: 21, GHOST: 22, GHOST_FPA: 23, GHOST_EXT: 24, BLOOM: 26, SNOWBALL: 27, HALO: 28 };
-function flagBitsOf(kv) {
+export function flagBitsOf(kv) {
   const names = { ...FLAG_BITS_DEFAULT };
   for (const k in kv) if (k.startsWith('MP_') && Number.isInteger(kv[k])) names[k.slice(3)] = kv[k];
   names.MASKED = MASKED_BIT; names.OFF_IMAGE = OFF_IMAGE_BIT;

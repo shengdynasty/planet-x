@@ -3,6 +3,7 @@
 // Talks to the rest of the app only through the store (view, field, candidates, selectedId; flyto, toast).
 import { simulateField, analyse, detect, diff, maxStack, meanStack, radec, fmtDt, fmtRA, fmtDec, spectrum, dist, psfModel } from '../pipeline/index.js';
 import { drawImage, drawStamp, drawOverlay, glyph, KIND_NAME } from './render.js';
+import { fixedSource, spectrumSVG, spectrumCaption, spectrumSummary, spectrumCSV } from './spectrum.js';
 import { parseCentre } from '../sky/coords.js';
 import { clampFieldSize } from '../core/limits.js';
 import { EXAMPLES } from './examples.js';
@@ -128,6 +129,17 @@ const TEMPLATE = `
       <h3 data-ref="dethead">Flagged sources</h3>
       <ul class="fv-dets" data-ref="dets"></ul>
     </section>
+    <section class="fv-specsec" data-ref="specsec" hidden>
+      <h3>SPHEREx spectrum</h3>
+      <div class="fv-fileacts">
+        <button data-act="specpick" data-ref="specpick" aria-pressed="false" title="Then click a star in the image: its brightness in every SPHEREx exposure, at the wavelength each one saw">Pick a star</button>
+        <button data-act="speccentre" class="ghost" title="The target at the centre of this field">Field centre</button>
+      </div>
+      <p class="fv-note" data-ref="specstatus" role="status"></p>
+      <svg class="fv-specplot" data-ref="specplot" viewBox="0 0 340 180" role="img" hidden></svg>
+      <p class="fv-note" data-ref="speccap" hidden></p>
+      <div class="fv-fileacts"><button data-act="speccsv" data-ref="speccsv" class="ghost" hidden>Download CSV</button></div>
+    </section>
     <section class="fv-vet" data-ref="vet" hidden>
       <h3 data-ref="vethead">Vetting</h3>
       <div class="fv-stamps">
@@ -140,6 +152,7 @@ const TEMPLATE = `
       <div class="fv-actions">
         <button data-act="add" data-ref="add">Add to review list</button>
         <button data-act="sky" class="ghost">Show on sky</button>
+        <button data-act="specsel" data-ref="specsel" class="ghost" hidden title="Its brightness in every SPHEREx exposure, at the wavelength each one saw">Spectrum</button>
         <button data-act="report" class="ghost" title="One-page follow-up report in a new tab: stamps, astrometry, predictions, data files">Report ↗</button> <!-- report -->
       </div>
     </section>
@@ -161,6 +174,7 @@ export function mountField(el, store) {
 
   let field = null, A = 0, B = 0, mode = 'blink', showMarks = true, showKnown = false, showStars = false, showBad = false, stretch = 1, stackAll = false;
   let blinkPhase = 0, playIdx = 0, selected = null, results = [], timer = null, shown = null, loadSeq = 0, loadedFor;
+  let specPicking = false, specCtl = null, specData = null, specSeq = 0, specTimer = null; // measured spectra (see ---------- spectra)
   const reducedMQ = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false, addEventListener() {} };
   const visible = () => store.get('view') === 'field';
 
@@ -356,6 +370,7 @@ export function mountField(el, store) {
       : f.fromFile ? `Real SPHEREx images from a field file${f.fromFile.name ? ' (' + f.fromFile.name + ')' : ''}, analysed in your browser. Flags are candidates, not detections.`
       : f.snapshot ? `Real SPHEREx images from NASA/IPAC IRSA, saved ${fmtSaved(f.snapshot.savedAt)} and analysed in your browser. Flags are candidates, not detections.`
       : 'Real SPHEREx images from NASA/IPAC IRSA, analysed in your browser. Flags are candidates, not detections.';
+    if (!same) resetSpectrum();
     syncOverlayButtons(); update(); renderKnownNote(); renderLive(); renderData(); if (visible()) syncUrl(true);
     if (visible() && !same) announce(`Field loaded${f.simulated ? ', simulated' : f.fromFile ? ', SPHEREx data from a file' : f.snapshot ? ', saved SPHEREx data' : ', live SPHEREx data'}. ${results.length} flagged source${results.length === 1 ? '' : 's'}.`);
     else if (visible() && same) announce(`Known objects checked. ${results.length} flagged source${results.length === 1 ? '' : 's'}.`);
@@ -474,6 +489,8 @@ export function mountField(el, store) {
     svg.innerHTML = `<defs><linearGradient id="${uid}-g" x1="20" x2="320" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#6aa8ff"/><stop offset=".5" stop-color="#f2c14e"/><stop offset="1" stop-color="#ff6a3d"/></linearGradient></defs>`
       + `<line class="ax" x1="20" y1="100" x2="320" y2="100"/>${path}${[1, 2, 3, 4, 5].map(l => `<text x="${X(l)}" y="114" text-anchor="middle">${l} µm</text>`).join('')}<text x="20" y="12">${label}${none ? '' : ' (model)'}</text>`;
     svg.setAttribute('aria-label', `Spectrum of the selected ${r.title}: ${none ? 'not extracted' : label + ', model'}`);
+    svg.toggleAttribute('hidden', !field.simulated); // real fields measure it instead: the Spectrum button below, for a source that stays put (an SVG has no .hidden property)
+    $('specsel').hidden = !!field.simulated || !fixedSource(r);
     const add = $('add'); add.hidden = r.kind !== 'cand';
     const existing = r.kind === 'cand' && onList(r);
     add.textContent = existing ? 'On review list' : 'Add to review list'; add.title = existing ? existing.name : '';
@@ -613,6 +630,10 @@ export function mountField(el, store) {
       case 'add': addToReview(); break;
       case 'sky': showOnSky(); break;
       case 'report': openReport(); break; // report
+      case 'specpick': setPicking(!specPicking); break;
+      case 'speccentre': measureSpectrum(centreTarget()); break;
+      case 'specsel': if (selected) { measureSpectrum(spectrumTargetFor(selected)); $('specsec').scrollIntoView({ block: 'nearest', behavior: reducedMQ.matches ? 'auto' : 'smooth' }); } break;
+      case 'speccsv': downloadSpectrum(); break;
       case 'cancel': cancelLoad(); break;
     }
   });
@@ -707,7 +728,7 @@ export function mountField(el, store) {
     const img = shown || field.frame(A), [ra, dec] = radec(field, x, y);
     $('readout').innerHTML = `<span>RA <b>${fmtRA(ra)}</b></span><span>Dec <b>${fmtDec(dec)}</b></span><span>Pixel <b>${x}, ${y}</b></span><span>${mode === 'diff' ? 'Difference' : mode === 'track' ? 'Stack max' : mode === 'stack' ? 'Stack mean' : 'Value'} <b>${img[y * N + x].toFixed(2)} MJy/sr</b></span>`; }
   ov.addEventListener('pointermove', readoutAt); ov.addEventListener('pointerdown', readoutAt);
-  ov.addEventListener('click', e => { if (!field) return; const [x, y] = toPix(e); let best = null, bd = Math.max(14 * field.N / 320, 18 * field.N / (ov.getBoundingClientRect().width || 320));
+  ov.addEventListener('click', e => { if (!field) return; const [x, y] = toPix(e); if (specPicking) { spectrumAtPixel(x, y); return; } let best = null, bd = Math.max(14 * field.N / 320, 18 * field.N / (ov.getBoundingClientRect().width || 320));
     for (const r of results) { const d = Math.hypot(r.x - x, r.y - y); if (d < bd) { bd = d; best = r; } } select(best, false); });
   if (typeof ResizeObserver === 'function') new ResizeObserver(() => renderOverlay()).observe($('stage'));
   reducedMQ.addEventListener?.('change', () => { blinkPhase = 0; render(); setTimer(); });
@@ -719,7 +740,7 @@ export function mountField(el, store) {
     if (t && t.closest && t.closest('[role="dialog"], dialog')) return;
     if ([...document.querySelectorAll('dialog[open], [role="dialog"]')].some(d => !el.contains(d) && !d.hidden && d.getClientRects().length && getComputedStyle(d).visibility !== 'hidden')) return; // help sheet, Export dialog…
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    if (k === 'Escape') { if (loading) cancelLoad(); else if (selected) { select(null); } else store.set('view', 'sky'); }
+    if (k === 'Escape') { if (loading) cancelLoad(); else if (specPicking) setPicking(false); else if (selected) { select(null); } else store.set('view', 'sky'); }
     else if (k === 'b') setMode('blink'); else if (k === 'd') setMode('diff'); else if (k === 't') setMode('track'); else if (k === 'm') setMode('stack'); else if (k === 'l') setMode('play');
     else if (k === 'f') toggle('marks'); else if (k === 'k') toggle('known');
     else if (k === 'g') { if ($('starsbtn').hidden) return; toggle('stars'); } else if (k === 'x') { if ($('badbtn').hidden) return; toggle('bad'); }
@@ -731,6 +752,96 @@ export function mountField(el, store) {
     else return;
     e.preventDefault();
   });
+
+  // ---------- spectra ----------
+  // A measured SPHEREx spectrum of one spot (server/lib/spectrum.mjs): picked in the image, the field's centre, or the
+  // selected flagged source when it stays put. A Gaia star is measured at its catalogue position with its proper motion,
+  // so the server follows it from exposure to exposure; `near` is where it is in this field, which a saved spectrum matches.
+  const GAIA_J2016 = 57388.5;
+  const gaiaRaw = id => { const list = field && field._json && Array.isArray(field._json.stars) ? field._json.stars : []; return id == null ? null : list.find(s => String(s.id) === String(id)) || null; };
+  const gaiaOfKnown = k => { const raw = field && field._json && Array.isArray(field._json.known) ? field._json.known.find(x => x.name === k.name) : null; return raw ? gaiaRaw(raw.gaiaId) : null; };
+  const gaiaTarget = (raw, near, label) => raw && Number.isFinite(raw.ra) && Number.isFinite(raw.dec) ? { ra: raw.ra, dec: raw.dec, near, label,
+    ...(Number.isFinite(raw.pmra) && Number.isFinite(raw.pmdec) ? { pmra: raw.pmra, pmdec: raw.pmdec, epoch: GAIA_J2016 } : {}) } : null;
+  /** The Gaia star within `r` px of (x, y) in the reference pass, or null. Tight on purpose: WISE 0855 is not in Gaia and a
+   *  background star sits 1.2 px from it, which a looser match would measure instead. */
+  function gaiaNear(x, y, r = 0.8) {
+    let best = null, bd = r;
+    for (const s of (field && field.stars) || []) { const [sx, sy] = s.pos(field.epochs[A].t); const d = Math.hypot(sx - x, sy - y); if (d < bd) { bd = d; best = s; } }
+    return best;
+  }
+  const where = ([ra, dec]) => `RA ${fmtRA(ra)}, Dec ${fmtDec(dec)}`;
+  function spectrumTargetFor(r) {
+    const near = radec(field, r.x, r.y);
+    const raw = r.kind === 'known' && r.obj ? gaiaOfKnown(r.obj) : r.star ? gaiaRaw(r.star.id) : null;
+    return gaiaTarget(raw, near, r.title) || { ra: near[0], dec: near[1], near, label: r.title };
+  }
+  function centreTarget() {
+    const q = field.request || {}, c = Number.isFinite(q.ra) && Number.isFinite(q.dec) ? [q.ra, q.dec] : [field.ra0, field.dec0];
+    const ex = exampleFor(q), label = ex && !Number.isFinite(ex.t) ? ex.label.split(' · ')[0] : 'the field centre'; // an anchored example (16 Psyche) moves: the spot is not it
+    const s = gaiaNear(field.N / 2, field.N / 2);
+    return (s && gaiaTarget(gaiaRaw(s.id), c, label)) || { ra: c[0], dec: c[1], near: c, label };
+  }
+  /** A click in the image while picking: the light-weighted centre of what is within 2 px of it, above the local sky (the
+   *  star, not the sky beside it; a saturated star, whose core the server fills with the median, still centres on its ring). */
+  function spectrumAtPixel(fx, fy) {
+    if (!field || field.simulated) return;
+    const N = field.N, img = field.frame(A), cx = Math.floor(fx), cy = Math.floor(fy), at = (x, y) => x >= 0 && y >= 0 && x < N && y < N ? img[y * N + x] : NaN;
+    const ring = []; for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === 4 && Number.isFinite(at(cx + dx, cy + dy))) ring.push(at(cx + dx, cy + dy));
+    ring.sort((a, b) => a - b); const sky = ring.length ? ring[ring.length >> 1] : 0;
+    let sw = 0, sx = 0, sy = 0;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const w = Math.max(0, at(cx + dx, cy + dy) - sky) || 0; sw += w; sx += w * (cx + dx); sy += w * (cy + dy); }
+    const px = sw > 0 ? sx / sw : cx, py = sw > 0 ? sy / sw : cy;
+    const near = radec(field, px, py), s = gaiaNear(px, py, 1.0);
+    measureSpectrum((s && gaiaTarget(gaiaRaw(s.id), near, s.name)) || { ra: near[0], dec: near[1], near, label: `the star at ${where(near)}` });
+  }
+  function setPicking(on) {
+    specPicking = !!on && !!field && !field.simulated;
+    $('specpick').setAttribute('aria-pressed', String(specPicking)); $('stage').classList.toggle('fv-picking', specPicking);
+    if (specPicking) announce('Click a star in the image to measure its spectrum. Esc stops picking.');
+  }
+  function resetSpectrum() {
+    specSeq++; if (specCtl) specCtl.abort(); specCtl = null; clearInterval(specTimer); specTimer = null; specData = null; setPicking(false);
+    $('specsec').hidden = !field || !!field.simulated;
+    $('specstatus').textContent = field && !field.simulated ? 'Pick a star in the image, or measure the target at the field centre: its brightness in every SPHEREx exposure, at the wavelength each one saw.' : '';
+    renderSpectrum();
+  }
+  async function measureSpectrum(t) {
+    if (!field || field.simulated || !t) return;
+    if (!dataMod) dataMod = await import('../data/index.js');
+    const seq = ++specSeq; if (specCtl) specCtl.abort(); const c = specCtl = new AbortController();
+    specData = null; renderSpectrum(); clearInterval(specTimer); specTimer = null;
+    const live = liveSource(), t0 = Date.now(), say = m => { $('specstatus').textContent = m; };
+    say(live ? `Measuring ${t.label} in every SPHEREx exposure of this spot… A minute or two the first time; cached after.` : `Loading the saved spectrum of ${t.label}…`);
+    announce($('specstatus').textContent);
+    if (live) specTimer = setInterval(async () => {
+      const b = (await dataMod.spectrumProgress() || []).find(x => Math.abs(x.ra - t.ra) < 1e-5 && Math.abs(x.dec - t.dec) < 1e-5);
+      if (seq === specSeq && specTimer) say(`Measuring ${t.label}: ${b && b.total ? `${b.done} of ${b.total} exposures` : b ? b.label : 'waiting for the server'} · ${fmtSecs(Date.now() - t0)}`);
+    }, 1000);
+    try {
+      const s = await dataMod.getSpectrum({ ra: t.ra, dec: t.dec, pmra: t.pmra, pmdec: t.pmdec, epoch: t.epoch, near: t.near, signal: c.signal });
+      if (seq !== specSeq) return;
+      specData = { ...s, label: t.label, where: where(t.near || [t.ra, t.dec]) };
+      renderSpectrum(); announce(`Spectrum of ${t.label}. ${spectrumSummary(specData)}`);
+    } catch (e) { if (seq === specSeq && !c.signal.aborted) { say(e.message); announce(e.message); } }
+    finally { if (seq === specSeq) { clearInterval(specTimer); specTimer = null; } }
+  }
+  function renderSpectrum() {
+    const s = specData, svg = $('specplot'), cap = $('speccap'), csv = $('speccsv');
+    if (!s) { svg.setAttribute('hidden', ''); cap.hidden = csv.hidden = true; svg.innerHTML = ''; return; }
+    const n = (s.points || []).length;
+    svg.innerHTML = spectrumSVG(s.points); svg.toggleAttribute('hidden', !n); svg.setAttribute('aria-label', spectrumSummary(s));
+    cap.textContent = spectrumCaption(s, s.where); cap.hidden = false; csv.hidden = !n;
+    const sat = (s.rejected || {}).saturated || 0;
+    $('specstatus').textContent = n ? `${s.label}${s.source === 'saved' ? ' (saved)' : ''}: ${n} measured point${n === 1 ? '' : 's'}.` : `${s.label}${s.source === 'saved' ? ' (saved)' : ''}: no exposure could be measured here${sat > (s.nExposures || 0) / 2 ? ': it is too bright for SPHEREx' : ''}.`;
+  }
+  function downloadSpectrum() {
+    const s = specData; if (!s || !(s.points || []).length) return;
+    const a = document.createElement('a'), sign = s.dec >= 0 ? '+' : '-';
+    a.href = URL.createObjectURL(new Blob([spectrumCSV(s)], { type: 'text/csv' }));
+    a.download = `planetx-spectrum-${(+s.ra).toFixed(4)}${sign}${Math.abs(+s.dec).toFixed(4)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    announce(`Saved ${a.download}`);
+  }
 
   // ---------- store integration ----------
   let wasOn = false, returnFocus = null;

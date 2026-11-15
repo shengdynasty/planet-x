@@ -6,6 +6,7 @@ import zlib from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scansAt, buildField, knownAt, progress, SIZE_MIN, SIZE_MAX, SIZE_DEFAULT } from './lib/field.mjs';
+import { buildSpectrum, spectrumProgress } from './lib/spectrum.mjs';
 import { COLLECTIONS, SIA_URL, isCollectionName } from './lib/irsa.mjs';
 import { SB_IDENT } from './lib/jpl.mjs';
 import { GAIA_TAP } from './lib/gaia.mjs';
@@ -101,7 +102,17 @@ const routes = {
   // Cold field builds in progress, so the app can show what it is waiting for (warm requests never appear here).
   '/api/progress': async () => ({
     builds: [...progress.values()].map(p => ({ ...p, elapsedMs: Date.now() - p.started })),
+    spectra: [...spectrumProgress.values()].map(p => ({ ...p, elapsedMs: Date.now() - p.started })),
   }),
+  // A measured spectrum: the position's brightness in every SPHEREx exposure that covers it (lib/spectrum.mjs).
+  '/api/spectrum': async sp => {
+    const { ra, dec } = pos(sp);
+    return buildSpectrum({
+      ra, dec, pmra: num(sp, 'pmra', { required: false, min: -20000, max: 20000 }), pmdec: num(sp, 'pmdec', { required: false, min: -20000, max: 20000 }),
+      epoch: num(sp, 'epoch', { required: false, min: 40000, max: 80000 }), sra: num(sp, 'sra', { required: false, min: 0, max: 360 }), sdec: num(sp, 'sdec', { required: false, min: -90, max: 90 }),
+      collections: collectionsParam(sp),
+    });
+  },
   '/api/known': async sp => {
     const { ra, dec } = pos(sp);
     const t = sp.get('t'); if (!t) throw Object.assign(new Error('Missing parameter t (MJD or ISO date)'), { status: 400 });
