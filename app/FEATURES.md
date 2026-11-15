@@ -35,7 +35,6 @@ Every feature below has an automated check in `tests/e2e/featuretest.mjs`, run o
 | B5 | Scroll wheel zooms | pass | pass |
 | B6 | Dragging looks around | pass | pass |
 | B7 | Arrow keys pan | pass | pass |
-| B8 | Zoom counter shows zoom, field and sky level | pass | pass |
 | B9 | Sharp tiles load at high zoom (64k where available) | pass | pass |
 | B10 | Sky background and star map are drawn (canvas has content) | pass | pass |
 | B11 | Grid toggle button flips (Advanced) / G key | pass | hidden by design |

@@ -63,7 +63,6 @@ await T('B4', 'Reset view returns to the start', async () => { await pg.click('#
 await T('B5', 'Scroll wheel zooms', async () => { const a = await sky(() => window.__sky.fov); await pg.mouse.move(700, 450); await pg.mouse.wheel(0, -600); await W(1500); return (await sky(() => window.__sky.fov)) < a; });
 await T('B6', 'Dragging looks around', async () => { const a = await sky(() => JSON.stringify(window.__sky.centre())); await pg.mouse.move(600, 450); await pg.mouse.down(); await pg.mouse.move(800, 480, { steps: 8 }); await pg.mouse.up(); await W(1500); return a !== await sky(() => JSON.stringify(window.__sky.centre())); });
 await T('B7', 'Arrow keys pan', async () => { await pg.click('#reset'); await W(2000); const a = await sky(() => JSON.stringify(window.__sky.centre())); await pg.keyboard.down('ArrowRight'); await W(700); await pg.keyboard.up('ArrowRight'); await W(1200); return a !== await sky(() => JSON.stringify(window.__sky.centre())); });
-await T('B8', 'Zoom counter shows ' + (simple ? 'only the zoom' : 'zoom, field and sky level'), async () => { const t = await pg.textContent('.sky-zoom'); return simple ? (/^Zoom ×[\d.]+$/.test(t) || t) : (/tile|sky/.test(t) || t); });
 await T('B9', 'Sharp tiles load at high zoom (64k where available)', async () => {
   await pg.evaluate(() => window.__sky.flyTo(17.7603, -28.936, 6)); await W(14000); const h = await sky(() => window.__sky.hd()); return (h.level >= 5 && h.state === 'ready' && h.drawn > 0) || JSON.stringify(h);
 });

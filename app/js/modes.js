@@ -98,7 +98,6 @@ export const RX = [
   [/^\d+(\.\d+)? µm$/, ''],                                  // wavelength lines: "0.95 µm"
   [/^Pass (\d+)$/, 'Picture $1'],
   [/^Scan (\d+)( · .*)?$/, 'Picture $1$2'],
-  [/^Zoom ×([\d.]+) · .*$/, 'Zoom ×$1'],                      // zoom counter: drop the tile-level detail
   [/^Flagged sources \((\d+)\)$/, 'Worth a look ($1)'],
   [/^RA .* · ([\d.]+)′ × [\d.]+′$/, 'A small patch of sky, about $1 arcminutes across'],
   [/^Baseline (\d+) d · .*$/, 'The two pictures were taken $1 days apart'],
