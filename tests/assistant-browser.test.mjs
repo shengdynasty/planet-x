@@ -38,10 +38,18 @@ console.log('desktop 1440×900, dark');
 {
   const { ctx, page, errors } = await open();
   ok(await page.evaluate(() => window.__pxBoot.modules.assistant) === 'module', 'assistant module mounted');
-  ok(await page.isVisible('#ask') && !(await page.isVisible('#assistant')), 'Ask button in the top bar, panel closed');
+  ok(await page.isVisible('#ask') && !(await page.isVisible('#assistant')), 'chat button shown, panel closed');
+  { const b = await page.locator('#ask').boundingBox(), bar = await page.locator('#bottom').boundingBox(), vh = 900;
+    ok(b && b.x < 40 && b.y + b.height > vh - 200 && Math.abs(b.width - b.height) < 1, `a round button in the bottom-left corner (${Math.round(b.x)},${Math.round(b.y)} ${Math.round(b.width)}×${Math.round(b.height)})`);
+    ok(!bar || b.y + b.height <= bar.y, 'it sits above the bottom bar, not on the Blink button');
+    ok(!(await page.evaluate(() => document.getElementById('top').contains(document.getElementById('ask')))), 'it is no longer in the top bar');
+    const glow = await page.evaluate(() => { const s = getComputedStyle(document.getElementById('ask')); return { shadow: s.boxShadow, anim: s.animationName }; });
+    ok(/rgba\(120, 180, 255/.test(glow.shadow) && glow.anim === 'as-glow', `it glows (${glow.anim})`); }
   await page.click('#ask');
   ok(await page.isVisible('#assistant') && await page.evaluate(() => document.activeElement.matches('#assistant .as-form input')), 'opens with focus in the question box');
   ok(await page.getAttribute('#ask', 'aria-expanded') === 'true', 'button says the panel is expanded');
+  { const p = await page.locator('#assistant').boundingBox(), b = await page.locator('#ask').boundingBox(), t = await page.locator('#top').boundingBox();
+    ok(p.x < 40 && p.y + p.height <= b.y && p.y >= t.y + t.height, `the panel opens upward from the button, under the top bar (${Math.round(p.x)},${Math.round(p.y)} ${Math.round(p.width)}×${Math.round(p.height)})`); }
   ok(await page.locator('#assistant .as-chip').count() >= 3, 'suggested questions shown as chips');
 
   await page.locator('#assistant .as-chip', { hasText: 'How does parallax find it?' }).click(); await page.waitForTimeout(150);
@@ -102,7 +110,9 @@ console.log('phone 390×844, light, reduced motion');
   const small = await page.evaluate(() => [...document.querySelectorAll('#assistant button')].filter(el => el.offsetParent)
     .map(el => el.getBoundingClientRect()).filter(r => r.height < 40).length);
   ok(small === 0, 'helper buttons are ≥ 40 px tall on a phone');
-  ok(await page.evaluate(() => [...document.querySelectorAll('#assistant > *')].every(el => getComputedStyle(el).animationName === 'none')), 'no animation under reduced motion');
+  ok(await page.evaluate(() => [...document.querySelectorAll('#assistant > *')].every(el => getComputedStyle(el).animationName === 'none') && getComputedStyle(document.getElementById('ask')).animationName === 'none'), 'no animation under reduced motion, the glow holds still');
+  { const b = await page.locator('#ask').boundingBox(), bar = await page.locator('#bottom').boundingBox();
+    ok(b.x < 40 && (!bar || b.y + b.height <= bar.y), `phone: the button sits bottom-left above the bottom bar (${Math.round(b.x)},${Math.round(b.y)})`); }
   ok(await page.evaluate(() => getComputedStyle(document.getElementById('assistant')).backgroundColor) === 'rgb(255, 255, 255)', 'light theme panel');
   await page.locator('#assistant .as-chip', { hasText: 'Show me an example' }).tap(); await page.waitForTimeout(150);
   await page.screenshot({ path: path.join(SHOTS, 'phone-light.png') });

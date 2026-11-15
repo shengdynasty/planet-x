@@ -1,6 +1,6 @@
 // In-app helper: a panel that answers common questions from the knowledge base (kb.js) and moves around the app.
-// mountAssistant(el, store) fills <aside id="assistant"> and adds an "Ask" button to the top bar beside the help
-// button (like modes.js adds its switch). It asks one answerer (answer.js) and drives the app only through the store:
+// mountAssistant(el, store) fills <aside id="assistant"> and adds a round chat button in the bottom-left corner (above
+// the sky's bottom bar), from which the panel opens upward. It asks one answerer (answer.js) and drives the app only through the store:
 // view, field and 'flyto'. The one exception is "open the help sheet", which presses the shell's own ? button.
 import { answer as defaultAnswer } from './answer.js';
 import { SUGGESTIONS, actionLabel } from './kb.js';
@@ -8,6 +8,9 @@ import { EXAMPLES } from '../field/examples.js';
 
 const narrow = () => window.matchMedia('(max-width: 860px)').matches;
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// a speech bubble with three dots (static markup, no data in it)
+const CHAT_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-4.4 3.4c-.5.4-1.1 0-1.1-.5V17H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8.3" cy="10.5" r="1.15" fill="currentColor"/><circle cx="12" cy="10.5" r="1.15" fill="currentColor"/><circle cx="15.7" cy="10.5" r="1.15" fill="currentColor"/></svg>';
 
 const INTRO = {
   advanced: 'I answer questions about this app from its own notes and can take you around it. If something isn’t in my notes I’ll say so rather than guess.',
@@ -18,13 +21,14 @@ export function mountAssistant(el, store, { answer = defaultAnswer } = {}) {
   const mode = () => (store.get('mode') === 'simple' ? 'simple' : 'advanced');
   const h = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
 
-  // --- the top-bar button ---
-  const btn = h('button', 'glass', 'Ask');
+  // --- the chat button: a glowing bubble in the bottom-left corner ---
+  const btn = h('button', 'as-fab');
   btn.type = 'button'; btn.id = 'ask';
-  btn.title = 'Ask a question about the app';
+  btn.title = 'Ask a question about the app'; btn.setAttribute('aria-label', 'Ask a question about the app');
   btn.setAttribute('aria-controls', el.id); btn.setAttribute('aria-expanded', 'false');
+  btn.innerHTML = CHAT_ICON;
+  document.body.append(btn);
   const help = document.getElementById('help');
-  (help && help.parentNode ? help.parentNode : document.getElementById('top')).insertBefore(btn, help || null);
 
   // --- the panel ---
   el.classList.add('hud', 'glass');
@@ -103,7 +107,7 @@ export function mountAssistant(el, store, { answer = defaultAnswer } = {}) {
     if (narrow()) hide(true); // on a phone the panel would cover what was just opened
   }
 
-  // on phones the top bar wraps to two or three rows, so the panel starts under whatever height it has
+  // on phones the top bar wraps to two or three rows: the panel, which grows upward from the button, stops under it
   function place() {
     const top = document.getElementById('top');
     if (top) el.style.setProperty('--as-top', Math.round(top.getBoundingClientRect().bottom + 8) + 'px');

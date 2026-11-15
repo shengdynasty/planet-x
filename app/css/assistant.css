@@ -1,16 +1,33 @@
-/* In-app helper (js/assistant): the top-bar Ask button and its panel. Grey only, like the rest of the UI. */
-#ask { height: 32px; padding: 0 12px; border-radius: 7px; flex: none; }
-#ask[aria-expanded="true"] { background: var(--fill); color: var(--fill-ink); border-color: transparent; }
+/* In-app helper (js/assistant): a round chat button in the bottom-left corner and the panel that opens upward from it.
+   Grey like the rest of the UI, except the button's soft glow, which marks it as the place to ask. */
+body { --as-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px + var(--bottom-h) + 12px); } /* over the sky's bottom bar */
+body:not([data-view="sky"]) { --as-fab-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); } /* Compare and Field cover that bar */
+
+.as-fab {
+  position: fixed; z-index: 6; left: calc(env(safe-area-inset-left, 0px) + 16px); bottom: var(--as-fab-bottom);
+  width: 52px; height: 52px; padding: 0; border-radius: 50%; display: grid; place-items: center;
+  background: var(--panel-solid); color: var(--ink); border: 1px solid var(--edge); cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .25), 0 0 20px 4px rgba(120, 180, 255, .5);
+  animation: as-glow 2.8s ease-in-out infinite; transition: transform .15s ease;
+}
+.as-fab:hover { transform: translateY(-1px) scale(1.05); }
+.as-fab:active { transform: scale(.97); }
+.as-fab:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.as-fab[aria-expanded="true"] { background: var(--fill); color: var(--fill-ink); }
+@keyframes as-glow {
+  0%, 100% { box-shadow: 0 6px 18px rgba(0, 0, 0, .25), 0 0 16px 3px rgba(120, 180, 255, .45); }
+  50% { box-shadow: 0 6px 18px rgba(0, 0, 0, .25), 0 0 30px 9px rgba(120, 180, 255, .7); }
+}
 
 #assistant {
-  z-index: 5; top: calc(var(--top-h) + 8px); right: 16px; width: 360px;
-  max-height: calc(100dvh - var(--top-h) - 8px - env(safe-area-inset-bottom, 0px) - 86px);
+  position: fixed; z-index: 5; left: calc(env(safe-area-inset-left, 0px) + 16px); bottom: calc(var(--as-fab-bottom) + 64px); width: 360px;
+  max-height: calc(100dvh - var(--as-top, calc(var(--top-h) + 8px)) - var(--as-fab-bottom) - 72px);
   border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;
   background: var(--panel-solid); /* solid: long text over the moving sky stays readable */
 }
 #assistant[hidden] { display: none; }
 #assistant:not([hidden]) > * { animation: as-in .2s cubic-bezier(.2, .7, .2, 1); }
-@keyframes as-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@keyframes as-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 .as-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--edge); }
 .as-head h2 { margin: 0; font-size: 13px; font-weight: 500; }
@@ -37,16 +54,14 @@
 body[data-mode="simple"] .as-msg { font-size: 14px; }
 
 @media (max-width: 860px) and (pointer: coarse), (max-width: 560px) {
-  #ask { height: 40px; min-width: 40px; }
+  .as-fab { width: 56px; height: 56px; }
   .as-chip, .as-acts button, .as-form button, .as-form input { min-height: 40px; }
   .as-head .icon { width: 40px; height: 40px; }
 }
 @media (max-width: 560px) {
-  #ask { order: 3; }
-  /* a sheet across the screen under the wrapped top bar (--as-top, set by index.js) */
-  #assistant { left: 12px; right: 12px; width: auto; top: var(--as-top, 160px); max-height: calc(100dvh - var(--as-top, 160px) - env(safe-area-inset-bottom, 0px) - 12px); }
+  /* a sheet across the screen, from just above the button up to the wrapped top bar (--as-top, set by index.js) */
+  #assistant { left: 12px; right: 12px; width: auto; bottom: calc(var(--as-fab-bottom) + 66px); max-height: calc(100dvh - var(--as-top, 160px) - var(--as-fab-bottom) - 74px); }
   .as-msg { font-size: 14px; }
   .as-form input { font-size: 16px; } /* no zoom on focus in iOS Safari */
 }
-@media (max-width: 860px) { body.assistant-open #readout .pos { display: none; } } /* the panel sits right under it */
-@media (prefers-reduced-motion: reduce) { #assistant > * { animation: none !important; } .as-log { scroll-behavior: auto; } }
+@media (prefers-reduced-motion: reduce) { .as-fab { animation: none; transition: none; } #assistant > * { animation: none !important; } .as-log { scroll-behavior: auto; } }
