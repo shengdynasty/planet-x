@@ -192,4 +192,4 @@ report lives in the URL hash (deflate-raw + base64url, ~0.7–1.5 KB), which is 
 
 ## Modes
 
-`app/js/modes.js` implements Simple and Advanced (see `app/FEATURES.md`): a text-swap layer over the finished DOM plus `body[data-mode]` CSS, so the owning modules never change. `tests/e2e/featuretest.mjs` checks every feature in both; results are in `tests/e2e/results/`.
+`app/js/modes.js` implements Simple and Advanced (see `app/FEATURES.md`): a text-swap layer over the finished DOM plus `body[data-mode]` CSS, so the owning modules never change. `tests/features.test.mjs` checks every feature once per mode on the shared harness (`tests/browser.mjs`, saved data, no live server), with a strict pass rule: a check passes only by returning true, a string is a failure note, and a Simple-mode control that is meant to be hidden counts as hidden by design only after the check confirms it is hidden.
