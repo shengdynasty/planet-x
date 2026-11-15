@@ -6,7 +6,7 @@
 const STOP = new Set(('a an the is are was were be been do does did done i me my you your it its this that these those to of in on at for '
   + 'with and or but if so how what why when where which who whom can could would should will shall may might must there here about '
   + 'tell show give get make let please just any some much many very really thing things one ones by from as into than then them they '
-  + 'we our us have has had not no yes up out also more most all lot like want need know see look use using used am planet x').split(' '));
+  + 'we our us have has had not no yes up out also more most all lot like want need know see look use using used am planet x mean means work works made').split(' '));
 
 // words that mean the same here
 const SYN = {
@@ -16,6 +16,7 @@ const SYN = {
   p9: 'nine', '9': 'nine', ix: 'nine', planetx: 'planet', closeup: 'field', 'close-up': 'field', simulation: 'simulated', simulate: 'simulated', fake: 'simulated', practice: 'simulated',
   flip: 'blink', flipping: 'blink', blinking: 'blink', shortcuts: 'shortcut', hotkeys: 'shortcut', keys: 'shortcut', key: 'shortcut',
   examples: 'example', targets: 'target', movers: 'mover', moving: 'move', moved: 'move', moves: 'move', motion: 'move',
+  deep: 'depth', deeper: 'depth',
   discovered: 'discovery', discover: 'discovery', find: 'find',
 };
 

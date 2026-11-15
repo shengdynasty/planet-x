@@ -45,7 +45,7 @@ export const ENTRIES = [
     id: 'planet9',
     q: ['Can it find Planet Nine?', 'Could SPHEREx see Planet Nine?', 'Is Planet Nine bright enough?', 'Has it found Planet X?'],
     keys: ['nine', 'p9', 'bright', 'faint', 'depth', 'exposure', 'found'],
-    text: 'No. A Planet Nine-class body is below SPHEREx’s single-exposure depth. Our 7σ limit for one exposure is about AB 17.0–17.5 in the cleanest saved fields. A nominal 10 Earth-mass planet at 700 AU is 4–6.5 mag fainter than that, and even the most optimistic published model is 1.3–2.0 mag short. SPHEREx’s full depth needs all its passes added together, which works only once the body’s orbit is known. So the tool’s reach is nearer, larger or warmer bodies than Planet Nine, and nothing has been found.',
+    text: 'No. A Planet Nine-class body is below SPHEREx’s single-exposure depth. Our 7σ limit for one exposure is about AB 17.0–17.5 in the cleanest saved fields. A nominal 10 Earth-mass planet at 700 AU is 5–6.5 mag fainter than our 3–5 µm limits, and even the most optimistic published model is 1.3–2.0 mag short. SPHEREx’s full depth needs all its passes added together, which works only once the body’s orbit is known. So the tool’s reach is nearer, larger or warmer bodies than Planet Nine, and nothing has been found.',
     plain: 'No, not on its own. A Planet Nine-sized world would be too faint to show up in a single SPHEREx picture. The app can reach things that are closer, bigger or warmer, and nothing has been found so far.',
     actions: [{ type: 'help' }],
     sources: [SRC.can],
@@ -53,7 +53,7 @@ export const ENTRIES = [
   {
     id: 'can-find',
     q: ['What can the tool find?', 'What can it find?', 'How sensitive is it?', 'What is it good at?'],
-    keys: ['sensitive', 'recover', 'recovery', 'injection', 'reach', 'good'],
+    keys: ['sensitive', 'recover', 'recovery', 'injection', 'reach', 'good', 'accurate', 'accuracy', 'precise', 'error', 'position'],
     text: 'Measured by planting synthetic movers into real frames: within one pass it reports 80–91% of bodies at 300–1,000 AU that reach 12σ in a single exposure and move 18–90″, with a median position error of 0.9″ and no false movers on the six un-injected real pairs. Between passes it reports a source that vanished 91–97% of the time and a new source with no counterpart 76–93%; a cross-field linker joins the two halves. Anything beyond about 1,500 AU stays inside a 600″ cutout and is handled like any other mover.',
     plain: 'It is good at bright, fairly close movers: in tests where fake movers were added to real telescope pictures, it spotted most of the bright ones that moved a few pixels. Fainter or slower ones get missed.',
     sources: [SRC.can],

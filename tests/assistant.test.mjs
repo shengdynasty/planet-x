@@ -32,8 +32,12 @@ console.log('suggested questions reach their entries, in both modes');
 for (const [view, list] of Object.entries(SUGGESTIONS)) for (const s of list) for (const q of [s.q, s.plain].filter(Boolean))
   ok(match(q).entry?.id === s.id, `${view}: "${q}" → ${s.id}`);
 
+console.log('everyday questions are not caught by generic words');
+for (const [q, id] of [['what does 3.3 micron mean', 'wavelength'], ['how accurate are the positions', 'can-find']])
+  ok(match(q).entry?.id === id, `"${q}" → ${id} (got ${match(q).entry?.id || 'fallback'})`);
+
 console.log('honest fallback for questions the notes do not cover');
-for (const q of ['What is the weather in Paris?', 'Write me a poem about cats', 'How do I bake bread?', 'Who won the World Cup?', 'Is Pluto a planet?', 'Tell me a joke', 'asdf qwer', '', '   ', '???'])
+for (const q of ['What is the weather in Paris?', 'Write me a poem about cats', 'How do I bake bread?', 'Who won the World Cup?', 'Is Pluto a planet?', 'Tell me a joke', 'does it work on my phone', 'who made this', 'asdf qwer', '', '   ', '???'])
   ok(match(q).entry === null, `"${q}" is not covered`);
 {
   const r = await answer('What is the capital of France?', { mode: 'advanced' });
