@@ -49,6 +49,9 @@ export function mountSky(el, store, opts = {}) {
   const deepHost = document.createElement('div'); deepHost.className = 'sky-deep'; deepHost.setAttribute('aria-hidden', 'true');
   el.insertBefore(deepHost, renderer.domElement);
   const deep = createDeepZoom(deepHost, { onReady: () => kick() });
+  // Zoom counter: how far in we are, and which tile level is drawing.
+  const zoomEl = document.createElement('div'); zoomEl.className = 'sky-zoom'; zoomEl.setAttribute('aria-hidden', 'true'); el.appendChild(zoomEl);
+  let zoomTxt = '';
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(VIEW.home.fov, 1, 0.1, 2000);
   const home = yawPitchFor(VIEW.home.raH, VIEW.home.decD);
@@ -270,6 +273,7 @@ export function mountSky(el, store, opts = {}) {
     const mix = deep.update({ raDeg: raH * 15, decDeg: decD, fovV: camera.fov, aspect: camera.aspect });
     if (hd.update({ yaw, pitch, fovV: camera.fov, aspect: camera.aspect, heightPx: renderer.domElement.height })) moving = true;
     backdrop.mesh.material.transparent = true; backdrop.mesh.material.opacity = 1 - mix; backdrop.mesh.visible = mix < 0.999;
+    { const st = hd.stats ? hd.stats() : null, t = `Zoom \u00d7${(VIEW.home.fov / camera.fov).toFixed(1)} \u00b7 ${camera.fov.toFixed(2)}\u00b0 wide` + (st && st.state === 'ready' ? ` \u00b7 ${st.level ? ({ 3: '8k', 4: '16k', 5: '32k', 6: '64k' }[st.level] || 'L' + st.level) + ' sky' : '4k sky'}` : ''); if (t !== zoomTxt) { zoomTxt = t; zoomEl.textContent = t; } }
     const sc = camera.fov / 60;
     markerGroup.children.forEach(s => s.scale.set(36 * (TEX_W / 128) * sc, 36 * sc, 1)); // same aspect as the texture; 36 units tall ≈ 25 px type on an 800 px view
     renderer.render(scene, camera); frames++;

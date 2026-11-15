@@ -39,6 +39,8 @@ export function createHdTiles({ onChange = () => {}, low = false, bases = ['asse
   function pump() {
     while (inflight < maxLoads && wanted.length) {
       const e = wanted.shift(); if (e.status !== 'new') continue;
+      // a partial level (manifest.have[level] = ['col_row', ...]) only exists in places: do not ask for the rest
+      if (manifest.have && manifest.have[e.level] && !manifest.have[e.level].includes(`${e.col}_${e.row}`)) { e.status = 'missing'; continue; }
       e.status = 'loading'; inflight++;
       const img = new Image(); img.decoding = 'async'; img.crossOrigin = 'anonymous';
       img.onload = () => {

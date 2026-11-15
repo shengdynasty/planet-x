@@ -1,0 +1,26 @@
+/* Simple / Advanced mode (js/modes.js). Advanced is the unchanged app; everything here is scoped to data-mode="simple". */
+#mode-switch { height: 32px; display: inline-flex; align-items: center; flex: none; }
+#mode-switch button { height: 26px; padding-block: 0; }
+
+/* help sheet: one version per mode */
+body[data-mode="simple"] .adv-help { display: none; }
+body:not([data-mode="simple"]) .simple-help { display: none; }
+.simple-help h3 { margin-top: 18px; }
+.simple-help p, .simple-help li { font-size: 15px; line-height: 1.55; }
+
+/* controls that only make sense with coordinates or survey jargon */
+body[data-mode="simple"] #goto,
+body[data-mode="simple"] #readout,
+body[data-mode="simple"] #grid,
+body[data-mode="simple"] #tracks { display: none !important; }
+
+/* close-up: keep the pictures and the pass pickers, drop keyboard lists, spectrum, brightness stretch, server form */
+body[data-mode="simple"] .fv-keys,
+body[data-mode="simple"] .fv-spec,
+body[data-mode="simple"] .fv-stretch,
+body[data-mode="simple"] .fv-liveform,
+body[data-mode="simple"] .fv-readout { display: none !important; }
+
+/* movers list and compare: the technical facts */
+body[data-mode="simple"] .cx-band,
+body[data-mode="simple"] .cx-pos { display: none !important; }

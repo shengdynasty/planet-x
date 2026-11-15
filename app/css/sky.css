@@ -9,3 +9,5 @@ body:not([data-view="sky"]) #stage { visibility: hidden; }
 .sky-deep { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: #02030a; visibility: hidden; overflow: hidden; }
 .sky-deep .aladin-box, .sky-deep .aladin-logo-container, .sky-deep .aladin-popup-container, .sky-deep .aladin-reticle,
 .sky-deep .aladin-location, .sky-deep .aladin-fov, .sky-deep .aladin-status-bar { display: none !important; }
+
+.sky-zoom { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 3; pointer-events: none; padding: 4px 12px; border-radius: 999px; background: rgba(8,10,20,.72); color: #dfe6f5; font: 600 12px/1.4 system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
