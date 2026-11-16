@@ -8,6 +8,8 @@ Enter a position (or pick one of the built-in targets), and the app loads every 
 
 A glowing chat bubble in the bottom-left corner opens a small helper that answers common questions about the app (how parallax works, what the tool can and cannot find, where the data comes from, what the badge means) and can take you there: it switches views, opens an example field or flies the sky to it. Common questions are answered offline by an intent matcher over a short hand-written knowledge base drawn from the write-up, this README and the help sheet (`app/js/assistant/`). A question the knowledge base has no entry for goes to Gemini through Firebase AI Logic, with that knowledge base as its only context; the reply is tagged "AI answer" and says it can be wrong. When Gemini is unreachable or the notes don't cover the question, the helper says so and offers the help sheet instead of guessing.
 
+**The project is finished: start with [docs/HANDOFF.md](docs/HANDOFF.md)** for what exists, where it lives and what is left.
+
 **Live demo:** https://shengdynasty.github.io/planet-x/ (real SPHEREx data for the six built-in targets, saved in the repo; any other position needs the local server below)
 
 > **Status:** hackathon prototype. The badge in the top bar always says what you are looking at: **Live · SPHEREx** (the local server fetches any position from IRSA), **Saved SPHEREx data** (real frames, known objects and Gaia stars for the six example targets, saved in `app/data/snapshots/` on the date in the badge's tooltip), or **Simulated data** (placeholder scans and movers, labelled as such).
