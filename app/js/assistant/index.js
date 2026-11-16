@@ -65,10 +65,15 @@ export function mountAssistant(el, store, { answer = defaultAnswer } = {}) {
   async function ask(question) {
     const q = String(question || '').trim(); if (!q) return;
     log.append(h('p', 'as-msg as-q', q));
+    // the notes answer at once; a question for Gemini takes a second or two, so say so if the answer isn't back quickly
+    const wait = h('p', 'as-msg as-a as-wait', 'Thinking…');
+    const waitTimer = setTimeout(() => { log.append(wait); scrollEnd(); }, 200);
     let res;
     try { res = await answer(q, { mode: mode(), view: store.get('view'), source: store.get('source') }); }
     catch (err) { console.warn('[planet-x] assistant:', err); res = { text: 'Something went wrong answering that. The help sheet covers the app.', actions: [{ type: 'help' }], sources: [] }; }
+    finally { clearTimeout(waitTimer); wait.remove(); }
     const msg = h('div', 'as-msg as-a'); msg.dataset.answer = res.id || '';
+    if (res.ai) { msg.dataset.ai = '1'; msg.append(h('span', 'as-tag', 'AI answer')); }
     msg.append(h('p', null, res.text));
     if (res.actions && res.actions.length) {
       const row = h('div', 'as-acts');

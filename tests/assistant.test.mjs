@@ -91,5 +91,46 @@ console.log('honesty rule: no detections, no discoveries, limits stated');
 console.log('tokens');
 ok(tokens('Can it find Planet 9?').includes('nine') && tokens('close-up pictures').join(' ') === 'field image', 'synonyms and plurals fold together');
 
+console.log('Gemini answerer (a stand-in for Gemini: offline)');
+{
+  const { hybridAnswerer, AI_SOURCE } = await imp('app/js/assistant/answer.js');
+  const g = await imp('app/js/assistant/gemini.js');
+  const OFF_TOPIC = 'What is the capital of France?';
+  const calls = [];
+  const stub = reply => async (q, opts) => { calls.push({ q, opts }); if (reply instanceof Error) throw reply; return reply; };
+  ok((await intentAnswerer()(OFF_TOPIC)).id === 'fallback', 'the test question is one the notes have no entry for');
+
+  let a = hybridAnswerer({ gemini: stub('Paris is not in my notes.'), allowed: () => true });
+  let r = await a('How does parallax work?', { mode: 'advanced' });
+  ok(r.id === 'parallax' && !r.ai && calls.length === 0, 'a question the notes cover is answered from them and Gemini is not asked');
+  r = await a(OFF_TOPIC, { mode: 'advanced', view: 'sky' });
+  ok(r.id === 'ai' && r.ai === true && r.text === 'Paris is not in my notes.' && r.actions.length === 0 && r.sources[0] === AI_SOURCE, 'a question the notes miss goes to Gemini, marked as an AI answer with its source');
+  ok(calls.length === 1 && calls[0].opts.entries.length === ENTRIES.length && calls[0].opts.context.view === 'sky', 'Gemini gets the question, every note and the context');
+  ok(/can be wrong/.test(AI_SOURCE), 'the AI source line says it can be wrong');
+
+  for (const [why, reply] of [['replies that the notes do not cover it', null], ['fails (offline, quota or timeout)', new Error('quota')]]) {
+    r = await hybridAnswerer({ gemini: stub(reply), allowed: () => true })(OFF_TOPIC, { mode: 'advanced' });
+    ok(r.id === 'fallback' && r.actions.some(x => x.type === 'help'), `when Gemini ${why}, the offline "not in my notes" answer is given`);
+  }
+  const before = calls.length;
+  r = await hybridAnswerer({ gemini: stub('x'), allowed: () => false })(OFF_TOPIC, { mode: 'simple' });
+  ok(r.id === 'fallback' && calls.length === before, 'switched off (tests, ?ai=off): Gemini is never asked');
+  ok(g.geminiAllowed() === false && (await answer(OFF_TOPIC)).id === 'fallback', 'outside a browser it is off, so the default answerer stays offline here');
+
+  ok(g.cleanAnswer('NOT_IN_NOTES') === null && g.cleanAnswer('  ') === null, '"not in my notes" and empty replies are not shown');
+  ok(g.cleanAnswer('**Parallax** is the `shift`.') === 'Parallax is the shift.', 'markdown is stripped to plain text');
+  ok(g.cleanAnswer('Passes come from spherex_dr1 and spherex_qr3.') === 'Passes come from spherex_dr1 and spherex_qr3.', 'underscores in release names survive');
+  ok(g.cleanAnswer('We discovered a new planet in this field.') === null && g.cleanAnswer('The app has found Planet Nine.') === null, 'a claim that a planet was found is never shown');
+  ok(g.cleanAnswer('The app has not found Planet Nine; it lists candidates.') !== null, 'saying it has not found one is fine');
+  ok(g.cleanAnswer('The detector arrays see 102 bands.', { mode: 'advanced' }) !== null && g.cleanAnswer('It can detect asteroids.', { mode: 'simple' }) === null, '"detect" is dropped only in Simple mode, like the notes');
+  ok(g.cleanAnswer('word '.repeat(400)).length <= 901, 'a runaway reply is cut short');
+
+  const sys = g.systemInstruction(ENTRIES, { mode: 'advanced', view: 'sky', source: 'snapshot' });
+  ok(ENTRIES.every(e => sys.includes(`[${e.id}] `)) && !/=>|function\s*\(/.test(sys), 'the instruction carries every note, with context-dependent notes resolved to text');
+  ok(sys.includes(g.NOT_IN_NOTES) && /only the notes/.test(sys) && /Never say that the app or the team discovered/.test(sys), 'and the rules: only the notes, say when they do not cover it, never claim a discovery');
+  ok(/plain words/.test(g.promptFor('q', { mode: 'simple' })) && !/plain words/.test(g.promptFor('q', { mode: 'advanced' })) && /Question: q$/.test(g.promptFor('q', {})), 'the question goes last, with a plain-words request in Simple mode only');
+  ok(g.MODEL === 'gemini-3.5-flash-lite' && g.FIREBASE_CONFIG.projectId === 'planet-x-spherex' && /^https:\/\/www\.gstatic\.com\/firebasejs\/\d+\.\d+\.\d+\/$/.test(g.SDK_BASE), 'model, project and a pinned SDK version');
+}
+
 console.log(`\n${passes} passed, ${failures} failed`);
 process.exit(failures ? 1 : 0);

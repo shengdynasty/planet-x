@@ -6,7 +6,7 @@ SPHEREx looks about 90° from the Sun and re-maps the whole sky every six months
 
 Enter a position (or pick one of the built-in targets), and the app loads every SPHEREx pass of that patch at a matching wavelength, plays them like a little video, blinks or subtracts any two, overlays Gaia stars and the SPHEREx pipeline's own bad-pixel flags, and names what it recognises. Any flagged source can be shown in DSS2, 2MASS and AllWISE images and exported as a one-page follow-up report, and the whole-sky view stays sharp when zoomed in, streamed from NASA's star map. New SPHEREx releases need no code change: each pass names its release, a new release can be typed in the day IRSA publishes it, and a field saved as one file opens on any copy of the app, including the hosted one. For any star, the Field view measures a spectrum on the fly: its brightness in every SPHEREx exposure that covers it, at the wavelength each one saw. A **Simple** switch in the top bar swaps the technical terms for plain words and hides the astronomer's controls; **Advanced** (the default) is the app as described here.
 
-A glowing chat bubble in the bottom-left corner opens a small helper that answers common questions about the app (how parallax works, what the tool can and cannot find, where the data comes from, what the badge means) and can take you there: it switches views, opens an example field or flies the sky to it. It runs fully offline: an intent matcher over a short hand-written knowledge base drawn from the write-up, this README and the help sheet (`app/js/assistant/`). When a question isn't covered it says so and offers the help sheet instead of guessing.
+A glowing chat bubble in the bottom-left corner opens a small helper that answers common questions about the app (how parallax works, what the tool can and cannot find, where the data comes from, what the badge means) and can take you there: it switches views, opens an example field or flies the sky to it. Common questions are answered offline by an intent matcher over a short hand-written knowledge base drawn from the write-up, this README and the help sheet (`app/js/assistant/`). A question the knowledge base has no entry for goes to Gemini through Firebase AI Logic, with that knowledge base as its only context; the reply is tagged "AI answer" and says it can be wrong. When Gemini is unreachable or the notes don't cover the question, the helper says so and offers the help sheet instead of guessing.
 
 **Live demo:** https://shengdynasty.github.io/planet-x/ (real SPHEREx data for the six built-in targets, saved in the repo; any other position needs the local server below)
 
@@ -38,6 +38,14 @@ With the server running, the badge in the top bar switches from **Saved SPHEREx 
 ## For the team
 
 Everything below works on macOS, Linux and Windows (use `py` instead of `python3` on Windows if needed).
+
+### Helper AI: Firebase project
+
+The helper's Gemini answers come from the Firebase project `planet-x-spherex` (no-cost Spark plan, Gemini Developer API, model `gemini-3.5-flash-lite`), set up in `app/js/assistant/gemini.js`. The web config and the reCAPTCHA Enterprise site key in that file are public by design. App Check uses Fraud Defense (formerly reCAPTCHA Enterprise) with a key for `shengdynasty.github.io` and `localhost`; it is registered but not enforced yet, and Firebase enforces it for AI Logic on 21 January 2027. Enforce it earlier in the Firebase console (App Check, APIs, Firebase AI Logic) once its metrics show verified requests from the hosted copy.
+
+- Only questions the knowledge base has no entry for are sent, and only their text; the SDK loads from Google's CDN on the first such question, never on page load.
+- `?ai=off` switches Gemini off; it is also off under browser automation, so the test suites stay offline, and `?ai=on` forces it on there.
+- Any failure (offline, quota, timeout) gives the offline "not in my notes" answer.
 
 ### 1. Set up once
 
@@ -195,4 +203,5 @@ node tests/live.test.mjs                            # live mode against :8787   
 - Run-time libraries, loaded from public CDNs and not part of this repository: three.js (MIT) and Aladin Lite (CDS, GPL/LGPL).
 - Licence: the team's code, tests and documentation are released under the MIT License (see `LICENSE`). It does not cover the data, imagery and libraries above, which keep their own terms and credits; the saved SPHEREx fields in `app/data/snapshots/` are derived from the IRSA, JPL and Gaia data and carry the same provenance. The sky imagery is used under NASA's media usage guidelines, with no NASA endorsement implied.
 - AI assistance: the code, tests and documentation in this repository were written with Claude (Anthropic) as a coding assistant, working from the team's direction and reviewed, run and verified by the team. The science choices, data sources, test results and conclusions are the team's.
+- AI in the app: the helper behind the chat bubble sends questions its hand-written notes don't answer to Gemini (Google) through Firebase AI Logic, with those notes as its only context. Its replies are tagged "AI answer"; everything else in the app, including every science result, is computed by our own code.
 - Team: Sheng Yan, Aaryan Jain, Arko Ganguly, Nidhish Senthilkumar, Tejas Konduru, Hardik Jain

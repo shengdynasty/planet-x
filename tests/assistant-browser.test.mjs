@@ -151,6 +151,46 @@ console.log('Simple mode, dark');
   await ctx.close();
 }
 
+console.log('Gemini answerer');
+{
+  const OFF_TOPIC = 'What is the capital of France?';
+  // under automation Gemini is off: a question the notes miss gets the offline answer and nothing goes to Google
+  const { ctx, page, errors } = await open();
+  const google = []; page.on('request', r => { if (/gstatic\.com\/firebasejs|googleapis\.com|google\.com\/recaptcha/.test(r.url())) google.push(r.url()); });
+  await page.click('#ask'); await ask(page, OFF_TOPIC); await page.waitForTimeout(300);
+  { const a = await lastAnswer(page); ok(a && a.id === 'fallback' && !/AI answer/.test(a.text), 'under automation, a question the notes miss gets the offline "not in my notes" answer'); }
+  ok(google.length === 0, `and nothing is requested from Google (${google.length})`);
+  ok(errors.length === 0, `no page errors (${errors.join(' | ')})`);
+  await ctx.close();
+}
+{
+  // ?ai=on with a stand-in for the Firebase SDK (no network): the reply is shown as an AI answer with its source
+  const OFF_TOPIC = 'What is the capital of France?';
+  const js = body => ({ status: 200, contentType: 'text/javascript', headers: { 'Access-Control-Allow-Origin': '*' }, body });
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await ctx.route(/(localhost|127\.0\.0\.1):8787/, r => r.abort());
+  await ctx.route(/gstatic\.com\/firebasejs\/[\d.]+\/firebase-app\.js/, r => r.fulfill(js('export function initializeApp(c, n) { return { c, n }; }')));
+  await ctx.route(/gstatic\.com\/firebasejs\/[\d.]+\/firebase-app-check\.js/, r => r.fulfill(js('export function initializeAppCheck() { window.__appCheck = true; } export class ReCaptchaEnterpriseProvider { constructor(k) { window.__siteKey = k; } }')));
+  await ctx.route(/gstatic\.com\/firebasejs\/[\d.]+\/firebase-ai\.js/, r => r.fulfill(js('export class GoogleAIBackend {} export function getAI() { return {}; } export function getGenerativeModel(ai, o) { window.__ai = o; return { generateContent: async p => { window.__prompt = p; await new Promise(res => setTimeout(res, 600)); return { response: { text: () => "**Paris**, but that is not about this app." } }; } }; }')));
+  const page = await ctx.newPage(), errors = []; page.on('pageerror', e => errors.push(String(e)));
+  await page.goto(URL_ + '?ai=on'); await page.waitForFunction(() => document.documentElement.dataset.ready === 'true', null, { timeout: 30000 });
+  await page.click('#ask'); await ask(page, OFF_TOPIC);
+  await page.waitForTimeout(250);
+  ok(await page.locator('#assistant .as-wait').count() === 1, 'a slow answer shows "Thinking…" while it waits');
+  await page.waitForFunction(() => document.querySelector('#assistant .as-a[data-ai="1"]'), null, { timeout: 5000 }).catch(() => {});
+  const r = await page.evaluate(() => { const a = document.querySelector('#assistant .as-a[data-ai="1"]'); return a && { id: a.dataset.answer, tag: a.querySelector('.as-tag')?.textContent, text: a.querySelector('p')?.textContent, src: a.querySelector('.as-src')?.textContent }; });
+  ok(r && r.id === 'ai' && r.tag === 'AI answer' && r.text === 'Paris, but that is not about this app.', `the reply is shown plainly, tagged "AI answer" (${r && r.text})`);
+  ok(r && /Gemini/.test(r.src) && /can be wrong/.test(r.src), 'its source line names Gemini and says it can be wrong');
+  ok(await page.locator('#assistant .as-wait').count() === 0, '"Thinking…" is gone once it answers');
+  const sent = await page.evaluate(() => ({ model: window.__ai && window.__ai.model, sys: window.__ai && window.__ai.systemInstruction, prompt: window.__prompt, key: window.__siteKey, check: window.__appCheck }));
+  ok(sent.model === 'gemini-3.5-flash-lite' && /NOTES:/.test(sent.sys) && /\[parallax\] /.test(sent.sys) && /Question: What is the capital of France\?$/.test(sent.prompt), 'Gemini gets the notes as its instruction and the question last');
+  ok(sent.check === true && /^6L/.test(sent.key || ''), 'App Check is set up with the Fraud Defense site key');
+  await ask(page, 'How does parallax work?'); await page.waitForTimeout(200);
+  { const a = await lastAnswer(page); ok(a && a.id === 'parallax', 'a question the notes cover still gets the hand-checked answer'); }
+  ok(errors.length === 0, `no page errors (${errors.join(' | ')})`);
+  await ctx.close();
+}
+
 await browser.close();
 console.log(`\n${passes} passed, ${failures} failed`);
 process.exit(failures ? 1 : 0);

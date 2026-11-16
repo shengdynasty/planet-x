@@ -120,7 +120,10 @@ The code, tests and documentation in this repository were written with Claude (A
 working from the team's direction and reviewed, run and verified by the team; every claim above is backed by a test
 or script in the repository that anyone can rerun. The science choices, data sources, test results and conclusions
 are the team's. No AI-generated images, audio or video are used: every picture in the app is NASA or ESA data or drawn
-from it by our code. The same disclosure is in the README credits.
+from it by our code. In the app itself, the helper behind the chat bubble sends questions its hand-written notes don't
+answer to Gemini (Google) through Firebase AI Logic, with those notes as its only context; those replies are tagged
+"AI answer" and say they can be wrong. Every science result is computed by our own code. The same disclosure is in the
+README credits.
 
 ## Team
 

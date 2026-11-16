@@ -43,6 +43,9 @@ body:not([data-view="sky"]) { --as-fab-bottom: calc(env(safe-area-inset-bottom, 
 .as-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .as-acts button { text-align: left; line-height: 1.3; }
 .as-src { margin-top: 6px !important; font-size: 11px; color: var(--ink-3); }
+.as-wait { color: var(--ink-3); font-style: italic; }
+.as-tag { display: inline-block; margin-bottom: 4px; padding: 0 5px; border: 1px solid var(--edge); border-radius: 4px; font-size: 10.5px; letter-spacing: .02em; color: var(--ink-2); }
+.as-a .as-tag + p { color: var(--ink); }
 
 .as-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px; border-top: 1px solid var(--edge); }
 .as-chip { border-radius: 999px; padding: 6px 10px; color: var(--ink-2); line-height: 1.3; text-align: left; }
