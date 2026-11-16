@@ -2,7 +2,7 @@
 
 Paste-ready text for the submission form, one block per field, condensed from `docs/WRITEUP.md` (which stays the full
 account). Every number here is measured in this repository and reproducible with the commands in README §5. Fill the
-two placeholders before submitting: **[Team member names]** and **[Video link]**.
+the one placeholder left before submitting: **[Video link]**.
 
 ---
 
@@ -124,4 +124,4 @@ from it by our code. The same disclosure is in the README credits.
 
 ## Team
 
-[Team member names]
+Sheng Yan, Aaryan Jain, Arko Ganguly, Nidhish Senthilkumar, Tejas Konduru
