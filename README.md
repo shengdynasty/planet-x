@@ -101,7 +101,7 @@ Then commit the files; `main` deploys to GitHub Pages. `?data=sim` on the app UR
 The hosted copy's measured spectra are saved the same way, one per example target (the moving 16 Psyche excepted), with the server running:
 
 ```sh
-node scripts/save-spectra.mjs         # writes app/data/spectra/ (refuses an incomplete spectrum or one with under 10 points)
+node scripts/save-spectra.mjs --stars 4   # writes app/data/spectra/: each target, and the 4 brightest suitable stars of each field
 ```
 
 ### 3. The Python backend
