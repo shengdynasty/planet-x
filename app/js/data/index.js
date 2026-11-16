@@ -480,7 +480,9 @@ export async function getSpectrum({ ra, dec, pmra, pmdec, epoch, near, signal } 
   if (mode !== 'snapshot') throw new Error('Simulated data has no SPHEREx spectrum');
   const [nra, ndec] = Array.isArray(near) && near.every(Number.isFinite) ? near : [ra, dec]; // where it is in the field: a fast star's catalogue position can be far off
   const list = await savedSpectra(), hit = findSavedSpectrum(list, nra, ndec);
-  if (!hit) throw new Error(list.length ? `Spectra are saved for ${list.map(s => s.label).join(', ')} only. Run the local data server to measure any star.` : 'No spectra are saved for the hosted copy yet. Run the local data server to measure any star.');
+  if (!hit) throw new Error(!list.length ? 'No spectra are saved for the hosted copy yet. Run the local data server to measure any star.'
+    : list.length > 6 ? 'On this copy, spectra are saved for each example’s target and a few of the brightest stars in its field (ringed while you pick). Run the local data server to measure any star.'
+    : `Spectra are saved for ${list.map(s => s.label).join(', ')} only. Run the local data server to measure any star.`);
   const t = AbortSignal.timeout(60000), r = await fetch(spectraBase() + hit.file, { signal: signal ? (AbortSignal.any ? AbortSignal.any([t, signal]) : signal) : t });
   if (!r.ok) throw new Error(`The saved spectrum could not be loaded (HTTP ${r.status})`);
   return { ...(await r.json()), source: 'saved', savedLabel: hit.label };

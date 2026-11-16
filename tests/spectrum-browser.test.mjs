@@ -54,6 +54,8 @@ console.log("hosted copy: the saved Barnard's Star field");
 
   await page.click('[data-act="specpick"]');
   ok(await page.getAttribute('[data-act="specpick"]', 'aria-pressed') === 'true' && await page.locator('.fv-stage.fv-picking').count() === 1, 'Pick a star turns picking on (crosshair)');
+  await page.waitForFunction(() => document.getElementById('view-field').__fv.state.savedSpots === 1, null, { timeout: 10000 }).catch(() => {});
+  ok(await page.evaluate(() => document.getElementById('view-field').__fv.state.savedSpots) === 1, 'the saved spectrum in this field is ringed while picking (the spectrum already shown keeps its status line)');
   const box = await page.locator('.fv-ov').boundingBox();
   await page.mouse.click(box.x + box.width * 0.08, box.y + box.height * 0.08);
   await page.waitForFunction(() => /saved for/.test(document.querySelector('[data-ref="specstatus"]').textContent), null, { timeout: 10000 }).catch(() => {});

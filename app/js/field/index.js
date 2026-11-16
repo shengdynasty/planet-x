@@ -1,7 +1,7 @@
 // Field analysis view: the Moving Sky experience inside the app (blink / difference / track a patch of sky,
 // vet what moved, send candidates to the review list). Mounts into <section id="view-field">.
 // Talks to the rest of the app only through the store (view, field, candidates, selectedId; flyto, toast).
-import { simulateField, analyse, detect, diff, maxStack, meanStack, radec, fmtDt, fmtRA, fmtDec, spectrum, dist, psfModel } from '../pipeline/index.js';
+import { simulateField, analyse, detect, diff, maxStack, meanStack, radec, pixel, fmtDt, fmtRA, fmtDec, spectrum, dist, psfModel } from '../pipeline/index.js';
 import { drawImage, drawStamp, drawOverlay, glyph, KIND_NAME } from './render.js';
 import { fixedSource, spectrumSVG, spectrumCaption, spectrumSummary, spectrumCSV } from './spectrum.js';
 import { parseCentre } from '../sky/coords.js';
@@ -174,7 +174,7 @@ export function mountField(el, store) {
 
   let field = null, A = 0, B = 0, mode = 'blink', showMarks = true, showKnown = false, showStars = false, showBad = false, stretch = 1, stackAll = false;
   let blinkPhase = 0, playIdx = 0, selected = null, results = [], timer = null, shown = null, loadSeq = 0, loadedFor;
-  let specPicking = false, specCtl = null, specData = null, specSeq = 0, specTimer = null; // measured spectra (see ---------- spectra)
+  let specPicking = false, specCtl = null, specData = null, specSeq = 0, specTimer = null, savedSpots = []; // measured spectra (see ---------- spectra)
   const reducedMQ = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false, addEventListener() {} };
   const visible = () => store.get('view') === 'field';
 
@@ -589,7 +589,7 @@ export function mountField(el, store) {
     const stars = showStars && field.stars ? field.stars.map(s => { const [x, y] = s.pos(t); return { x, y, g: s.g }; }) : null;
     const fi = mode === 'blink' ? (blinkPhase % 2 === 1 ? B : A) : mode === 'diff' ? B : mode === 'play' ? playFrame() : null;
     const flags = showBad && fi != null && typeof field.flags === 'function' ? field.flags(fi) : null;
-    drawOverlay(ov, { N: field.N, dpr, results: matched && mode !== 'play' ? results : [], selected, showMarks, showKnown, knownPts, showStars, stars, showBad, flags, flagBits: field.flagBits || null });
+    drawOverlay(ov, { N: field.N, dpr, results: matched && mode !== 'play' ? results : [], selected, showMarks, showKnown, knownPts, showStars, stars, showBad, flags, flagBits: field.flagBits || null, spots: specPicking ? savedSpots : null });
   }
   /** Frames at the reference pass's wavelength in time order: what Play cycles through. */
   const playSeq = () => { const E = field.epochs, band = E[A].band, s = E.map((e, i) => i).filter(i => E[i].band === band); s.sort((i, j) => E[i].t - E[j].t); return s.length ? s : [A]; };
@@ -797,7 +797,22 @@ export function mountField(el, store) {
   function setPicking(on) {
     specPicking = !!on && !!field && !field.simulated;
     $('specpick').setAttribute('aria-pressed', String(specPicking)); $('stage').classList.toggle('fv-picking', specPicking);
-    if (specPicking) announce('Click a star in the image to measure its spectrum. Esc stops picking.');
+    if (specPicking) { announce('Click a star in the image to measure its spectrum. Esc stops picking.'); loadSavedSpots(); }
+    renderOverlay(); // the saved-spectrum rings come and go with picking
+  }
+  /** Where this copy has saved spectra inside the field (hosted copy only: a data server measures anywhere), ringed while picking. */
+  async function loadSavedSpots() {
+    const f = field; savedSpots = [];
+    if (!f || f.simulated || !snapshotSource()) return;
+    if (!dataMod) dataMod = await import('../data/index.js');
+    const list = typeof dataMod.savedSpectra === 'function' ? await dataMod.savedSpectra() : [];
+    if (f !== field) return;
+    savedSpots = list.map(s => { const [x, y] = pixel(f, s.ra, s.dec); return { x, y }; }).filter(p => p.x >= 0 && p.y >= 0 && p.x < f.N && p.y < f.N);
+    if (!specPicking) return;
+    renderOverlay();
+    if (!specData) $('specstatus').textContent = savedSpots.length
+      ? `Click a star. On this copy the ${savedSpots.length} ringed star${savedSpots.length === 1 ? ' has a saved spectrum' : 's have saved spectra'}; the data server measures any star.`
+      : 'Click a star. No spectra are saved in this field on this copy; the data server measures any star.';
   }
   function resetSpectrum() {
     specSeq++; if (specCtl) specCtl.abort(); specCtl = null; clearInterval(specTimer); specTimer = null; specData = null; setPicking(false);
@@ -870,7 +885,7 @@ export function mountField(el, store) {
   renderData();
 
   const handle = el.__fv = { // handle for tests / the dev page
-    get state() { return { A, B, mode, playIdx, showStars, showBad, selected, results, field, loading, knownState }; },
+    get state() { return { A, B, mode, playIdx, showStars, showBad, selected, results, field, loading, knownState, savedSpots: savedSpots.length, specPicking }; },
     setPair(a, b) { A = a; B = b; update(); },
   };
   return handle;

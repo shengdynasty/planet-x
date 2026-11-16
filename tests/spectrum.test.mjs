@@ -128,3 +128,19 @@ test('simulated data has no SPHEREx spectrum', async () => {
   try { const store = await freshStore(), data = await dataModule('http://127.0.0.1:9'); await data.initData(store); await assert.rejects(data.getSpectrum({ ra: 10, dec: 20 }), /Simulated data has no SPHEREx spectrum/); }
   finally { delete globalThis.PLANETX_DATA; }
 });
+
+test('hosted copy with many saved spectra: a miss explains them in one sentence, not a list of names', async () => {
+  const index = { spectra: Array.from({ length: 8 }, (_, i) => ({ id: 's' + i, label: 'Star ' + i, ra: 100 + i, dec: 10, file: 's.json' })) };
+  const srv = http.createServer((req, res) => {
+    const p = decodeURIComponent(req.url.split('?')[0]);
+    if (p === '/spec/index.json') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(index)); }
+    const f = normalize(join(ROOT, 'app/data/snapshots', p.replace(/^\/snap\//, '')));
+    if (p.startsWith('/snap/') && f.startsWith(join(ROOT, 'app/data/snapshots')) && existsSync(f)) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(readFileSync(f)); }
+    res.writeHead(404); res.end('{}');
+  });
+  const base = await listen(srv); globalThis.PLANETX_SNAPSHOTS = base + '/snap/'; globalThis.PLANETX_SPECTRA = base + '/spec/';
+  try {
+    const store = await freshStore(), data = await dataModule('http://127.0.0.1:9'); await data.initData(store);
+    await assert.rejects(data.getSpectrum({ ra: 50, dec: 50 }), /^Error: On this copy, spectra are saved for each example’s target and a few of the brightest stars in its field \(ringed while you pick\)\./);
+  } finally { srv.close(); delete globalThis.PLANETX_SNAPSHOTS; delete globalThis.PLANETX_SPECTRA; }
+});

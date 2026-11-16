@@ -66,7 +66,7 @@ function label(g, text, x, y, col, fs) {
 /**
  * Draw markers onto the overlay canvas (sized to the displayed image × devicePixelRatio).
  * opts: {N, results, selected, showMarks, showKnown, knownPts: [[x,y],...] | [{x,y,name}],
- *        showStars?, stars?: [{x,y,g}], showBad?, flags?: Uint32Array, flagBits?: {names, hard, soft}}
+ *        showStars?, stars?: [{x,y,g}], showBad?, flags?: Uint32Array, flagBits?: {names, hard, soft}, spots?: [{x,y}]}
  */
 export function drawOverlay(canvas, o) {
   const g = canvas.getContext('2d'), W = canvas.width, dpr = o.dpr || 1, css = W / dpr;
@@ -87,6 +87,12 @@ export function drawOverlay(canvas, o) {
     g.strokeStyle = 'rgba(150, 185, 255, .85)'; g.lineWidth = 1 * k; g.setLineDash([]);
     for (const s of o.stars) { if (s.x < -1 || s.y < -1 || s.x > o.N + 1 || s.y > o.N + 1) continue;
       const r = Math.min(7, 2.2 + Math.max(0, 16 - s.g) * 0.5) * k; g.beginPath(); g.arc(P(s.x), P(s.y), r, 0, Math.PI * 2); g.stroke(); }
+  }
+  // Saved spectra on the hosted copy, while picking a star: dashed white rings where clicking finds one.
+  if (o.spots && o.spots.length) {
+    g.setLineDash([3 * k, 3 * k]); g.lineWidth = 1.6 * k; g.strokeStyle = 'rgba(255, 255, 255, .95)';
+    for (const s of o.spots) { g.beginPath(); g.arc(P(s.x), P(s.y), 12 * k, 0, Math.PI * 2); g.stroke(); }
+    g.setLineDash([]);
   }
   // Ephemeris circles carry the object's name (knownPts: [x, y] or {x, y, name}).
   if (o.showKnown) for (const q of o.knownPts) {
