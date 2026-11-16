@@ -16,7 +16,10 @@ export const FIREBASE_CONFIG = Object.freeze({
   appId: '1:145152994011:web:a1063f3a0d7fbb4672fafe',
 });
 export const RECAPTCHA_SITE_KEY = '6LdA7iEuAAAAAEaFMJAMtnT0x6LUuG41LKHRdBYh';
-export const MODEL = 'gemini-3.5-flash-lite'; // answered in under a second when tried; gemini-2.5-flash is retired here
+// gemini-3.5-flash with low thinking answered paraphrased questions from the notes precisely in 1–7 s and declined
+// off-topic ones; flash-lite was faster but vaguer and often declined questions the notes cover. gemini-2.5-flash is retired.
+export const MODEL = 'gemini-3.5-flash';
+export const THINKING_LEVEL = 'LOW';
 export const SDK_BASE = 'https://www.gstatic.com/firebasejs/13.3.0/';
 export const TIMEOUT_MS = 15000;
 export const NOT_IN_NOTES = 'NOT_IN_NOTES';
@@ -38,8 +41,9 @@ export function systemInstruction(entries, context = {}) {
   const notes = entries.map(e => `[${e.id}] ${resolve(e.text, context)}`).join('\n');
   return [
     'You are the in-app helper of Planet X, a web app built for the NASA Space Apps 2026 challenge "Planet X and SPHEREx".',
-    "Answer the user's question using only the notes below, which are the app's own documentation.",
-    `If the notes do not answer it, or it is not about the app, astronomy or the challenge, reply with exactly ${NOT_IN_NOTES} and nothing else.`,
+    "The notes below are the app's own documentation; answer the user's question from them.",
+    'Answer whenever any note is relevant, even if the question uses different words or the notes answer it only in part. Say only what the notes support.',
+    `Reply with exactly ${NOT_IN_NOTES} only if no note relates to the question at all, or it is not about the app, SPHEREx, astronomy or the challenge.`,
     'Keep it short: at most three sentences of plain text, with no markdown, lists or links.',
     'Never say that the app or the team discovered or confirmed a planet or any new object: the app finds candidates for people to check.',
     'Use only numbers that appear in the notes.',
@@ -95,7 +99,7 @@ export async function askGemini(question, { entries, context = {} } = {}) {
   const model = getGenerativeModel(ai, {
     model: MODEL,
     systemInstruction: systemInstruction(entries, context),
-    generationConfig: { maxOutputTokens: 512, temperature: 0.2 },
+    generationConfig: { maxOutputTokens: 1024, temperature: 0.2, thinkingConfig: { thinkingLevel: THINKING_LEVEL } },
   });
   let timer;
   const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Gemini timed out')), TIMEOUT_MS); });

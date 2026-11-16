@@ -127,9 +127,9 @@ console.log('Gemini answerer (a stand-in for Gemini: offline)');
 
   const sys = g.systemInstruction(ENTRIES, { mode: 'advanced', view: 'sky', source: 'snapshot' });
   ok(ENTRIES.every(e => sys.includes(`[${e.id}] `)) && !/=>|function\s*\(/.test(sys), 'the instruction carries every note, with context-dependent notes resolved to text');
-  ok(sys.includes(g.NOT_IN_NOTES) && /only the notes/.test(sys) && /Never say that the app or the team discovered/.test(sys), 'and the rules: only the notes, say when they do not cover it, never claim a discovery');
+  ok(sys.includes(g.NOT_IN_NOTES) && /answer the user's question from them/.test(sys) && /Answer whenever any note is relevant/.test(sys) && /only if no note relates/.test(sys) && /Never say that the app or the team discovered/.test(sys), 'and the rules: answer from the notes whenever one is relevant, decline only when none is, never claim a discovery');
   ok(/plain words/.test(g.promptFor('q', { mode: 'simple' })) && !/plain words/.test(g.promptFor('q', { mode: 'advanced' })) && /Question: q$/.test(g.promptFor('q', {})), 'the question goes last, with a plain-words request in Simple mode only');
-  ok(g.MODEL === 'gemini-3.5-flash-lite' && g.FIREBASE_CONFIG.projectId === 'planet-x-spherex' && /^https:\/\/www\.gstatic\.com\/firebasejs\/\d+\.\d+\.\d+\/$/.test(g.SDK_BASE), 'model, project and a pinned SDK version');
+  ok(g.MODEL === 'gemini-3.5-flash' && g.THINKING_LEVEL === 'LOW' && g.FIREBASE_CONFIG.projectId === 'planet-x-spherex' && /^https:\/\/www\.gstatic\.com\/firebasejs\/\d+\.\d+\.\d+\/$/.test(g.SDK_BASE), 'model, project and a pinned SDK version');
 }
 
 console.log(`\n${passes} passed, ${failures} failed`);

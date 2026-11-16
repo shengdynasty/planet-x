@@ -182,8 +182,8 @@ console.log('Gemini answerer');
   ok(r && r.id === 'ai' && r.tag === 'AI answer' && r.text === 'Paris, but that is not about this app.', `the reply is shown plainly, tagged "AI answer" (${r && r.text})`);
   ok(r && /Gemini/.test(r.src) && /can be wrong/.test(r.src), 'its source line names Gemini and says it can be wrong');
   ok(await page.locator('#assistant .as-wait').count() === 0, '"Thinking…" is gone once it answers');
-  const sent = await page.evaluate(() => ({ model: window.__ai && window.__ai.model, sys: window.__ai && window.__ai.systemInstruction, prompt: window.__prompt, key: window.__siteKey, check: window.__appCheck }));
-  ok(sent.model === 'gemini-3.5-flash-lite' && /NOTES:/.test(sent.sys) && /\[parallax\] /.test(sent.sys) && /Question: What is the capital of France\?$/.test(sent.prompt), 'Gemini gets the notes as its instruction and the question last');
+  const sent = await page.evaluate(() => ({ model: window.__ai && window.__ai.model, thinking: window.__ai && window.__ai.generationConfig && window.__ai.generationConfig.thinkingConfig && window.__ai.generationConfig.thinkingConfig.thinkingLevel, sys: window.__ai && window.__ai.systemInstruction, prompt: window.__prompt, key: window.__siteKey, check: window.__appCheck }));
+  ok(sent.model === 'gemini-3.5-flash' && sent.thinking === 'LOW' && /NOTES:/.test(sent.sys) && /\[parallax\] /.test(sent.sys) && /Question: What is the capital of France\?$/.test(sent.prompt), 'Gemini gets the notes as its instruction and the question last');
   ok(sent.check === true && /^6L/.test(sent.key || ''), 'App Check is set up with the Fraud Defense site key');
   await ask(page, 'How does parallax work?'); await page.waitForTimeout(200);
   { const a = await lastAnswer(page); ok(a && a.id === 'parallax', 'a question the notes cover still gets the hand-checked answer'); }

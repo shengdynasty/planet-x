@@ -41,7 +41,7 @@ Everything below works on macOS, Linux and Windows (use `py` instead of `python3
 
 ### Helper AI: Firebase project
 
-The helper's Gemini answers come from the Firebase project `planet-x-spherex` (no-cost Spark plan, Gemini Developer API, model `gemini-3.5-flash-lite`), set up in `app/js/assistant/gemini.js`. The web config and the reCAPTCHA Enterprise site key in that file are public by design. App Check uses Fraud Defense (formerly reCAPTCHA Enterprise) with a key for `shengdynasty.github.io` and `localhost`; it is registered but not enforced yet, and Firebase enforces it for AI Logic on 21 January 2027. Enforce it earlier in the Firebase console (App Check, APIs, Firebase AI Logic) once its metrics show verified requests from the hosted copy.
+The helper's Gemini answers come from the Firebase project `planet-x-spherex` (no-cost Spark plan, Gemini Developer API, model `gemini-3.5-flash` with low thinking), set up in `app/js/assistant/gemini.js`. The web config and the reCAPTCHA Enterprise site key in that file are public by design. App Check uses Fraud Defense (formerly reCAPTCHA Enterprise) with a key for `shengdynasty.github.io` and `localhost`; it is registered but not enforced yet, and Firebase enforces it for AI Logic on 21 January 2027. Enforce it earlier in the Firebase console (App Check, APIs, Firebase AI Logic) once its metrics show verified requests from the hosted copy.
 
 - Only questions the knowledge base has no entry for are sent, and only their text; the SDK loads from Google's CDN on the first such question, never on page load.
 - `?ai=off` switches Gemini off; it is also off under browser automation, so the test suites stay offline, and `?ai=on` forces it on there.
