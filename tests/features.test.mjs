@@ -64,7 +64,6 @@ for (const MODE of MODES.length ? MODES : ['advanced', 'simple']) {
   await T('A6', 'Go-to box: shown in Advanced, hidden in Simple', async () => (await vis('#goto-in')) === !simple);
   await T('A7', 'RA/Dec readout: shown in Advanced, hidden in Simple', async () => (await vis('#readout')) === !simple);
   await T('A8', 'Grid and Tracks buttons: shown in Advanced, hidden in Simple', async () => (await vis('#grid')) === !simple && (await vis('#tracks')) === !simple);
-  await T('A9', 'Moving Sky demo link resolves', async () => { const h = await pg.getAttribute('#moving-sky-link', 'href'); const r = await ctx.request.get(new URL(h, BASE).href); return r.status() === 200; });
   await T('A10', 'Help sheet opens with the mode\'s text and closes with Esc', async () => {
     await pg.click('#help'); await W(500); const sh = await vis('#sheet');
     const s = await vis('.simple-help'), a = await vis('.adv-help'); await pg.keyboard.press('Escape'); await W(400);
@@ -79,9 +78,9 @@ for (const MODE of MODES.length ? MODES : ['advanced', 'simple']) {
     return got === other;
   });
   await T('A13', 'Switching modes back and forth restores the original words', async () => {
-    const t0 = await pg.textContent('#moving-sky-link'); const other = simple ? 'advanced' : 'simple';
-    await pg.click(`#mode-switch [data-mode=${other}]`); await W(600); const t1 = await pg.textContent('#moving-sky-link');
-    await pg.click(`#mode-switch [data-mode=${MODE}]`); await W(600); const t2 = await pg.textContent('#moving-sky-link');
+    const t0 = await pg.textContent('#views [data-view=field]'); const other = simple ? 'advanced' : 'simple'; // Field / Close-up
+    await pg.click(`#mode-switch [data-mode=${other}]`); await W(600); const t1 = await pg.textContent('#views [data-view=field]');
+    await pg.click(`#mode-switch [data-mode=${MODE}]`); await W(600); const t2 = await pg.textContent('#views [data-view=field]');
     return t0 === t2 && t0 !== t1;
   });
 

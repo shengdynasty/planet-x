@@ -1,4 +1,4 @@
-// Detection, matching and per-pair analysis, lifted from artifacts/moving-sky and generalised to any Field.
+// Detection, matching and per-pair analysis, lifted from the Moving Sky demo (removed 2026-11-16, in git history) and generalised to any Field.
 // Pure: no DOM. Frames are treated as immutable, so results are cached per image / per field.
 import { fmtDt, fmtRate } from './format.js';
 

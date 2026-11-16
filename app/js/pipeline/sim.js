@@ -1,4 +1,5 @@
-// Simulated SPHEREx field, lifted from artifacts/moving-sky (same seeds, same arithmetic, same frames).
+// Simulated SPHEREx field, lifted from the Moving Sky demo (same seeds, same arithmetic, same frames; the demo page was
+// removed from the repository on 2026-11-16 and is in git history at 7f4695b).
 // Pure: no DOM. Frames are generated lazily and shared by every simulated Field, so re-centred copies
 // (data/getField in sim mode) reuse the same pixels and the detection caches keyed on them.
 

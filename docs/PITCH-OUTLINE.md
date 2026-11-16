@@ -75,7 +75,7 @@ Nine slides, drawn from `docs/WRITEUP.md`. Every number and claim here comes fro
 - **Supporting points:**
   - Real: SPHEREx exposures and flag planes from IRSA, JPL positions, Gaia DR3 stars, NASA Deep Star Maps backdrop, the pipeline on real frames
   - Saved: the hosted copy's six example fields and the known objects in them, frozen on the date shown
-  - Simulated: the scans and six movers when nothing real is available, the Moving Sky field, the model spectra on simulated data (real data gets measured spectra)
+  - Simulated: the scans and six movers when nothing real is available, the model spectra on simulated data (real data gets measured spectra)
   - We claim no discoveries.
 - **Visual:** Three-column "Real / Saved / Simulated" table.
 
@@ -86,4 +86,4 @@ Nine slides, drawn from `docs/WRITEUP.md`. Every number and claim here comes fro
   - Risks: three epochs is the minimum for an orbit fit, false positives, nothing fainter than 7σ, a body inside 1,500 AU leaves the cutout between passes
   - A first cross-field linker exists: it predicts where a vanished source reappears for 300–2,000 AU, builds those cutouts and found a planted counterpart at the true distance on real frames; the measured shift then gives a distance with an error bar (500 AU → 450–546 AU). Shift-and-stack across SPHEREx's three or four passes gains only 0.3–0.4 mag, so depth, not method, is the limit. Next: run the linker on every real vanished source, across many fields
   - Then: multi-epoch linking and orbit fits, calibrated spectra, a hosted data server for any position
-- **Visual:** Short roadmap line with three milestones. Close with team names `[Team member names]` and links: app https://shengdynasty.github.io/planet-x/, source https://github.com/shengdynasty/planet-x, Moving Sky https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b, `[Video link]`.
+- **Visual:** Short roadmap line with three milestones. Close with team names `[Team member names]` and links: app https://shengdynasty.github.io/planet-x/, source https://github.com/shengdynasty/planet-x, `[Video link]`.

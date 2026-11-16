@@ -36,7 +36,6 @@
     <input type="text" id="goto-in" enterkeyhint="go" placeholder="Go to RA, Dec or candidate" title="e.g. 16h06m, +41 or candidate 3. A bare RA below 24 is hours, 24 or more is degrees (as in the Field centre box)" aria-label="Go to RA and Dec, or a candidate number">
   </form>
   <div id="spacer"></div>
-  <a class="glass" id="moving-sky-link" href="../artifacts/moving-sky/index.html">Moving Sky demo</a>
   <div id="source-badge" class="glass" data-mode="sim" title="Simulated data"><i aria-hidden="true"></i><span id="source-text">Simulated data</span></div>
   <div id="readout" class="glass">
     <span class="pos" aria-live="off">Looking at <b id="ra">RA 0h 00m</b> <b id="dec">Dec +00.0°</b></span>
@@ -101,8 +100,6 @@
       <li><b>Field</b>: analyse one patch of sky: align the epochs, subtract them or add them together, find what moved, and cross‑match it. Its vetting panel can show the selected source in DSS2, 2MASS and AllWISE images, with SIMBAD names, <!-- aladin-help --> and opens a one‑page follow‑up report for it (stamps, astrometry, predictions, data files) in a new tab. Its <i>Data releases</i> section names the SPHEREx release behind each pass, takes the name of a new release, and saves or opens a field as one file. Its <i>SPHEREx spectrum</i> section measures a star's brightness in every exposure that covers it, at the wavelength each one saw.</li>
       <li><b>Movers panel</b>: review candidates. Filter, sort and search the list, export it as CSV or JSON, and open a mover in Compare or Field.</li>
     </ul>
-    <h3>Moving Sky demo</h3>
-    <p><a class="sheet-link" id="moving-sky-sheet-link" href="../artifacts/moving-sky/index.html">Open SPHEREx Moving Sky</a>: the flagging pipeline step by step on one simulated field, with blink, difference and track views and a vetting panel for each flag.</p>
     <h3>Simulated, saved or live</h3>
     <p>The badge in the top bar says where the data comes from. <b>Simulated data</b> means placeholder scans and movers made up for the demo; <b>Saved SPHEREx data</b> means real SPHEREx images, JPL known objects and Gaia stars for the six example targets, saved from IRSA on the date in the badge’s tooltip and analysed in your browser (no server, so only those targets); <b>Live · SPHEREx</b> means real SPHEREx images fetched from IRSA through the local server for any position, cross‑matched against JPL’s small‑body catalogue.</p>
     <h3>Shortcuts</h3>

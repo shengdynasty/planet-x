@@ -32,7 +32,6 @@ below SPHEREx's single-exposure depth, which is the honest answer the challenge 
 - App (live, no install): https://shengdynasty.github.io/planet-x/
 - Source, MIT licence: https://github.com/shengdynasty/planet-x
 - Technical write-up: https://github.com/shengdynasty/planet-x/blob/main/docs/WRITEUP.md
-- Pipeline demo on a simulated field (SPHEREx Moving Sky): https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b
 
 ## Detailed project description
 

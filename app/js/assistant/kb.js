@@ -106,7 +106,7 @@ export const ENTRIES = [
     id: 'real-sim',
     q: ['What is real and what is simulated?', 'Is anything here made up?'],
     keys: ['simulation', 'fake', 'placeholder', 'model', 'made'],
-    text: 'Real: SPHEREx exposures and their pipeline flags, JPL known objects, Gaia DR3 stars and the sky backdrop, with the server running, and for the six example targets saved in the repository. Simulated: without the server or the saved fields, the scans, the movers in the review panel and the Field view’s field, all labelled Simulated data. Spectra on real data are measured from the SPHEREx exposures; on simulated data, and in Moving Sky, they are models.',
+    text: 'Real: SPHEREx exposures and their pipeline flags, JPL known objects, Gaia DR3 stars and the sky backdrop, with the server running, and for the six example targets saved in the repository. Simulated: without the server or the saved fields, the scans, the movers in the review panel and the Field view’s field, all labelled Simulated data. Spectra on real data are measured from the SPHEREx exposures; on simulated data they are models.',
     plain: 'The telescope pictures for the six example places are real. Anything marked practice data is made up for the demo. On real photos the colour charts (spectra) are measured; on practice data they are drawings.',
     sources: [SRC.real],
   },

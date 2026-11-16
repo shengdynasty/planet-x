@@ -18,7 +18,7 @@ A glowing chat bubble in the bottom-left corner opens a small helper that answer
 |---|---|
 | `app/` | The web app: 3D sky on NASA's Deep Star Maps, candidate review panel, Compare (wipe/difference/blink), and Field analysis (the detection pipeline on a patch of sky). Plain ES modules, no build step. Contracts: [`app/ARCHITECTURE.md`](app/ARCHITECTURE.md). |
 | `server/` | Optional local Node server (no npm deps) that pulls **real SPHEREx exposures** from NASA/IPAC IRSA and known objects from JPL. See [`server/README.md`](server/README.md). |
-| `artifacts/` | The two original single-file demos (UI demo, Moving Sky), kept as published snapshots. |
+| `artifacts/` | The original single-file UI demo, kept as a published snapshot. |
 | `docs/` | Project write-up and pitch outline. |
 | `tests/`, `qa/` | Unit and headless-browser tests. |
 
@@ -150,7 +150,7 @@ Rules of thumb: anything simulated must say so in the UI (`simulated: true` flow
 Run the relevant suite before you push. Node-only suites take seconds; browser suites need Chrome and take a minute or two each (longer on a machine without a GPU: Chrome renders the sky in software). Don't run two browser suites at the same time. Each browser suite serves the repo itself on a port in 8101–8109 and refuses to reuse a server there that serves different files, so a forgotten `http.server` from another checkout can't make it test the wrong code. The server is python's `http.server`: on Windows the suites start it with `py -3` or `python` (the `python3` there is the Store stub); `PLANETX_PYTHON="py -3"` (or a path to `python.exe`) picks the interpreter on any platform.
 
 ```sh
-node tests/pipeline.test.mjs                        # detection pipeline (also checks parity with Moving Sky)
+node tests/pipeline.test.mjs                        # detection pipeline (also checks parity with the original demo's frozen results)
 PLANETX_OFFLINE=1 node --test tests/data.test.mjs   # data module; drop PLANETX_OFFLINE to hit IRSA for real
 node --test tests/injection.test.mjs                # injection-recovery on the saved real fields (Node, seconds)
 node scripts/injection-recovery.mjs [--clear-gaia]  # the full recovery tables behind docs/WRITEUP.md
@@ -176,7 +176,6 @@ node tests/spectrum-browser.test.mjs                # the spectrum panel as the 
 node --test tests/releases-server.test.mjs          # typed releases on the server against a stand-in IRSA (Node, offline)
 node tests/releases-browser.test.mjs                # save a field on one page, open it on a fresh one with no server (browser)
 node tests/live.test.mjs                            # live mode against :8787          (browser, needs a data server)
-node qa/moving-sky.test.mjs                         # Moving Sky demo                   (browser)
 ```
 
 `PLANETX_SERVER=http://localhost:8790 node tests/live.test.mjs` runs the live suite against another server, e.g. the FastAPI one.

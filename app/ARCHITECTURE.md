@@ -1,6 +1,6 @@
 # Planet X app — architecture and module contracts
 
-One app that merges the two demos (`artifacts/ui-demo`, `artifacts/moving-sky`) in the **UI demo's look**:
+One app that merged the two original demos (`artifacts/ui-demo`, and the Moving Sky demo, removed from the repository on 2026-11-16) in the **UI demo's look**:
 strictly black / white / grey UI (tokens in `app/css/base.css`), Inter, glass HUD panels over a full-bleed sky;
 only imagery (sky, cutouts, field images, spectra) has colour. Dark and light themes, phone width ≥ 360px.
 
@@ -58,7 +58,7 @@ Views show/hide themselves from `store.on('view', …)`; the shell owns the top-
 ## Pipeline API (field agent → used by field view, data)
 
 `app/js/pipeline/index.js` exports pure functions (also importable from Node for tests):
-- `simulateField(opts?) → Field` — the Moving Sky simulated field (stars, asteroid, slow mover ~500 AU, variable, spike), byte-for-byte the same results as `artifacts/moving-sky` on main.
+- `simulateField(opts?) → Field` — the Moving Sky simulated field (stars, asteroid, slow mover ~500 AU, variable, spike), byte-for-byte the same results as the Moving Sky demo (frozen in `tests/fixtures/moving-sky-analyse.json`).
 - `analyse(field, ia, ib) → Result[]` — same semantics and output as Moving Sky's `analyse` (kinds: cand, known, var, art, left), cached per frame.
 - `stats(img)`, `detect(img, k)`, `diff(field, ia, ib)`, `maxStack(field, band, ia, ib)`, `meanStack(field, band | null, ia, ib)` (the passes added together: inverse-variance weighted mean of sky-subtracted frames, every wavelength when `band` is null; `n`, `bands`, `nEff` = (Σw)²/Σw², `gain` = √nEff the expected noise reduction, `gainMad` the measured drop in robust scatter, a diagnostic only), `radec(field, x, y)`, `fmtDt`, `fmtRate`, `spectrum(kind)`.
 `Field` and `Candidate` shapes: `app/js/core/types.js`.

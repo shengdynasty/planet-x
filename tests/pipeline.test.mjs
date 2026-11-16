@@ -1,6 +1,6 @@
 // Pipeline parity + API tests. Plain Node, no browser:  node tests/pipeline.test.mjs   (from the repo root)
-// The fixture tests/fixtures/moving-sky-analyse.json was dumped from artifacts/moving-sky/index.html via its
-// #test hook (regenerate with: node tests/fixtures/make-moving-sky-fixture.mjs).
+// The fixture tests/fixtures/moving-sky-analyse.json was dumped from the Moving Sky demo (artifacts/moving-sky/index.html,
+// removed from the repository on 2026-11-16, in git history at 7f4695b) via its #test hook; it stays as the frozen reference.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

@@ -11,7 +11,7 @@
 #title { font-size: 13px; font-weight: 500; color: #f2f2f2; margin: 0; white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 /* one control height across the top bar */
 @media (min-width: 861px) {
-  #views, #goto input, #moving-sky-link, #source-badge, #readout, #help { height: 32px; }
+  #views, #goto input, #source-badge, #readout, #help { height: 32px; }
   #help { width: 32px; }
   #views button, #readout button { height: 26px; padding-block: 0; }
   #goto input { padding-block: 0; }
@@ -20,9 +20,7 @@
 /* the home link is a real target: control height, padded sideways (the left padding hangs into the bar's margin, so the text stays put) */
 #title a { color: inherit; text-decoration: none; border-radius: 4px; display: inline-flex; align-items: center; min-height: 32px; padding: 0 6px; margin-left: -6px; }
 #title a:not([href]) { cursor: default; }
-#title a:focus-visible, #moving-sky-link:focus-visible, .sheet-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-#moving-sky-link { display: inline-flex; align-items: center; height: 32px; padding: 0 10px; border-radius: 7px; font-size: 12px; color: var(--ink); text-decoration: none; white-space: nowrap; }
-#moving-sky-link:hover { border-color: var(--ink-3); }
+#title a:focus-visible, .sheet-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 #sheet .sheet-link { color: var(--ink); }
 #views { padding: 2px; border-radius: 8px; }
 #goto { flex: 1; max-width: 300px; display: flex; gap: 6px; margin: 0; }
@@ -138,13 +136,10 @@ body:not([data-view="sky"]) #top::before { content: ""; position: fixed; left: 0
 
 /* ---------- tablets and phones ---------- */
 #mobile-toggle { display: none; }
-/* the top bar runs out of room below ~1200px on the sky view; the link stays in the ? sheet */
-@media (max-width: 1200px) { body[data-view="sky"] #moving-sky-link { display: none; } }
 /* below ~1040px the go-to box would be squeezed too narrow to use; as on phones, the panel and markers remain */
 @media (max-width: 1040px) { #goto { display: none; } }
 @media (max-width: 860px) {
   #goto { display: none; }
-  #moving-sky-link { display: none; }
   #readout { padding: 2px; }
   /* position readout: a line of its own under the Grid/Tracks pill (its containing block: backdrop-filter), on the dark sky */
   #readout .pos { position: absolute; right: 2px; top: calc(100% + 8px); white-space: nowrap; font-size: 12px; color: #b4b4b4; text-shadow: 0 1px 3px rgba(0,0,0,.9); pointer-events: none; }

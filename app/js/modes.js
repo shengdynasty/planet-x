@@ -17,7 +17,6 @@ export const EXACT = {
   // top bar
   'Compare': 'Compare',
   'Field': 'Close-up',
-  'Moving Sky demo': 'Watch a demo',
   'Simulated data': 'Practice data',
   'Saved SPHEREx data': 'Real telescope photos',
   'Live · SPHEREx': 'Live telescope photos',

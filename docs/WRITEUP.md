@@ -4,7 +4,7 @@ NASA Space Apps Challenge 2026 entry for the challenge "Planet X and SPHEREx".
 
 ## Summary
 
-NASA Planet X is a tool for searching SPHEREx's repeated infrared maps of the sky for the one thing a distant, unknown planet cannot hide: parallax. SPHEREx looks close to 90° from the Sun, so the two passes it makes over any patch six months apart see it from opposite sides of Earth's orbit, a 2 AU baseline. A body at 500 AU jumps 825″ between those passes, and within a single pass, where the same patch is re-imaged 1–18 days apart, it drifts 7″ a day. For a chosen patch the app collects SPHEREx exposures from every pass, pairs them at matching wavelength, flags sources that shift, appear or vanish against the fixed stars, and checks each flag against JPL's known asteroids and comets and Gaia DR3's stars. Whatever is left is a candidate for a person to vet. The product is one browser app with three views (Sky, Compare, Field) and a review panel, set on NASA's Deep Star Maps 2020 all-sky image. A local server feeds it real SPHEREx exposures from NASA/IPAC IRSA and known objects from JPL; without it, the hosted copy shows real saved frames for six example targets, and the simulation is used only where it says so. The detector was measured by planting synthetic movers into real frames. A separate technical demo, Moving Sky, runs the detection logic on a simulated field. Nothing in this entry is a detection.
+NASA Planet X is a tool for searching SPHEREx's repeated infrared maps of the sky for the one thing a distant, unknown planet cannot hide: parallax. SPHEREx looks close to 90° from the Sun, so the two passes it makes over any patch six months apart see it from opposite sides of Earth's orbit, a 2 AU baseline. A body at 500 AU jumps 825″ between those passes, and within a single pass, where the same patch is re-imaged 1–18 days apart, it drifts 7″ a day. For a chosen patch the app collects SPHEREx exposures from every pass, pairs them at matching wavelength, flags sources that shift, appear or vanish against the fixed stars, and checks each flag against JPL's known asteroids and comets and Gaia DR3's stars. Whatever is left is a candidate for a person to vet. The product is one browser app with three views (Sky, Compare, Field) and a review panel, set on NASA's Deep Star Maps 2020 all-sky image. A local server feeds it real SPHEREx exposures from NASA/IPAC IRSA and known objects from JPL; without it, the hosted copy shows real saved frames for six example targets, and the simulation is used only where it says so. The detector was measured by planting synthetic movers into real frames. Nothing in this entry is a detection.
 
 ## The problem
 
@@ -59,7 +59,7 @@ It cannot find:
 
 ### 1. The Planet X app (main product)
 
-A full-screen browser app on NASA's Deep Star Maps 2020 all-sky image, with a strictly black, white and grey interface so that only the imagery carries colour. It works on phones and in light and dark themes. A badge in the top bar always says where the data comes from: *Live · SPHEREx* (the local server), *Saved SPHEREx data* (real frames for the six example targets, saved in the repository; what the hosted copy shows) or *Simulated data*. A homepage at the repository root leads into the app and the Moving Sky demo.
+A full-screen browser app on NASA's Deep Star Maps 2020 all-sky image, with a strictly black, white and grey interface so that only the imagery carries colour. It works on phones and in light and dark themes. A badge in the top bar always says where the data comes from: *Live · SPHEREx* (the local server), *Saved SPHEREx data* (real frames for the six example targets, saved in the repository; what the hosted copy shows) or *Simulated data*. A homepage at the repository root leads into the app.
 
 - **Sky view.** A 3D view of the whole sky. Drag to look around, scroll or pinch to zoom, toggle an RA/Dec grid, and turn on tracks that connect each mover's positions across scans. Zoomed in, the sky stays sharp: NASA's Deep Star Map 2020 is streamed as 512-pixel tiles at up to 182 pixels per degree, only the tiles on screen, over the 4k base image. A "Go to" box accepts coordinates or a candidate number. A scan timeline shows four all-sky scans about six months apart (the fourth shown as scheduled); Blink cycles through them.
 - **Compare view.** Two scans of the selected mover with a draggable wipe, a Difference overlay (left subtracted from right, so a mover shows up twice) and Blink.
@@ -70,14 +70,6 @@ A full-screen browser app on NASA's Deep Star Maps 2020 all-sky image, with a st
 ### 2. Local data server (optional)
 
 A small Node server (`server/index.mjs`, no dependencies) that does steps 1–3 and 7 of "How it works" on real data: it finds SPHEREx exposures in IRSA, matches wavelengths, downloads and aligns cutouts, and asks JPL which known objects are in the field. Detection itself runs in the browser, on the real frames. Results are cached on disk, so a field that took a few minutes the first time loads instantly afterwards.
-
-### 3. SPHEREx Moving Sky (pipeline demo)
-
-A standalone technical demo, now in the app's black, white and grey palette, that runs the detection logic on a simulated 320×320-pixel field near the ecliptic, at SPHEREx's 6.15″ pixel scale. The app's Field view uses the same pipeline and gives identical results on this field.
-
-- Eight observation epochs from minutes to a year apart, mostly at 0.95 µm, with one pass each at 1.62 µm and 3.29 µm to demonstrate the matched-wavelength rule.
-- Blink, Difference and Track (max-stack of same-wavelength passes) views, with Flags and Known-objects overlays.
-- A detections list (uncatalogued mover, known object, variable, artifact, left the field) and a vetting panel with position, peak above sky, displacement, a verdict, 15×15-pixel stamps and a model spectrum across 102 bands. The candidate's spectrum shows reflected sunlight with water-ice absorption at 1.5, 2.0 and 3 µm, which is why it fades in the 3.29 µm pass.
 
 ## What is real and what is simulated
 
@@ -116,8 +108,7 @@ What this says. Nothing below the 7σ bar is reported, by design, and a nominal 
 
 - Without the server, the app first looks for the **saved snapshots** in `app/data/snapshots/`: the server's real answer for the six example targets (SPHEREx frames and flag planes from IRSA, JPL's known objects, Gaia DR3 stars), saved on the date shown in the badge's tooltip. In that mode the badge reads *Saved SPHEREx data*, the scan timeline carries the home patch's real survey scans, the review panel lists the known objects JPL and Gaia put in those fields (16 Psyche among them), and the Examples menu and any position inside one of those fields show real data analysed in the browser; this is what the hosted copy on GitHub Pages shows. Any other position falls back to the simulation and says so in the Field header.
 - Without the server and without the snapshots (the claude.ai artifact links below, where outside network requests are blocked, or `?data=sim`): the scans, scan dates, all six movers in the review panel, their designations, positions, shifts, bands and notes, and the Field view's field. "Known asteroid" labels in this mode are illustrative, not real cross-matches. Slow movers' shifts are exaggerated in cutouts for visibility. The badge reads *Simulated data*.
-- In Moving Sky: the star field, the noise, the band response and the planted objects (a catalogued main-belt asteroid, a variable star, one faint, uncatalogued mover at about 500 AU with its orbital drift and the yearly parallax loop from Earth's orbit, which is the kind of signal Planet X would leave, and a single-pixel artifact). Its ephemeris is a stub.
-- Spectra on the simulated field and in Moving Sky are models. On real data the Field view measures them from the SPHEREx exposures (above), as relative brightness, not calibrated photometry.
+- Spectra on the simulated field are models. On real data the Field view measures them from the SPHEREx exposures (above), as relative brightness, not calibrated photometry.
 - With the server, the review panel lists only the known objects JPL predicts in a small home patch (often none); new movers enter it only when a reviewer adds them from the Field view.
 
 ## Limitations and risks
@@ -148,6 +139,5 @@ What this says. Nothing below the 7σ bar is reported, by design, and a nominal 
 
 - App (real saved SPHEREx data for six targets, no install): https://shengdynasty.github.io/planet-x/
 - Source, MIT licence: https://github.com/shengdynasty/planet-x
-- Moving Sky demo: https://claude.ai/artifact/MXRGaK88XENuCzXziVur9b
 - Earlier hosted copy of the app on claude.ai (simulation only; outside requests are blocked there): https://claude.ai/artifact/CJjpfU1iwqFTwNmdPZhdKW
 - Video: [Video link]

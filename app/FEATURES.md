@@ -4,7 +4,7 @@ Every feature below has an automated check in `tests/features.test.mjs`, run onc
 app as the hosted copy shows it (saved SPHEREx data, no live server), on the shared browser harness (`tests/browser.mjs`: any machine
 with Chrome; `node tests/features.test.mjs`, about six minutes; `--md` prints these tables). The rule is strict: a check passes only by
 returning true; a string is a failure note; a Simple-mode control that is meant to be hidden counts as *hidden by design* only after
-the check confirms it is hidden. Last full run (16 Nov 2026, main at 8f684a3 plus this test): Advanced 74/74, Simple 69/74 with the
+the check confirms it is hidden. Last full run (16 Nov 2026, after the Moving Sky demo was removed): Advanced 73/73, Simple 68/73 with the
 other 5 hidden by design, no failures. The tables below are what that run printed.
 
 **Modes.** *Advanced* is the app as built, with the technical terms. *Simple* keeps every view but uses plain words, hides coordinate and survey controls, and has its own help text. Advanced is the default; switch in the top bar, the choice is remembered, and `?mode=simple|advanced` overrides it for a shared link.
@@ -21,7 +21,6 @@ other 5 hidden by design, no failures. The tables below are what that run printe
 | A6 | Go-to box: shown in Advanced, hidden in Simple | pass | pass |
 | A7 | RA/Dec readout: shown in Advanced, hidden in Simple | pass | pass |
 | A8 | Grid and Tracks buttons: shown in Advanced, hidden in Simple | pass | pass |
-| A9 | Moving Sky demo link resolves | pass | pass |
 | A10 | Help sheet opens with the mode's text and closes with Esc | pass | pass |
 | A11 | Help sheet closes with its ✕ button | pass | pass |
 | A12 | Mode choice is remembered after reload | pass | pass |
@@ -117,7 +116,6 @@ other 5 hidden by design, no failures. The tables below are what that run printe
 
 - **Live server mode** (any position via IRSA through a local server): needs the server and network; without it the app uses saved or simulated data.
 - **Aladin survey layers** (DSS2, 2MASS, AllWISE in the Field vetting panel, and `?sky=`): load from a third-party CDN, so not checked offline.
-- **Moving Sky demo contents**: only its link is checked; it is a separate page.
 - **Touch gestures** (pinch): the mouse equivalents are checked.
 - **Measured spectra** (the Field view's SPHEREx spectrum section, the vetting panel's Spectrum button): covered by `tests/spectrum.test.mjs`, `tests/spectrum-server.test.mjs` and `tests/spectrum-browser.test.mjs`, not by this run.
 - **Data releases and field files** (the Field view's release labels, typed-in releases, Save / Open field file): covered by `tests/releases.test.mjs`, `tests/releases-server.test.mjs` and `tests/releases-browser.test.mjs`, not by this run.

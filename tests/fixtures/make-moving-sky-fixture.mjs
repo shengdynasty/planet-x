@@ -1,4 +1,6 @@
 // One-off: regenerate tests/fixtures/moving-sky-analyse.json from artifacts/moving-sky/index.html (the reference demo).
+// The demo page was removed from the repository on 2026-11-16; restore it first with
+//   git show 7f4695b:artifacts/moving-sky/index.html > artifacts/moving-sky/index.html   (mkdir -p artifacts/moving-sky)
 // Usage (repo root):  node tests/fixtures/make-moving-sky-fixture.mjs
 // Loads the page headlessly with its #test hook (window.__ms) and records analyse() for every ordered
 // same-wavelength epoch pair. tests/pipeline.test.mjs asserts app/js/pipeline reproduces this exactly.
