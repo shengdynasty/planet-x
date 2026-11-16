@@ -101,6 +101,12 @@ console.log('desktop 1440×900, dark');
 console.log('phone 390×844, light, reduced motion');
 {
   const { ctx, page, errors } = await open({ width: 390, height: 844, scheme: 'light', mobile: true, reduced: true });
+  if (await page.locator('#mobile-toggle').isVisible()) { // the movers sheet opens over the bottom of the sky, where the bubble sits
+    await page.tap('#mobile-toggle'); await page.waitForTimeout(400);
+    ok(await page.evaluate(() => document.body.classList.contains('panel-open')) && !(await page.isVisible('#ask')), 'phone: the bubble steps aside while the movers sheet is open (it would cover the last row)');
+    await page.tap('#mobile-toggle'); await page.waitForTimeout(400);
+    ok(!(await page.evaluate(() => document.body.classList.contains('panel-open'))) && await page.isVisible('#ask'), 'phone: the bubble is back when the sheet closes');
+  }
   const b = await page.locator('#ask').boundingBox();
   ok(b && b.width >= 40 && b.height >= 40 && b.x + b.width <= 390, `Ask button is a ≥ 40 px tap target on screen (${b && Math.round(b.width)}×${b && Math.round(b.height)})`);
   await page.tap('#ask'); await page.waitForTimeout(100);
@@ -118,6 +124,13 @@ console.log('phone 390×844, light, reduced motion');
   await page.screenshot({ path: path.join(SHOTS, 'phone-light.png') });
   await page.locator('#assistant .as-a').last().locator('button', { hasText: 'Barnard' }).tap(); await page.waitForTimeout(300);
   ok(await page.evaluate(() => window.__px.get('view')) === 'field' && !(await page.isVisible('#assistant')), 'on a phone an action closes the panel to show the view');
+  await page.waitForFunction(() => { const s = document.getElementById('view-field').__fv?.state; return s && s.field; }, null, { timeout: 30000 }).catch(() => {});
+  await page.click('#view-field [data-act="speccentre"]').catch(() => {}); await page.waitForTimeout(500); // a spectrum adds the CSV button, the panel's last control
+  { const c = await page.evaluate(() => {
+      const fv = document.getElementById('view-field'); fv.scrollTop = fv.scrollHeight;
+      const kids = [...fv.querySelectorAll('.fv-side button, .fv-side a, .fv-side svg, .fv-side p')].filter(el => { const r = el.getBoundingClientRect(); return r.width && r.height && getComputedStyle(el).visibility !== 'hidden'; });
+      return { end: Math.round(Math.max(...kids.map(el => el.getBoundingClientRect().bottom))), top: Math.round(document.getElementById('ask').getBoundingClientRect().top) }; });
+    ok(c.end <= c.top, `phone: the Field view's last controls scroll clear of the bubble (content ends at ${c.end}, bubble top ${c.top})`); }
   ok(errors.length === 0, `no page errors (${errors.join(' | ')})`);
   await ctx.close();
 }

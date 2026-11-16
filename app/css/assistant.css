@@ -64,4 +64,10 @@ body[data-mode="simple"] .as-msg { font-size: 14px; }
   .as-msg { font-size: 14px; }
   .as-form input { font-size: 16px; } /* no zoom on focus in iOS Safari */
 }
+/* Below 860 px the Field view scrolls as one page and the bubble sits over its end: room after the last control
+   (bubble 56 px + 16 px from the edge + a gap) so it scrolls clear instead of staying under the bubble. */
+@media (max-width: 860px) { .fv .fv-side { padding-bottom: 88px; } }
+/* In portrait below 860 px the movers list opens as a sheet over the bottom of the sky, where the bubble sits: the
+   bubble steps aside until the sheet closes (unless the helper itself is open). In landscape the list docks right. */
+@media (max-width: 860px) and (orientation: portrait) { body.panel-open[data-view="sky"] .as-fab:not([aria-expanded="true"]) { display: none; } }
 @media (prefers-reduced-motion: reduce) { .as-fab { animation: none; transition: none; } #assistant > * { animation: none !important; } .as-log { scroll-behavior: auto; } }
