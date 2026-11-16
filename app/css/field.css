@@ -103,6 +103,13 @@
   .fv-stage { width: 100%; }
   .fv-side { border-left: 0; border-top: 1px solid var(--edge); overflow: visible; padding: 16px; }
   .fv-keys { display: none; }
+  /* phone: the answer first. What was found, then its vetting card and spectrum, come right under the picture; the pickers, release box and request form after. */
+  .fv-side > .fv-found { order: -4; }
+  .fv-side > .fv-vet { order: -3; }
+  .fv-side > .fv-specsec { order: -2; }
+  .fv-top h2 { white-space: nowrap; }
+  .fv-pill { grid-column: 1 / -1; grid-row: auto; justify-self: start; max-width: 100%; }
+  .fv-dets li { padding-block: 10px; }
 }
 @media (max-width: 640px), (pointer: coarse) {
   .fv-stage { aspect-ratio: auto; overflow: visible; border: 0; background: transparent; }

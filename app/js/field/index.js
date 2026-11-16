@@ -125,7 +125,7 @@ const TEMPLATE = `
       <p class="fv-note fv-exnote" data-ref="exnote" hidden></p>
       <p class="fv-note" data-ref="livenote"></p>
     </section>
-    <section>
+    <section class="fv-found">
       <h3 data-ref="dethead">Flagged sources</h3>
       <ul class="fv-dets" data-ref="dets"></ul>
     </section>
