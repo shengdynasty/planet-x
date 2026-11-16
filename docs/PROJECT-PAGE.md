@@ -124,4 +124,4 @@ from it by our code. The same disclosure is in the README credits.
 
 ## Team
 
-Sheng Yan, Aaryan Jain, Arko Ganguly, Nidhish Senthilkumar, Tejas Konduru
+Sheng Yan, Aaryan Jain, Arko Ganguly, Nidhish Senthilkumar, Tejas Konduru, Hardik Jain

@@ -133,7 +133,7 @@ What this says. Nothing below the 7σ bar is reported, by design, and a nominal 
 
 ## Team
 
-Sheng Yan, Aaryan Jain, Arko Ganguly, Nidhish Senthilkumar, Tejas Konduru
+Sheng Yan, Aaryan Jain, Arko Ganguly, Nidhish Senthilkumar, Tejas Konduru, Hardik Jain
 
 ## Links
 

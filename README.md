@@ -195,4 +195,4 @@ node tests/live.test.mjs                            # live mode against :8787   
 - Run-time libraries, loaded from public CDNs and not part of this repository: three.js (MIT) and Aladin Lite (CDS, GPL/LGPL).
 - Licence: the team's code, tests and documentation are released under the MIT License (see `LICENSE`). It does not cover the data, imagery and libraries above, which keep their own terms and credits; the saved SPHEREx fields in `app/data/snapshots/` are derived from the IRSA, JPL and Gaia data and carry the same provenance. The sky imagery is used under NASA's media usage guidelines, with no NASA endorsement implied.
 - AI assistance: the code, tests and documentation in this repository were written with Claude (Anthropic) as a coding assistant, working from the team's direction and reviewed, run and verified by the team. The science choices, data sources, test results and conclusions are the team's.
-- Team: Sheng Yan, Aaryan Jain, Arko Ganguly, Nidhish Senthilkumar, Tejas Konduru
+- Team: Sheng Yan, Aaryan Jain, Arko Ganguly, Nidhish Senthilkumar, Tejas Konduru, Hardik Jain
